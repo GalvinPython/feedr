@@ -229,7 +229,7 @@ const commands: Record<string, Command> = {
 			// Add the guild to the database
 			if (await addNewGuildToTrackChannel(guildId, youtubeChannelId, discordChannelId, interaction.options.get('role')?.value as string ?? null)) {
 				const channelIdInfo = await client.channels.fetch(discordChannelId);
-				if (channelIdInfo && channelIdInfo.type === ChannelType.GuildText) {
+				if (channelIdInfo && (channelIdInfo.type === ChannelType.GuildText || channelIdInfo.type === ChannelType.GuildAnnouncement)) {
 					const youtubeChannelInfo = await getChannelDetails(youtubeChannelId)
 
 					await interaction.followUp({
