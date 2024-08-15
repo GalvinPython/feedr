@@ -2,7 +2,7 @@
   "name": "videonotifier",
   "module": "src/index.ts",
   "type": "module",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "devDependencies": {
     "@types/bun": "1.1.6"
   },

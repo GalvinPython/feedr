@@ -173,7 +173,7 @@ const commands: Record<string, Command> = {
 
 			// Check if the bot has the required permissions for the target channel
 			const targetChannel = await client.channels.fetch(discordChannelId);
-			if (targetChannel && targetChannel.type === ChannelType.GuildText) {
+			if (targetChannel && (targetChannel.type === ChannelType.GuildText || targetChannel.type === ChannelType.GuildAnnouncement)) {
 				const botPermissions = targetChannel.permissionsFor(client.user?.id as unknown as GuildMember);
 				if (
 					!botPermissions?.has(PermissionFlagsBits.ViewChannel) ||
