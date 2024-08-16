@@ -63,10 +63,10 @@ export default async function fetchLatestUploads() {
 						}
 
 						await (channelObj as TextChannel).send({
-							content: guild.guild_ping_role && channelInfo ? `<@&${guild.guild_ping_role}> New video uploaded for ${channelInfo?.channelName}! https://www.youtube.com/watch?v=${videoId}` : 
+							content: guild.guild_ping_role && channelInfo ? `<@&${guild.guild_ping_role}> New video uploaded for ${channelInfo?.channelName}! https://www.youtube.com/watch?v=${videoId}` :
 								guild.guild_ping_role ? `<@&${guild.guild_ping_role}> New video uploaded! https://www.youtube.com/watch?v=${videoId}` :
-								channelInfo ? `New video uploaded for ${channelInfo.channelName}! https://www.youtube.com/watch?v=${videoId}` :
-								`New video uploaded! https://www.youtube.com/watch?v=${videoId}`
+									channelInfo ? `New video uploaded for ${channelInfo.channelName}! https://www.youtube.com/watch?v=${videoId}` :
+										`New video uploaded! https://www.youtube.com/watch?v=${videoId}`
 						});
 					} catch (error) {
 						console.error("Error fetching or sending message to channel in fetchLatestUploads:", error);

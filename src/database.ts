@@ -14,7 +14,7 @@ export async function initTables(): Promise<boolean> {
 	const createYouTubeTable = `
 		CREATE TABLE IF NOT EXISTS youtube (
 			youtube_channel_id VARCHAR(255) NOT NULL PRIMARY KEY,
-			latest_video_id VARCHAR(255) NOT NULL UNIQUE
+			latest_video_id VARCHAR(255) UNIQUE
 		);
 	`;
 	const createDiscordTable = `
@@ -71,7 +71,7 @@ export async function addNewChannelToTrack(channelId: string) {
 	}
 
 	const data = await res.json();
-	const videoId = data.items[0].snippet.thumbnails.default.url.split('/')[4];
+	const videoId = data.items?.[0]?.snippet?.thumbnails?.default?.url?.split('/')[4] || null;
 
 	const query = `INSERT INTO youtube (youtube_channel_id, latest_video_id) VALUES (?, ?)`;
 	return new Promise<boolean>((resolve, reject) =>

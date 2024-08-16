@@ -27,3 +27,13 @@ Feedr strives for constant improvement, so here's what will be implemented
 * Embed Links
 * Attach Files
 * Add Reactions
+
+# Changelog
+## 1.1.0
+* Replies are no longer deferred
+* Messages can now be sent in Announcement channels [1.0.3]
+* Better checking for valid YouTube channel IDs
+* Channels with no uploads will be tracked now
+
+## 1.0.0
+* Initial release
