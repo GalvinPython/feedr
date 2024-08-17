@@ -148,10 +148,14 @@ const commands: Record<string, Command> = {
 			const discordChannelId = interaction.options.get('updates_channel')?.value as string;
 			const guildId = interaction.guildId;
 
-			// Deferring the reply is not the best practice,
-			// but in case the network/database is slow, it's better to defer the reply
-			// so we don't get a timeout error
-			await interaction.deferReply();
+			// Check that the channel ID is in a valid format
+			if (youtubeChannelId.length != 24 || !youtubeChannelId.startsWith('UC')) {
+				await interaction.reply({
+					ephemeral: true,
+					content: 'Invalid YouTube channel ID format!',
+				});
+				return;
+			}
 
 			// DMs are currently not supported, so throw back an error
 			if (!guildId || interaction.channel?.isDMBased()) {
@@ -173,24 +177,28 @@ const commands: Record<string, Command> = {
 
 			// Check if the bot has the required permissions for the target channel
 			const targetChannel = await client.channels.fetch(discordChannelId);
-			if (targetChannel && targetChannel.type === ChannelType.GuildText) {
+			if (targetChannel && (targetChannel.type === ChannelType.GuildText || targetChannel.type === ChannelType.GuildAnnouncement)) {
+				const requiredPermissions = [
+					{ flag: PermissionFlagsBits.ViewChannel, name: 'View Channel' },
+					{ flag: PermissionFlagsBits.SendMessages, name: 'Send Messages' },
+					{ flag: PermissionFlagsBits.SendMessagesInThreads, name: 'Send Messages in Threads' },
+					{ flag: PermissionFlagsBits.EmbedLinks, name: 'Embed Links' },
+					{ flag: PermissionFlagsBits.AttachFiles, name: 'Attach Files' },
+					{ flag: PermissionFlagsBits.AddReactions, name: 'Add Reactions' }
+				];
 				const botPermissions = targetChannel.permissionsFor(client.user?.id as unknown as GuildMember);
-				if (
-					!botPermissions?.has(PermissionFlagsBits.ViewChannel) ||
-					!botPermissions?.has(PermissionFlagsBits.SendMessages) ||
-					!botPermissions?.has(PermissionFlagsBits.SendMessagesInThreads) ||
-					!botPermissions?.has(PermissionFlagsBits.EmbedLinks) ||
-					!botPermissions?.has(PermissionFlagsBits.AttachFiles) ||
-					!botPermissions?.has(PermissionFlagsBits.AddReactions)
-				) {
-					await interaction.followUp({
+				const missingPermissions = requiredPermissions
+					.filter(permission => !botPermissions?.has(permission.flag))
+					.map(permission => permission.name);
+				if (missingPermissions.length > 0) {
+					await interaction.reply({
 						ephemeral: true,
-						content: 'The bot does not have the required permissions for the target channel!',
+						content: `The bot does not have the required permissions for the target channel! Missing permissions: ${missingPermissions.join(', ')}`,
 					});
 					return;
 				}
 			} else {
-				await interaction.followUp({
+				await interaction.reply({
 					ephemeral: true,
 					content: 'The target channel is not a text channel!',
 				});
@@ -199,16 +207,16 @@ const commands: Record<string, Command> = {
 
 			// Check if the channel is valid
 			if (!await checkIfChannelIdIsValid(youtubeChannelId)) {
-				await interaction.followUp({
+				await interaction.reply({
 					ephemeral: true,
-					content: 'Invalid YouTube channel ID!',
+					content: 'That channel doesn\'t exist!',
 				});
 				return;
 			}
 
 			// Check if the channel is already being tracked in the guild
 			if (await checkIfGuildIsTrackingChannelAlready(youtubeChannelId, guildId)) {
-				await interaction.followUp({
+				await interaction.reply({
 					ephemeral: true,
 					content: 'This channel is already being tracked!',
 				});
@@ -218,7 +226,7 @@ const commands: Record<string, Command> = {
 			// Check if the channel is already being tracked globally
 			if (!await checkIfChannelIsAlreadyTracked(youtubeChannelId)) {
 				if (!await addNewChannelToTrack(youtubeChannelId)) {
-					await interaction.followUp({
+					await interaction.reply({
 						ephemeral: true,
 						content: 'An error occurred while trying to add the channel to track! This is a new channel being tracked globally, please report this error!',
 					});
@@ -229,15 +237,15 @@ const commands: Record<string, Command> = {
 			// Add the guild to the database
 			if (await addNewGuildToTrackChannel(guildId, youtubeChannelId, discordChannelId, interaction.options.get('role')?.value as string ?? null)) {
 				const channelIdInfo = await client.channels.fetch(discordChannelId);
-				if (channelIdInfo && channelIdInfo.type === ChannelType.GuildText) {
+				if (channelIdInfo && (channelIdInfo.type === ChannelType.GuildText || channelIdInfo.type === ChannelType.GuildAnnouncement)) {
 					const youtubeChannelInfo = await getChannelDetails(youtubeChannelId)
 
-					await interaction.followUp({
+					await interaction.reply({
 						ephemeral: true,
 						content: `Started tracking the channel ${youtubeChannelInfo?.channelName ?? youtubeChannelId} in ${channelIdInfo.name}!`,
 					});
 				} else {
-					await interaction.followUp({
+					await interaction.reply({
 						ephemeral: true,
 						content: 'The channel to send updates to is not a text channel! Please make sure to set a text channel!',
 					});
