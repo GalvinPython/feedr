@@ -1,4 +1,4 @@
-import { env } from "../config";
+import { env } from "../../config";
 
 interface channelDetails {
 	channelName: string;

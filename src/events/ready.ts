@@ -1,6 +1,6 @@
 import { ActivityType, Events, PresenceUpdateStatus } from 'discord.js';
 import client from '../index';
-import fetchLatestUploads from '../utils/fetchLatestUploads';
+import fetchLatestUploads from '../utils/youtube/fetchLatestUploads';
 import { config } from '../config';
 
 // update the bot's presence
@@ -25,5 +25,5 @@ client.once(Events.ClientReady, async (bot) => {
 	updatePresence();
 	fetchLatestUploads();
 	setInterval(updatePresence, 60000);
-	setInterval(fetchLatestUploads, config.updateInterval);
+	setInterval(fetchLatestUploads, config.updateInterval as number);
 });

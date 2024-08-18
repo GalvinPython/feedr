@@ -17,14 +17,23 @@ export async function initTables(): Promise<boolean> {
 			latest_video_id VARCHAR(255) UNIQUE
 		);
 	`;
+
 	const createDiscordTable = `
 		CREATE TABLE IF NOT EXISTS discord (
 			guild_id VARCHAR(255),
 			guild_channel_id VARCHAR(255) NOT NULL,
-			discord_youtube_channel_id VARCHAR(255) NOT NULL,
+			guild_platform VARCHAR(255) NOT NULL,
+			platform_user_id VARCHAR(255) NOT NULL,
 			guild_ping_role VARCHAR(255),
 			INDEX (guild_id),
-			INDEX (discord_youtube_channel_id)
+			INDEX (platform_user_id)
+		);
+	`;
+
+	const createTwitchTable = `
+		CREATE TABLE IF NOT EXISTS twitch (
+			twitch_channel_id VARCHAR(255) NOT NULL PRIMARY KEY,
+			is_live BOOLEAN
 		);
 	`;
 
@@ -44,10 +53,20 @@ export async function initTables(): Promise<boolean> {
 			console.log("Discord table created");
 		}
 	});
+	pool.query(createTwitchTable, (err) => {
+		if (err) {
+			console.error("Error creating Twitch table:", err);
+			return false
+		} else {
+			console.log("Twitch table created");
+		}
+	});
 	return true;
 }
 //#endregion
 
+
+//#region YouTube
 // These two functions are for checking/adding a new channel to the youtube table
 export async function checkIfChannelIsAlreadyTracked(channelId: string) {
 	const query = `SELECT * FROM youtube WHERE youtube_channel_id = ?`;
@@ -87,7 +106,7 @@ export async function addNewChannelToTrack(channelId: string) {
 }
 
 export async function checkIfGuildIsTrackingChannelAlready(channelId: string, guild_id: string) {
-	const query = `SELECT * FROM discord WHERE discord_youtube_channel_id = ? AND guild_id = ?`;
+	const query = `SELECT * FROM discord WHERE platform_user_id = ? AND guild_id = ?`;
 	return new Promise<boolean>((resolve, reject) => {
 		pool.query(query, [channelId, guild_id], (err, results) => {
 			if (err) {
@@ -102,7 +121,7 @@ export async function checkIfGuildIsTrackingChannelAlready(channelId: string, gu
 
 
 export async function addNewGuildToTrackChannel(guild_id: string, channelId: string, guild_channel_id: string, guild_ping_role: string | null) {
-	const query = `INSERT INTO discord (guild_id, discord_youtube_channel_id, guild_channel_id, guild_ping_role) VALUES (?, ?, ?, ?)`;
+	const query = `INSERT INTO discord (guild_id, platform_user_id, guild_channel_id, guild_ping_role, guild_platform) VALUES (?, ?, ?, ?, 'youtube')`;
 	return new Promise<boolean>((resolve, reject) =>
 		pool.query(query, [guild_id, channelId, guild_channel_id, guild_ping_role], (err) => {
 			if (err) {
@@ -130,7 +149,7 @@ export async function getAllChannelsToTrack() {
 }
 
 export async function getGuildsTrackingChannel(channelId: string) {
-	const query = `SELECT * FROM discord WHERE discord_youtube_channel_id = ?`;
+	const query = `SELECT * FROM discord WHERE platform_user_id = ?`;
 	return new Promise<any>((resolve, reject) =>
 		pool.query(query, [channelId], (err, results: any) => {
 			if (err) {
@@ -170,3 +189,118 @@ export async function stopGuildTrackingChannel(guild_id: string, channelId: stri
 		})
 	);
 }
+
+//#endregion
+//#region Twitch
+export async function twitchGetAllChannelsToTrack() {
+	const query = `SELECT * FROM twitch`;
+	return new Promise<any>((resolve, reject) =>
+		pool.query(query, (err, results: any) => {
+			if (err) {
+				console.error("Error getting all Twitch channels to track:", err);
+				reject(err);
+			} else {
+				resolve(results);
+			}
+		})
+	);
+}
+
+export async function twitchCheckIfChannelIsAlreadyTracked(channelId: string) {
+	const query = `SELECT * FROM twitch WHERE twitch_channel_id = ?`;
+	return new Promise<boolean>((resolve, reject) => {
+		pool.query(query, [channelId], (err, results) => {
+			if (err) {
+				console.error("Error checking if Twitch channel is already tracked:", err);
+				reject(err);
+			} else {
+				resolve(results.length > 0);
+			}
+		});
+	});
+}
+
+export async function twitchCheckIfGuildIsTrackingChannelAlready(channelId: string, guild_id: string) {
+	const query = `SELECT * FROM discord WHERE platform_user_id = ? AND guild_id = ?`;
+	return new Promise<boolean>((resolve, reject) => {
+		pool.query(query, [channelId, guild_id], (err, results) => {
+			if (err) {
+				console.error("Error checking if guild is tracking Twitch channel already:", err);
+				reject(err);
+			} else {
+				resolve(results.length > 0);
+			}
+		});
+	});
+}
+
+export async function twitchAddNewChannelToTrack(channelId: string, isLive: boolean) {
+	const query = `INSERT INTO twitch (twitch_channel_id, is_live) VALUES (?, ?)`;
+	return new Promise<boolean>((resolve, reject) =>
+		pool.query(query, [channelId, isLive], (err) => {
+			if (err) {
+				console.error("Error adding Twitch channel to track:", err);
+				reject(err);
+			} else {
+				resolve(true);
+			}
+		})
+	);
+}
+
+export async function twitchAddNewGuildToTrackChannel(guild_id: string, channelId: string, guild_channel_id: string, guild_ping_role: string | null) {
+	const query = `INSERT INTO discord (guild_id, platform_user_id, guild_channel_id, guild_ping_role, guild_platform) VALUES (?, ?, ?, ?, 'twitch')`;
+	return new Promise<boolean>((resolve, reject) =>
+		pool.query(query, [guild_id, channelId, guild_channel_id, guild_ping_role], (err) => {
+			if (err) {
+				console.error("Error adding guild to track Twitch channel:", err);
+				reject(err);
+			} else {
+				resolve(true);
+			}
+		})
+	);
+}
+
+export async function twitchGetGuildsTrackingChannel(channelId: string) {
+	const query = `SELECT * FROM discord WHERE platform_user_id = ?`;
+	return new Promise<any>((resolve, reject) =>
+		pool.query(query, [channelId], (err, results: any) => {
+			if (err) {
+				console.error("Error getting guilds tracking Twitch channel:", err);
+				reject(err);
+			} else {
+				resolve(results);
+			}
+		})
+	);
+}
+
+export async function twitchUpdateIsLive(channelId: string, isLive: boolean) {
+	const query = `UPDATE twitch SET is_live = ? WHERE twitch_channel_id = ?`;
+	return new Promise<boolean>((resolve, reject) =>
+		pool.query(query, [isLive, channelId], (err) => {
+			if (err) {
+				console.error("Error updating is live:", err);
+				reject(err);
+			} else {
+				resolve(true);
+			}
+		})
+	);
+}
+
+export async function twitchStopGuildTrackingChannel(guild_id: string, channelId: string) {
+	const query = `DELETE FROM discord WHERE guild_id = ? AND platform_user_id = ?`;
+	return new Promise<boolean>((resolve, reject) =>
+		pool.query(query, [guild_id, channelId], (err) => {
+			if (err) {
+				console.error("Error stopping guild tracking Twitch channel:", err);
+				reject(err);
+			} else {
+				resolve(true);
+			}
+		})
+	);
+}
+//#endregion
