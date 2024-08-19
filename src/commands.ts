@@ -395,18 +395,18 @@ const commands: Record<string, Command> = {
 				return;
 			}
 
-			// Check if the channel is not being tracked in the guild
-			if (!await checkIfGuildIsTrackingChannelAlready(youtubeChannelId, guildId)) {
-				await interaction.reply({
-					ephemeral: true,
-					content: 'This channel is not being tracked in this guild!',
-				});
-				return;
-			}
 
 			// Remove the guild from the database
 			switch (platform) {
 				case 'youtube':
+					// Check if the channel is not being tracked in the guild
+					if (!await checkIfGuildIsTrackingChannelAlready(youtubeChannelId, guildId)) {
+						await interaction.reply({
+							ephemeral: true,
+							content: 'This channel is not being tracked in this guild!',
+						});
+						return;
+					}
 					if (await stopGuildTrackingChannel(guildId, youtubeChannelId)) {
 						await interaction.reply({
 							ephemeral: true,
@@ -430,7 +430,16 @@ const commands: Record<string, Command> = {
 						return;
 					}
 
-					if (await twitchStopGuildTrackingChannel(guildId, youtubeChannelId)) {
+					// check if the channel is not being tracked in the guild
+					if (!await twitchCheckIfGuildIsTrackingChannelAlready(streamerId, guildId)) {
+						await interaction.reply({
+							ephemeral: true,
+							content: 'This streamer is not being tracked in this guild!',
+						});
+						return;
+					}
+
+					if (await twitchStopGuildTrackingChannel(guildId, streamerId)) {
 						await interaction.reply({
 							ephemeral: true,
 							content: 'Successfully stopped tracking the streamer!',
