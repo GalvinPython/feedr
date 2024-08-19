@@ -1,7 +1,7 @@
-import { env } from "../config";
-import { getAllChannelsToTrack, getGuildsTrackingChannel, updateVideoId } from "../database";
+import { env } from "../../config";
+import { getAllChannelsToTrack, getGuildsTrackingChannel, updateVideoId } from "../../database";
 import { ChannelType, TextChannel } from "discord.js";
-import client from "..";
+import client from "../..";
 import getChannelDetails from "./getChannelDetails";
 
 export default async function fetchLatestUploads() {

@@ -1,7 +1,8 @@
 import { ActivityType, Events, PresenceUpdateStatus } from 'discord.js';
 import client from '../index';
-import fetchLatestUploads from '../utils/fetchLatestUploads';
+import fetchLatestUploads from '../utils/youtube/fetchLatestUploads';
 import { config } from '../config';
+import { checkIfStreamersAreLive } from '../utils/twitch/checkIfStreamerIsLive';
 
 // update the bot's presence
 function updatePresence() {
@@ -25,5 +26,7 @@ client.once(Events.ClientReady, async (bot) => {
 	updatePresence();
 	fetchLatestUploads();
 	setInterval(updatePresence, 60000);
-	setInterval(fetchLatestUploads, config.updateInterval);
+	setInterval(fetchLatestUploads, config.updateIntervalYouTube as number);
+	checkIfStreamersAreLive();
+	setInterval(checkIfStreamersAreLive, config.updateIntervalTwitch as number);
 });

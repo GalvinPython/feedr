@@ -1,6 +1,8 @@
 # Feedr
 The next best Discord Bot to notify your members about YouTube video uploads!  
-Feedr checks for new uploads every **15** seconds
+Feedr checks for:
+* YouTube uploads every **10** seconds
+* Twitch streams are live every **2** seconds
 
 Invite the bot [here](https://discord.com/oauth2/authorize?client_id=1243939861996503171&permissions=274877959232&integration_type=0&scope=applications.commands+bot)
 
@@ -29,6 +31,10 @@ Feedr strives for constant improvement, so here's what will be implemented
 * Add Reactions
 
 # Changelog
+## 1.2.0
+* Added Twitch feed
+* `platform` added to both **/track** and **/untrack**
+
 ## 1.1.0
 * Replies are no longer deferred
 * Messages can now be sent in Announcement channels [1.0.3]

@@ -1,9 +1,5 @@
 // Check if all the required environment variables are set
-import { config, env } from './config.ts';
-
-if (!config.updateInterval) {
-	throw new Error('You MUST provide an update interval in .env!');
-}
+import { env } from './config.ts';
 
 if (!env.discordToken || env.discordToken === 'YOUR_DISCORD_TOKEN') {
 	throw new Error('You MUST provide a discord token in .env!');
@@ -33,13 +29,21 @@ if (!env.mysqlDatabase || env.mysqlDatabase === 'YOUR_DATABASE_NAME') {
 	throw new Error('You MUST provide a database name in .env!');
 }
 
+if (!env.twitchClientId || env.twitchClientId === 'YOUR_TWITCH_CLIENT_ID') {
+	throw new Error('You MUST provide a Twitch client ID in .env!');
+}
+
+if (!env.twitchClientSecret || env.twitchClientSecret === 'YOUR_TWITCH_CLIENT_SECRET') {
+	throw new Error('You MUST provide a Twitch client secret in .env!');
+}
+
 // If everything is set up correctly, continue with the bot
 import { Client, GatewayIntentBits, REST, Routes, type APIApplicationCommand } from 'discord.js';
 import commandsMap from './commands.ts';
 import fs from 'fs/promises';
 import path from 'path';
 import { initTables } from './database.ts';
-import fetchLatestUploads from './utils/fetchLatestUploads.ts';
+import { getTwitchToken } from './utils/twitch/auth.ts';
 
 const client = new Client({
 	intents: [
@@ -70,6 +74,12 @@ if (!await initTables()) {
 	throw new Error('Error initializing tables');
 }
 
+// Get Twitch token
+if (!await getTwitchToken()) {
+	throw new Error('Error getting Twitch token');
+}
+
+// Login to Discord
 client.login(env.discordToken);
 
 export default client
