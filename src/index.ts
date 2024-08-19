@@ -1,9 +1,5 @@
 // Check if all the required environment variables are set
-import { config, env } from './config.ts';
-
-if (!config.updateInterval) {
-	throw new Error('You MUST provide an update interval in .env!');
-}
+import { env } from './config.ts';
 
 if (!env.discordToken || env.discordToken === 'YOUR_DISCORD_TOKEN') {
 	throw new Error('You MUST provide a discord token in .env!');

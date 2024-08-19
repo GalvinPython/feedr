@@ -1,6 +1,7 @@
 // FILL IN THIS INFORMATION IN .ENV
 export const config: { [key: string]: string | number } = {
-	updateInterval: process.env?.CONFIG_UPDATE_INTERVAL ? parseInt(process.env?.CONFIG_UPDATE_INTERVAL) * 1000 : 60_000,
+	updateIntervalYouTube: process.env?.CONFIG_UPDATE_INTERVAL_YOUTUBE ? parseInt(process.env?.CONFIG_UPDATE_INTERVAL_YOUTUBE) * 1000 : 60_000,
+	updateIntervalTwitch: process.env?.CONFIG_UPDATE_INTERVAL_TWITCH ? parseInt(process.env?.CONFIG_UPDATE_INTERVAL_TWITCH) * 1000 : 60_000,
 }
 
 export const env: { [key: string]: string | undefined } = {
