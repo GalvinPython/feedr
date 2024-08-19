@@ -231,7 +231,7 @@ const commands: Record<string, Command> = {
 					if (platformUserId.length != 24 || !platformUserId.startsWith('UC')) {
 						await interaction.reply({
 							ephemeral: true,
-							content: 'Invalid YouTube channel ID format! Each channel ID should be 24 characters long and start with "UC". Handles are currently not supported.',
+							content: 'Invalid YouTube channel ID format! Each channel ID should be 24 characters long and start with "UC". Handles are currently not supported. Need to find the channel ID? We have a guide here: https://github.com/GalvinPython/feedr/wiki/Guide:-How-to-get-the-YouTube-Channel-ID',
 						});
 						return;
 					}
