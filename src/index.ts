@@ -37,9 +37,6 @@ if (!env.twitchClientSecret || env.twitchClientSecret === 'YOUR_TWITCH_CLIENT_SE
 	throw new Error('You MUST provide a Twitch client secret in .env!');
 }
 
-await getTwitchToken();
-console.log(await getStreamerName("57519051"))
-
 // If everything is set up correctly, continue with the bot
 import { Client, GatewayIntentBits, REST, Routes, type APIApplicationCommand } from 'discord.js';
 import commandsMap from './commands.ts';
@@ -47,7 +44,6 @@ import fs from 'fs/promises';
 import path from 'path';
 import { initTables } from './database.ts';
 import { getTwitchToken } from './utils/twitch/auth.ts';
-import { getStreamerName } from './utils/twitch/getStreamerName.ts';
 
 const client = new Client({
 	intents: [

@@ -82,7 +82,7 @@ export async function checkIfStreamersAreLive(): Promise<void> {
 						// Send a message to the channel
 						const channel = await client.channels.fetch(guild.guild_channel_id);
 						await (channel as TextChannel).send(
-							guild.guild_ping_role ? `<@&${guild.guild_ping_role}> ${streamerName} is now live!` : `${streamerName} is now live!`
+							`${guild.guild_ping_role ? `<@&${guild.guild_ping_role}>` : null} ${streamerName} is now live!`
 						);
 					}
 				} else {
