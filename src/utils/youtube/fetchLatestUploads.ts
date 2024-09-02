@@ -57,7 +57,7 @@ export default async function fetchLatestUploads() {
 				for (const guild of discordGuildsToUpdate) {
 					try {
 						const channelObj = await client.channels.fetch(guild.guild_channel_id);
-						if (!channelObj || channelObj.type !== ChannelType.GuildText) {
+						if (!channelObj || (channelObj.type !== ChannelType.GuildText && channelObj.type !== ChannelType.GuildAnnouncement)) {
 							console.error("Invalid channel or not a text channel in fetchLatestUploads");
 							continue;
 						}
