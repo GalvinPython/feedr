@@ -159,7 +159,7 @@ const commands: Record<string, Command> = {
 			name: 'track',
 			description: 'Track a channel to get notified when they upload a video!',
 			integration_types: [0, 1],
-			contexts: [0, 1, 2],
+			contexts: [0, 1],
 		},
 		execute: async (interaction: CommandInteraction) => {
 			// Get the YouTube Channel ID
@@ -360,7 +360,7 @@ const commands: Record<string, Command> = {
 			name: 'untrack',
 			description: 'Stop a channel from being tracked in this guild!',
 			integration_types: [0, 1],
-			contexts: [0, 1, 2],
+			contexts: [0, 1],
 		},
 		execute: async (interaction: CommandInteraction) => {
 			// Get the YouTube Channel ID
