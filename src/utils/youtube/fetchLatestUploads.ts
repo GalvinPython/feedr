@@ -1,5 +1,5 @@
 import { env } from "../../config";
-import { getAllChannelsToTrack, getGuildsTrackingChannel, updateVideoId } from "../../database";
+import { getAllChannelsToTrack, getGuildsTrackingChannel, updateVideoId } from "../database";
 import { ChannelType, TextChannel } from "discord.js";
 import client from "../..";
 import getChannelDetails from "./getChannelDetails";

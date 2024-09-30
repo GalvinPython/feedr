@@ -1,5 +1,5 @@
 import mysql from 'mysql2';
-import type { dbYouTube } from './types/database';
+import type { dbYouTube } from '../types/database';
 
 const pool = mysql.createPool({
 	host: process.env.MYSQL_ADDRESS as string,
@@ -177,7 +177,7 @@ export async function updateVideoId(channelId: string, videoId: string) {
 }
 
 export async function stopGuildTrackingChannel(guild_id: string, channelId: string) {
-	const query = `DELETE FROM discord WHERE guild_id = ? AND discord_youtube_channel_id = ?`;
+	const query = `DELETE FROM discord WHERE guild_id = ? AND platform_user_id = ?`;
 	return new Promise<boolean>((resolve, reject) =>
 		pool.query(query, [guild_id, channelId], (err) => {
 			if (err) {

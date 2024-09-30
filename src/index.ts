@@ -42,7 +42,7 @@ import { Client, GatewayIntentBits, REST, Routes, type APIApplicationCommand } f
 import commandsMap from './commands.ts';
 import fs from 'fs/promises';
 import path from 'path';
-import { initTables } from './database.ts';
+import { initTables } from './utils/database.ts';
 import { getTwitchToken } from './utils/twitch/auth.ts';
 
 const client = new Client({

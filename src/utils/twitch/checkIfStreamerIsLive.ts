@@ -1,6 +1,6 @@
 import { twitchToken } from "./auth";
 import { env } from "../../config";
-import { twitchGetAllChannelsToTrack, twitchGetGuildsTrackingChannel, twitchUpdateIsLive } from "../../database";
+import { twitchGetAllChannelsToTrack, twitchGetGuildsTrackingChannel, twitchUpdateIsLive } from "../database";
 import type { dbTwitch } from "../../types/database";
 import client from "../..";
 import type { TextChannel } from "discord.js";
@@ -71,11 +71,11 @@ export async function checkIfStreamersAreLive(): Promise<void> {
 				// Update the database
 				console.log(`Updating ${streamerId.twitch_channel_id} to be ${isLive ? "live" : "offline"}`);
 				await twitchUpdateIsLive(streamerId.twitch_channel_id, isLive);
-				
+
 				if (isLive) {
 					// Get the streamer's name
 					const streamerName = await getStreamerName(streamerId.twitch_channel_id);
-					
+
 					// Get all guilds that are tracking this streamer
 					const guildsTrackingStreamer = await twitchGetGuildsTrackingChannel(streamerId.twitch_channel_id)
 					for (const guild of guildsTrackingStreamer) {

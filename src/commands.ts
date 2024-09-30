@@ -2,7 +2,7 @@ import { heapStats } from 'bun:jsc';
 import client from '.';
 import { ChannelType, GuildMember, type CommandInteraction } from 'discord.js';
 import checkIfChannelIdIsValid from './utils/youtube/checkIfChannelIdIsValid';
-import { addNewChannelToTrack, addNewGuildToTrackChannel, checkIfChannelIsAlreadyTracked, checkIfGuildIsTrackingChannelAlready, stopGuildTrackingChannel, twitchAddNewChannelToTrack, twitchAddNewGuildToTrackChannel, twitchCheckIfChannelIsAlreadyTracked, twitchCheckIfGuildIsTrackingChannelAlready, twitchStopGuildTrackingChannel } from './database';
+import { addNewChannelToTrack, addNewGuildToTrackChannel, checkIfChannelIsAlreadyTracked, checkIfGuildIsTrackingChannelAlready, stopGuildTrackingChannel, twitchAddNewChannelToTrack, twitchAddNewGuildToTrackChannel, twitchCheckIfChannelIsAlreadyTracked, twitchCheckIfGuildIsTrackingChannelAlready, twitchStopGuildTrackingChannel } from './utils/database';
 import getChannelDetails from './utils/youtube/getChannelDetails';
 import { PermissionFlagsBits } from 'discord-api-types/v8';
 import { getStreamerId } from './utils/twitch/getStreamerId';
