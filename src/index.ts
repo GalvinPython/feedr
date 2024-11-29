@@ -2,40 +2,43 @@
 import { env } from './config.ts';
 
 if (!env.discordToken || env.discordToken === 'YOUR_DISCORD_TOKEN') {
-	throw new Error('You MUST provide a discord token in .env!');
+    throw new Error('You MUST provide a discord token in .env!');
 }
 
 if (!env.youtubeApiKey || env.youtubeApiKey === 'YOUR_YOUTUBE_API_KEY') {
-	throw new Error('You MUST provide a YouTube API key in .env!');
+    throw new Error('You MUST provide a YouTube API key in .env!');
 }
 
 if (!env.mysqlAddress || env.mysqlAddress === 'YOUR_MYSQL_SERVER_ADDRESS') {
-	throw new Error('You MUST provide a MySQL server address in .env!');
+    throw new Error('You MUST provide a MySQL server address in .env!');
 }
 
 if (!env.mysqlPort || env.mysqlPort === 'YOUR_MYSQL_SERVER_PORT') {
-	throw new Error('You MUST provide a MySQL server port in .env!');
+    throw new Error('You MUST provide a MySQL server port in .env!');
 }
 
 if (!env.mysqlUser || env.mysqlUser === 'YOUR_MYSQL_USER') {
-	throw new Error('You MUST provide a MySQL user in .env!');
+    throw new Error('You MUST provide a MySQL user in .env!');
 }
 
 if (!env.mysqlPassword || env.mysqlPassword === 'YOUR_MYSQL_PASSWORD') {
-	throw new Error('You MUST provide a MySQL password in .env!');
+    throw new Error('You MUST provide a MySQL password in .env!');
 }
 
 if (!env.mysqlDatabase || env.mysqlDatabase === 'YOUR_DATABASE_NAME') {
-	throw new Error('You MUST provide a database name in .env!');
+    throw new Error('You MUST provide a database name in .env!');
 }
 
 if (!env.twitchClientId || env.twitchClientId === 'YOUR_TWITCH_CLIENT_ID') {
-	throw new Error('You MUST provide a Twitch client ID in .env!');
+    throw new Error('You MUST provide a Twitch client ID in .env!');
 }
 
 if (!env.twitchClientSecret || env.twitchClientSecret === 'YOUR_TWITCH_CLIENT_SECRET') {
-	throw new Error('You MUST provide a Twitch client secret in .env!');
+    throw new Error('You MUST provide a Twitch client secret in .env!');
 }
+
+// Import API
+import './api.ts'
 
 // If everything is set up correctly, continue with the bot
 import { Client, GatewayIntentBits, REST, Routes, type APIApplicationCommand } from 'discord.js';
@@ -46,37 +49,37 @@ import { initTables } from './utils/database.ts';
 import { getTwitchToken } from './utils/twitch/auth.ts';
 
 const client = new Client({
-	intents: [
-		GatewayIntentBits.Guilds,
-		GatewayIntentBits.GuildMessages,
-	]
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+    ]
 });
 
 // Update the commands
 console.log(`Refreshing ${commandsMap.size} commands`);
 const rest = new REST().setToken(env.discordToken);
 const getAppId: { id?: string | null } = (await rest.get(
-	Routes.currentApplication(),
+    Routes.currentApplication(),
 )) || { id: null };
 if (!getAppId?.id)
-	throw "No application ID was able to be found with this token";
+    throw "No application ID was able to be found with this token";
 
 const data = (await rest.put(Routes.applicationCommands(getAppId.id), {
-	body: [...commandsMap.values()].map((a) => {
-		return a.data;
-	}),
+    body: [...commandsMap.values()].map((a) => {
+        return a.data;
+    }),
 })) as APIApplicationCommand[];
 
 console.log(`Successfully reloaded ${data.length} application (/) commands.`);
 
 // Check if MySQL is set up properly and its working
 if (!await initTables()) {
-	throw new Error('Error initializing tables');
+    throw new Error('Error initializing tables');
 }
 
 // Get Twitch token
 if (!await getTwitchToken()) {
-	throw new Error('Error getting Twitch token');
+    throw new Error('Error getting Twitch token');
 }
 
 // Login to Discord
@@ -87,5 +90,5 @@ export default client
 // Import events
 const getEvents = await fs.readdir(path.resolve(__dirname, './events'));
 await Promise.all(getEvents.map(async (file) => {
-	await import('./events/' + file);
+    await import('./events/' + file);
 }));

@@ -1,10 +1,15 @@
-// WIP
-// TODO: Work on
+import type { Platforms } from "../types/types";
 
-export async function logMessageYouTube(channelName: string, channelId: string, guildName: string, guildId: string) {
-	console.log(`❤️ [YouTube] Sent upload message to ${guildName} (${guildId}) for channel ${channelName} (${channelId})`);
-}
+export async function logMessage(platform: Platforms, channelName: string, channelId: string, guildName: string, guildId: string) {
+    const platformEmojis: { [key in Platforms]: string } = {
+        YouTube: '❤️',
+        Twitch: '💜',
+    };
 
-export async function logMessageTwitch(channelName: string, channelId: string, guildName: string, guildId: string) {
-	console.log(`💜 [Twitch] Sent live message to ${guildName} (${guildId}) for channel ${channelName} (${channelId})`);
+    const actionMessages: { [key in Platforms]: string } = {
+        YouTube: 'upload',
+        Twitch: 'live',
+    };
+
+    console.log(`${platformEmojis[platform]} [${platform}] Sent ${actionMessages[platform]} message to ${guildName} (${guildId}) for channel ${channelName} (${channelId})`);
 }

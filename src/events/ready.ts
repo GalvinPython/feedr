@@ -3,30 +3,37 @@ import client from '../index';
 import fetchLatestUploads from '../utils/youtube/fetchLatestUploads';
 import { config } from '../config';
 import { checkIfStreamersAreLive } from '../utils/twitch/checkIfStreamerIsLive';
+import { updateBotInfo } from '../utils/database';
 
 // update the bot's presence
-function updatePresence() {
-	if (!client?.user) return;
-	client.user.setPresence({
-		activities: [
-			{
-				name: `Notifying ${client.guilds.cache.size} servers [${client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0).toLocaleString('en-US')} members]`,
-				type: ActivityType.Custom,
-			},
-		],
-		status: PresenceUpdateStatus.Online,
-	});
+async function updatePresence() {
+    if (!client?.user) return;
+
+    const servers = client.guilds.cache.size;
+    const members = client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)
+
+    await updateBotInfo(servers, members);
+    client.user.setPresence({
+        activities: [
+            {
+                name: `Notifying ${servers} servers [${members} members]`,
+                type: ActivityType.Custom,
+            },
+        ],
+        status: PresenceUpdateStatus.Online,
+    });
+
 }
 
 // Log into the bot
 client.once(Events.ClientReady, async (bot) => {
-	console.log(`Ready! Logged in as ${bot.user?.tag}`);
-	
-	// Set the bot's presence and update it every minute
-	updatePresence();
-	fetchLatestUploads();
-	setInterval(updatePresence, 60000);
-	setInterval(fetchLatestUploads, config.updateIntervalYouTube as number);
-	checkIfStreamersAreLive();
-	setInterval(checkIfStreamersAreLive, config.updateIntervalTwitch as number);
+    console.log(`Ready! Logged in as ${bot.user?.tag}`);
+
+    // Set the bot's presence and update it every minute
+    await updatePresence();
+    fetchLatestUploads();
+    setInterval(updatePresence, 60000);
+    setInterval(fetchLatestUploads, config.updateIntervalYouTube as number);
+    checkIfStreamersAreLive();
+    setInterval(checkIfStreamersAreLive, config.updateIntervalTwitch as number);
 });
