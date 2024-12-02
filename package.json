@@ -11,7 +11,7 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "5.2.1",
     "eslint-plugin-unused-imports": "4.1.4",
-    "@typescript-eslint/eslint-plugin": "8.11.0",
+    "@typescript-eslint/eslint-plugin": "8.16.0",
     "@typescript-eslint/parser": "8.11.0"
   },
   "peerDependencies": {
