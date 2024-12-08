@@ -52,7 +52,8 @@ Feedr requires Bun in order to work
 
 ## 1.3.0
 
-- WIP
+- Moved database to SQLite
+- Added Bluesky
 
 ## 1.2.0
 

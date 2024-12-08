@@ -1,1 +1,1 @@
-export type Platforms = 'YouTube' | 'Twitch';
+export type Platforms = "YouTube" | "Twitch";
