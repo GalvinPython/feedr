@@ -2,8 +2,7 @@ name: Update bun.lockb
 
 on:
   push:
-    branches:
-      - main
+    branches: [main, dev]
 
 permissions:
   contents: write
