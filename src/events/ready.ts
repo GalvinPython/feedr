@@ -1,28 +1,31 @@
-import { ActivityType, Events, PresenceUpdateStatus } from 'discord.js';
-import client from '../index';
-import fetchLatestUploads from '../utils/youtube/fetchLatestUploads';
-import { config } from '../config';
-import { checkIfStreamersAreLive } from '../utils/twitch/checkIfStreamerIsLive';
-import { updateBotInfo } from '../utils/database';
+import { ActivityType, Events, PresenceUpdateStatus } from "discord.js";
+
+import client from "../index";
+import fetchLatestUploads from "../utils/youtube/fetchLatestUploads";
+import { config } from "../config";
+import { checkIfStreamersAreLive } from "../utils/twitch/checkIfStreamerIsLive";
+import { updateBotInfo } from "../utils/database";
 
 // update the bot's presence
 async function updatePresence() {
     if (!client?.user) return;
 
     const servers = client.guilds.cache.size;
-    const members = client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)
+    const members = client.guilds.cache.reduce(
+        (acc, guild) => acc + guild.memberCount,
+        0,
+    );
 
     await updateBotInfo(servers, members);
     client.user.setPresence({
         activities: [
             {
-                name: `Notifying ${servers} servers [${members} members]`,
+                name: `Notifying ${servers.toLocaleString()} servers [${members.toLocaleString()} members]`,
                 type: ActivityType.Custom,
             },
         ],
         status: PresenceUpdateStatus.Online,
     });
-
 }
 
 // Log into the bot
