@@ -39,5 +39,5 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git commit -m "Update bun.lockb (via GitHub Actions)"
-          git pull --rebase origin main
-          git push
+          git pull --rebase origin ${{ github.ref_name }}
+          git push origin ${{ github.ref_name }}
