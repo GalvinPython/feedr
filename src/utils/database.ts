@@ -1,4 +1,4 @@
-import type { dbYouTube } from "../types/database";
+import type { dbDiscordTable, dbYouTube } from "../types/database";
 
 import path from "path";
 
@@ -386,6 +386,25 @@ export async function updateBotInfo(
         console.error("Error updating bot info:", err);
 
         return false;
+    }
+}
+// #endregion
+
+// #region i have no idea what im doing here
+
+export async function getAllTrackedInGuild(
+    guild_id: string,
+): Promise<dbDiscordTable[]> {
+    const query = `SELECT * FROM discord WHERE guild_id = ?`;
+
+    try {
+        const statement = db.prepare(query);
+        const results = statement.all(guild_id);
+
+        return results as dbDiscordTable[];
+    } catch (err) {
+        console.error("Error getting all tracked in guild:", err);
+        throw err;
     }
 }
 // #endregion
