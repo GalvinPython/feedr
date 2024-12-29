@@ -25,7 +25,7 @@ Feedr strives for constant improvement, so here's what will be implemented
 - YouTube Channel selector when using **/track**
 - Make it easier to stop tracking channels by showing channels already in the guild when doing **/untrack**
 - Other social media platforms
-    - Bluesky
+  - Bluesky
 - Make it easier to switch discord channels for uploads so that **/untrack** then **/track** is not required
 - **/tracked** command to show what channels are being tracked in the guild
 
@@ -47,6 +47,13 @@ Feedr requires Bun in order to work
 3. To run in developer mode, just run `bun --watch . --dev`, otherwise `bun run .`
 
 # Changelog
+
+## 1.4.0
+
+- Added a new command! `/tracked` ([#50](https://github.com/GalvinPython/feedr/issues/50))
+  - See all the tracked channels in your server
+  - The channel you ran the command in will appear first as there is no option to only see the current channel for now
+- Locale improvments ([#43](https://github.com/GalvinPython/feedr/issues/43))
 
 ## 1.3.0
 
