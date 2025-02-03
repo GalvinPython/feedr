@@ -1,3 +1,4 @@
+import Bun from "bun";
 import { heapStats } from "bun:jsc";
 import { ChannelType, GuildMember, type CommandInteraction } from "discord.js";
 import { PermissionFlagsBits } from "discord-api-types/v8";
