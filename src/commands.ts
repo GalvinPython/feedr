@@ -1,6 +1,13 @@
 import Bun from "bun";
 import { heapStats } from "bun:jsc";
-import { ChannelType, GuildMember, type CommandInteraction } from "discord.js";
+import {
+    ApplicationIntegrationType,
+    ChannelType,
+    GuildMember,
+    InteractionContextType,
+    MessageFlags,
+    type CommandInteraction,
+} from "discord.js";
 import { PermissionFlagsBits } from "discord-api-types/v8";
 
 import checkIfChannelIdIsValid from "./utils/youtube/checkIfChannelIdIsValid";
@@ -28,8 +35,8 @@ interface Command {
         options: any[];
         name: string;
         description: string;
-        integration_types: number[];
-        contexts: number[];
+        integration_types: ApplicationIntegrationType[];
+        contexts: InteractionContextType[];
     };
     execute: (interaction: CommandInteraction) => Promise<void>;
 }
@@ -70,7 +77,7 @@ const commands: Record<string, Command> = {
 
             await interaction
                 .reply({
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                     content: `Commands:\n${chat_commands?.join("\n")}`,
                 })
                 .catch(console.error);
@@ -87,7 +94,7 @@ const commands: Record<string, Command> = {
         execute: async (interaction: CommandInteraction) => {
             await interaction
                 .reply({
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                     content: `[Github repository](https://github.com/GalvinPython/feedr)`,
                 })
                 .catch(console.error);
@@ -174,7 +181,7 @@ const commands: Record<string, Command> = {
                     description:
                         "Enter the Guild channel to recieve updates in.",
                     type: 7,
-                    required: true,
+                    required: false,
                 },
                 {
                     name: "role",
@@ -187,7 +194,7 @@ const commands: Record<string, Command> = {
             description:
                 "Track a channel to get notified when they upload a video!",
             integration_types: [0, 1],
-            contexts: [0, 1],
+            contexts: [0, 1, 2],
         },
         execute: async (interaction: CommandInteraction) => {
             // Get the YouTube Channel ID
@@ -195,14 +202,15 @@ const commands: Record<string, Command> = {
                 ?.value as string;
             const platformUserId = interaction.options.get("user_id")
                 ?.value as string;
-            const discordChannelId = interaction.options.get("updates_channel")
-                ?.value as string;
+            const discordChannelId =
+                (interaction.options.get("updates_channel")?.value as string) ??
+                interaction.channelId;
             const guildId = interaction.guildId;
 
             // Checks if the platform is valid ig
             if (targetPlatform != "youtube" && targetPlatform != "twitch") {
                 await interaction.reply({
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                     content:
                         "Platform not supported! Please select a platform to track!",
                 });
@@ -213,7 +221,7 @@ const commands: Record<string, Command> = {
             // DMs are currently not supported, so throw back an error
             if (!guildId || interaction.channel?.isDMBased()) {
                 await interaction.reply({
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                     content:
                         "This command is not supported in DMs currently!\nNot a DM? Then the bot failed to get the guild info",
                 });
@@ -228,7 +236,7 @@ const commands: Record<string, Command> = {
                 )
             ) {
                 await interaction.reply({
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                     content:
                         "You do not have the permission to manage channels!",
                 });
@@ -281,7 +289,7 @@ const commands: Record<string, Command> = {
 
                 if (missingPermissions.length > 0) {
                     await interaction.reply({
-                        ephemeral: true,
+                        flags: MessageFlags.Ephemeral,
                         content: `The bot does not have the required permissions for the target channel! Missing permissions: ${missingPermissions.join(", ")}`,
                     });
 
@@ -289,7 +297,7 @@ const commands: Record<string, Command> = {
                 }
             } else {
                 await interaction.reply({
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                     content: "The target channel is not a text channel!",
                 });
 
@@ -304,7 +312,7 @@ const commands: Record<string, Command> = {
                         !platformUserId.startsWith("UC")
                     ) {
                         await interaction.reply({
-                            ephemeral: true,
+                            flags: MessageFlags.Ephemeral,
                             content:
                                 'Invalid YouTube channel ID format! Each channel ID should be 24 characters long and start with "UC". Handles are currently not supported. Need to find the channel ID? We have a guide here: https://github.com/GalvinPython/feedr/wiki/Guide:-How-to-get-the-YouTube-Channel-ID',
                         });
@@ -315,7 +323,7 @@ const commands: Record<string, Command> = {
                     // Check if the channel is valid
                     if (!(await checkIfChannelIdIsValid(platformUserId))) {
                         await interaction.reply({
-                            ephemeral: true,
+                            flags: MessageFlags.Ephemeral,
                             content: "That channel doesn't exist!",
                         });
 
@@ -330,7 +338,7 @@ const commands: Record<string, Command> = {
                         )
                     ) {
                         await interaction.reply({
-                            ephemeral: true,
+                            flags: MessageFlags.Ephemeral,
                             content: "This channel is already being tracked!",
                         });
 
@@ -343,7 +351,7 @@ const commands: Record<string, Command> = {
                     ) {
                         if (!(await addNewChannelToTrack(platformUserId))) {
                             await interaction.reply({
-                                ephemeral: true,
+                                flags: MessageFlags.Ephemeral,
                                 content:
                                     "An error occurred while trying to add the channel to track! This is a new channel being tracked globally, please report this error!",
                             });
@@ -366,12 +374,12 @@ const commands: Record<string, Command> = {
                             await getChannelDetails(platformUserId);
 
                         await interaction.reply({
-                            ephemeral: true,
+                            flags: MessageFlags.Ephemeral,
                             content: `Started tracking the channel ${youtubeChannelInfo?.channelName ?? platformUserId} in ${targetChannel.name}!`,
                         });
                     } else {
                         await interaction.reply({
-                            ephemeral: true,
+                            flags: MessageFlags.Ephemeral,
                             content:
                                 "An error occurred while trying to add the guild to track the channel! Please report this error!",
                         });
@@ -384,7 +392,7 @@ const commands: Record<string, Command> = {
 
                     if (!streamerId) {
                         await interaction.reply({
-                            ephemeral: true,
+                            flags: MessageFlags.Ephemeral,
                             content: "That streamer doesn't exist!",
                         });
 
@@ -399,7 +407,7 @@ const commands: Record<string, Command> = {
                         )
                     ) {
                         await interaction.reply({
-                            ephemeral: true,
+                            flags: MessageFlags.Ephemeral,
                             content: "This streamer is already being tracked!",
                         });
 
@@ -421,7 +429,7 @@ const commands: Record<string, Command> = {
                             ))
                         ) {
                             await interaction.reply({
-                                ephemeral: true,
+                                flags: MessageFlags.Ephemeral,
                                 content:
                                     "An error occurred while trying to add the streamer to track! This is a new streamer being tracked globally, please report this error!",
                             });
@@ -441,12 +449,12 @@ const commands: Record<string, Command> = {
                         )
                     ) {
                         await interaction.reply({
-                            ephemeral: true,
+                            flags: MessageFlags.Ephemeral,
                             content: `Started tracking the streamer ${platformUserId} (${streamerId}) in ${targetChannel.name}!`,
                         });
                     } else {
                         await interaction.reply({
-                            ephemeral: true,
+                            flags: MessageFlags.Ephemeral,
                             content:
                                 "An error occurred while trying to add the guild to track the streamer! Please report this error!",
                         });
@@ -502,7 +510,7 @@ const commands: Record<string, Command> = {
             // DMs are currently not supported, so throw back an error
             if (!guildId || interaction.channel?.isDMBased()) {
                 await interaction.reply({
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                     content:
                         "This command is not supported in DMs currently!\nNot a DM? Then an error has occurred :(",
                 });
@@ -517,7 +525,7 @@ const commands: Record<string, Command> = {
                 )
             ) {
                 await interaction.reply({
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                     content:
                         "You do not have the permission to manage channels!",
                 });
@@ -528,7 +536,7 @@ const commands: Record<string, Command> = {
             // Platform check (to shut up TS)
             if (platform != "youtube" && platform != "twitch") {
                 await interaction.reply({
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                     content:
                         "Platform not supported! Please select a platform to track!",
                 });
@@ -547,7 +555,7 @@ const commands: Record<string, Command> = {
                         ))
                     ) {
                         await interaction.reply({
-                            ephemeral: true,
+                            flags: MessageFlags.Ephemeral,
                             content:
                                 "This channel is not being tracked in this guild!",
                         });
@@ -561,13 +569,13 @@ const commands: Record<string, Command> = {
                         )
                     ) {
                         await interaction.reply({
-                            ephemeral: true,
+                            flags: MessageFlags.Ephemeral,
                             content:
                                 "Successfully stopped tracking the channel!",
                         });
                     } else {
                         await interaction.reply({
-                            ephemeral: true,
+                            flags: MessageFlags.Ephemeral,
                             content:
                                 "An error occurred while trying to stop tracking the channel! Please report this error!",
                         });
@@ -580,7 +588,7 @@ const commands: Record<string, Command> = {
 
                     if (!streamerId) {
                         await interaction.reply({
-                            ephemeral: true,
+                            flags: MessageFlags.Ephemeral,
                             content:
                                 "An error occurred while trying to get the streamer ID! Please report this error!",
                         });
@@ -596,7 +604,7 @@ const commands: Record<string, Command> = {
                         ))
                     ) {
                         await interaction.reply({
-                            ephemeral: true,
+                            flags: MessageFlags.Ephemeral,
                             content:
                                 "This streamer is not being tracked in this guild!",
                         });
@@ -611,13 +619,13 @@ const commands: Record<string, Command> = {
                         )
                     ) {
                         await interaction.reply({
-                            ephemeral: true,
+                            flags: MessageFlags.Ephemeral,
                             content:
                                 "Successfully stopped tracking the streamer!",
                         });
                     } else {
                         await interaction.reply({
-                            ephemeral: true,
+                            flags: MessageFlags.Ephemeral,
                             content:
                                 "An error occurred while trying to stop tracking the streamer! Please report this error!",
                         });
@@ -644,7 +652,7 @@ const commands: Record<string, Command> = {
 
             if (!guildId || !channelId) {
                 await interaction.reply({
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                     content:
                         "You are likely in a DM, this command is not supported in DMs!",
                 });
@@ -656,7 +664,7 @@ const commands: Record<string, Command> = {
 
             if (trackedChannels.length === 0) {
                 await interaction.reply({
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                     content: "No channels are being tracked in this guild.",
                 });
 
@@ -673,7 +681,7 @@ const commands: Record<string, Command> = {
 
             // idk what is happening here anymore, but this is because eslint and prettier are fighting so i put them to rest by using only one line
             await interaction.reply({
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
                 content: `
 ## Tracked channels in this channel (<#${channelId}>):\n${filteredChannels.length ? filteredChannels.map((channel) => `Platform: ${channel.guild_platform} | User ID: ${channel.platform_user_id}`).join("\n") : "No channels are being tracked in this channel."}
                 
