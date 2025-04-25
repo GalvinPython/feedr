@@ -23,7 +23,11 @@ export default async function (query: string) {
                 method: "POST",
             },
         );
-        const data = (await response.json()) as Promise<InnertubeSearchRequest>;
+
+        const data = (
+            await ((await response.json()) as Promise<InnertubeSearchRequest>)
+        ).contents.twoColumnSearchResultsRenderer.primaryContents
+            .sectionListRenderer.contents;
 
         console.dir(data, { depth: null });
     } catch (err) {

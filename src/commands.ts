@@ -1,11 +1,14 @@
 import Bun from "bun";
 import { heapStats } from "bun:jsc";
 import {
-    ApplicationIntegrationType,
+    ApplicationCommandType,
+    AutocompleteInteraction,
     ChannelType,
+    ChatInputCommandInteraction,
     GuildMember,
-    InteractionContextType,
     MessageFlags,
+    type ApplicationCommandOptionData,
+    type CacheType,
     type CommandInteraction,
 } from "discord.js";
 import { PermissionFlagsBits } from "discord-api-types/v8";
@@ -32,13 +35,17 @@ import client from ".";
 
 interface Command {
     data: {
-        options: any[];
         name: string;
         description: string;
-        integration_types: ApplicationIntegrationType[];
-        contexts: InteractionContextType[];
+        options?: ApplicationCommandOptionData[];
+        integration_types?: number[];
+        contexts?: number[];
+        type?: ApplicationCommandType;
     };
-    execute: (interaction: CommandInteraction) => Promise<void>;
+    execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
+    autoComplete?: (
+        interaction: AutocompleteInteraction<CacheType>,
+    ) => Promise<any>;
 }
 
 const commands: Record<string, Command> = {
@@ -175,11 +182,12 @@ const commands: Record<string, Command> = {
                         "Enter the YouTube channel ID or Twitch Streamer to track",
                     type: 3,
                     required: true,
+                    autocomplete: true,
                 },
                 {
                     name: "updates_channel",
                     description:
-                        "Enter the Guild channel to recieve updates in.",
+                        "Enter the Guild channel to receive updates in.",
                     type: 7,
                     required: false,
                 },
@@ -206,6 +214,9 @@ const commands: Record<string, Command> = {
                 (interaction.options.get("updates_channel")?.value as string) ??
                 interaction.channelId;
             const guildId = interaction.guildId;
+
+            // Log the autocomplete value
+            console.log(`Autocomplete value: ${platformUserId}`);
 
             // Checks if the platform is valid ig
             if (targetPlatform != "youtube" && targetPlatform != "twitch") {
@@ -386,7 +397,7 @@ const commands: Record<string, Command> = {
                     }
 
                     return;
-                case "twitch":
+                case "twitch": {
                     // Check if the streamer exists by getting the ID
                     const streamerId = await getStreamerId(platformUserId);
 
@@ -461,9 +472,22 @@ const commands: Record<string, Command> = {
                     }
 
                     return;
+                }
                 default:
                     console.error("This should never happen");
                     break;
+            }
+        },
+        autoComplete: async (interaction: AutocompleteInteraction) => {
+            try {
+                const platform = interaction.options.get("platform")?.value;
+                const query = interaction.options.get("user_id")?.value;
+
+                if (!query) {
+                    return;
+                }
+            } catch (error) {
+                console.error(error);
             }
         },
     },
@@ -582,7 +606,7 @@ const commands: Record<string, Command> = {
                     }
 
                     return;
-                case "twitch":
+                case "twitch": {
                     // get the twitch id for the streamer
                     const streamerId = await getStreamerId(youtubeChannelId);
 
@@ -632,6 +656,7 @@ const commands: Record<string, Command> = {
                     }
 
                     return;
+                }
                 default:
                     return;
             }
