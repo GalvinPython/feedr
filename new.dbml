@@ -1,0 +1,93 @@
+-- the database schema for feedr 2.0, just here temporarily during development
+
+Table discord {
+  guild_id string [pk, not null, note: "Discord guild ID"]
+  is_dm string [default: false, not null]
+  allowed_public_sharing boolean [default: false, not null, note: "False by default due to privacy stuff"]
+}
+
+Table guild_bluesky_subscriptions {
+  id int [pk, not null, increment]
+  guild_id string [not null, ref: > discord.guild_id]
+  bluesky_user_id string [not null, ref: > bluesky.bluesky_user_id]
+  notification_channel_id string [not null]
+  notification_role_id string
+  is_dm boolean [not null, default: false]
+  check_for_replies boolean [not null, default: false]
+}
+
+Table guild_youtube_subscriptions {
+  id int [pk, not null, increment]
+  guild_id string [not null, ref: > discord.guild_id]
+  youtube_channel_id string [not null, ref: > youtube.youtube_channel_id]
+  notification_channel_id string [not null]
+  notification_role_id string
+  is_dm boolean [not null, default: false]
+  track_videos boolean [default: false, not null]
+  track_shorts boolean [default: false, not null]
+  track_streams boolean [default: false, not null]
+}
+
+Table guild_twitch_subscriptions {
+  id int [pk, not null, increment]
+  guild_id string [not null, ref: > discord.guild_id]
+  twitch_channel_id string [not null, ref: > twitch.twitch_channel_id]
+  notification_channel_id string [not null]
+  notification_role_id string
+  is_dm boolean [not null, default: false]
+}
+
+Table bluesky {
+  bluesky_user_id string [pk, not null]
+  latest_post_id string
+  latest_reply_id string
+}
+
+Table youtube {
+  youtube_channel_id string [pk, not null]
+  latest_video_id string
+  latest_video_id_updated datetime
+  latest_short_id string
+  latest_short_id_updated datetime
+  latest_stream_id string
+  latest_stream_id_updated datetime
+  youtube_channel_is_live boolean
+}
+
+Table twitch {
+  twitch_channel_id string [pk, not null]
+  twitch_channel_is_live boolean [not null]
+}
+
+Table bot_info {
+  guilds_total int [not null, default: 0]
+  channels_tracked int [not null, default: 0]
+  total_members int [not null, default: 0]
+  updated_at datetime [not null, default: `now()`]
+  extended_info_updated_at datetime [not null, default: `now()`]
+}
+
+Table bot_info_notifications {
+  date date [not null]
+  total_youtube int [not null, default: 0]
+  total_twitch int [not null, default: 0]
+}
+
+Table bot_info_top_channels {
+  youtube_channel_id string [not null, pk, ref: > youtube.youtube_channel_id]
+  guilds_tracking int [not null, default: 0]
+}
+
+Table bot_info_top_guilds {
+  guild_id int [pk, not null, ref: > discord.guild_id]
+  members int [not null, default: 0]
+}
+
+Table audit_logs {
+  id int [pk, not null, increment]
+  event_type string [not null, note: "e.g., subscribe_youtube, unsubscribe_twitch"]
+  guild_id string [not null, ref: > discord.guild_id]
+  related_id string [not null, note: "Related YouTube or Twitch channel ID"]
+  note string
+  occurred_at datetime [default: `now()`]
+}

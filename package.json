@@ -5,9 +5,12 @@
   "version": "1.3.0",
   "devDependencies": {
     "@types/bun": "1.2.10",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
     "@types/pg": "^8.11.14",
     "@typescript-eslint/eslint-plugin": "8.11.0",
     "@typescript-eslint/parser": "8.11.0",
+    "concurrently": "^9.1.2",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "9.1.0",
     "eslint-plugin-import": "^2.26.0",
@@ -20,13 +23,16 @@
   },
   "scripts": {
     "dev": "bun --watch . --dev",
+    "test:site": "bun --watch src/web/web.ts",
     "test:jetstream": "bun --watch src/utils/bluesky/jetstream.ts",
     "lint": "eslint . --ext .ts -c .eslintrc.json",
     "lint:fix": "eslint . --ext .ts -c .eslintrc.json --fix"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "cron": "^3.2.1",
     "discord.js": "^14.19.1",
+    "express": "^5.1.0",
     "pg": "^8.15.6"
   }
 }
