@@ -1,56 +1,121 @@
 import type { dbDiscordTable, dbYouTube } from "../types/database";
 
-import path from "path";
+import { Pool } from "pg";
 
-import { Database } from "bun:sqlite";
+import { dbCredentials } from "../config";
 
-const db = new Database(path.resolve(process.cwd(), "db.sqlite3"));
+// import path from "path";
+// import { Database } from "bun:sqlite";
+// const db = new Database(path.resolve(process.cwd(), "db.sqlite3"));
+
+if (
+    !dbCredentials.host ||
+    !dbCredentials.port ||
+    !dbCredentials.user ||
+    !dbCredentials.password ||
+    !dbCredentials.database
+) {
+    throw new Error("Database credentials are not set");
+}
+
+export const pool: Pool = new Pool({
+    host: dbCredentials.host,
+    port: parseInt(dbCredentials.port),
+    user: dbCredentials.user,
+    password: dbCredentials.password,
+    database: dbCredentials.database,
+});
 
 // #region Init Tables
 export async function initTables(): Promise<boolean> {
-    const createYouTubeTable = `
-        CREATE TABLE IF NOT EXISTS youtube (
-            youtube_channel_id TEXT PRIMARY KEY,
-            latest_video_id TEXT UNIQUE
+    const createDiscordTable = `
+        CREATE TABLE IF NOT EXISTS discord (
+            guild_id TEXT PRIMARY KEY
         );
     `;
 
-    const createDiscordTable = `
-        CREATE TABLE IF NOT EXISTS discord (
-            guild_id TEXT,
-            guild_channel_id TEXT NOT NULL,
-            guild_platform TEXT NOT NULL,
-            platform_user_id TEXT NOT NULL,
-            guild_ping_role TEXT
+    const createYouTubeTable = `
+        CREATE TABLE IF NOT EXISTS youtube (
+            youtube_channel_id TEXT PRIMARY KEY,
+            latest_video_id TEXT,
+            latest_video_id_updated TIMESTAMP,
+            latest_short_id TEXT,
+            latest_short_id_updated TIMESTAMP,
+            latest_stream_id TEXT,
+            latest_stream_id_updated TIMESTAMP,
+            youtube_channel_is_live BOOLEAN
         );
     `;
 
     const createTwitchTable = `
         CREATE TABLE IF NOT EXISTS twitch (
             twitch_channel_id TEXT PRIMARY KEY,
-            is_live BOOLEAN
+            twitch_channel_is_live BOOLEAN NOT NULL
+        );
+    `;
+
+    const createGuildYouTubeSubscriptionsTable = `
+        CREATE TABLE IF NOT EXISTS guild_youtube_subscriptions (
+            id SERIAL PRIMARY KEY,
+            guild_id TEXT NOT NULL REFERENCES discord(guild_id),
+            youtube_channel_id TEXT NOT NULL REFERENCES youtube(youtube_channel_id),
+            notification_channel_id TEXT NOT NULL,
+            notification_role_id TEXT,
+            is_dm BOOLEAN DEFAULT FALSE
+        );
+    `;
+
+    const createGuildTwitchSubscriptionsTable = `
+        CREATE TABLE IF NOT EXISTS guild_twitch_subscriptions (
+            id SERIAL PRIMARY KEY,
+            guild_id TEXT NOT NULL REFERENCES discord(guild_id),
+            twitch_channel_id TEXT NOT NULL REFERENCES twitch(twitch_channel_id),
+            notification_channel_id TEXT NOT NULL,
+            notification_role_id TEXT,
+            is_dm BOOLEAN DEFAULT FALSE
         );
     `;
 
     const createBotInfoTable = `
         CREATE TABLE IF NOT EXISTS bot_info (
-            total_servers INTEGER NOT NULL DEFAULT 1,
-            total_members INTEGER NOT NULL DEFAULT 1
+            guilds_total INTEGER NOT NULL,
+            channels_tracked INTEGER NOT NULL,
+            updated_at TIMESTAMP DEFAULT now()
+        );
+    `;
+
+    const createAuditLogsTable = `
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id SERIAL PRIMARY KEY,
+            event_type TEXT NOT NULL,
+            guild_id TEXT NOT NULL REFERENCES discord(guild_id),
+            related_id TEXT NOT NULL,
+            note TEXT,
+            occurred_at TIMESTAMP DEFAULT now()
         );
     `;
 
     try {
-        db.run(createYouTubeTable);
-        console.log("YouTube table created");
-
-        db.run(createDiscordTable);
+        await pool.query(createDiscordTable);
         console.log("Discord table created");
 
-        db.run(createTwitchTable);
+        await pool.query(createYouTubeTable);
+        console.log("YouTube table created");
+
+        await pool.query(createTwitchTable);
         console.log("Twitch table created");
 
-        db.run(createBotInfoTable);
+        await pool.query(createGuildYouTubeSubscriptionsTable);
+        console.log("Guild YouTube Subscriptions table created");
+
+        await pool.query(createGuildTwitchSubscriptionsTable);
+        console.log("Guild Twitch Subscriptions table created");
+
+        await pool.query(createBotInfoTable);
         console.log("Bot Info table created");
+
+        await pool.query(createAuditLogsTable);
+        console.log("Audit Logs table created");
 
         return true;
     } catch (err) {
@@ -59,6 +124,7 @@ export async function initTables(): Promise<boolean> {
         return false;
     }
 }
+
 // #endregion
 
 // #region YouTube
