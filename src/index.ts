@@ -13,7 +13,7 @@ import { CronJob } from "cron";
 
 import { env } from "./config.ts";
 import commandsMap from "./commands.ts";
-import { initTables } from "./utils/database.ts";
+import initTables from "./utils/db/init.ts";
 import { getTwitchToken } from "./utils/twitch/auth.ts";
 import backup from "./utils/backup.ts";
 
@@ -67,7 +67,7 @@ const data = (await rest.put(Routes.applicationCommands(getAppId.id), {
 
 console.log(`Successfully reloaded ${data.length} application (/) commands.`);
 
-// Check if MySQL is set up properly and its working
+// Check if Postgres is set up properly and its working
 if (!(await initTables())) {
     throw new Error("Error initializing tables");
 }

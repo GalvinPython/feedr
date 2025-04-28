@@ -73,6 +73,12 @@ Table bot_info_notifications {
   total_twitch int [not null, default: 0]
 }
 
+Table bot_info_notifications_timings {
+  time datetime [not null]
+  channel_id string [not null, ref: > youtube.youtube_channel_id]
+  time_ms int [not null, default: 0]
+}
+
 Table bot_info_top_channels {
   youtube_channel_id string [not null, pk, ref: > youtube.youtube_channel_id]
   guilds_tracking int [not null, default: 0]
