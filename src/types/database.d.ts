@@ -1,6 +1,12 @@
 export interface dbYouTube {
-    channelId: string;
-    lastVideoId: string;
+    youtube_channel_id: string;
+    latest_video_id: string | null;
+    latest_video_id_updated: Date | null;
+    latest_short_id: string | null;
+    latest_short_id_updated: Date | null;
+    latest_stream_id: string | null;
+    latest_stream_id_updated: Date | null;
+    youtube_channel_is_live: boolean;
 }
 
 export interface dbTwitch {

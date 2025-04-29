@@ -1,4 +1,4 @@
-export type InnertubeSearchRequest = {
+export interface InnertubeSearchRequest {
     contents: {
         twoColumnSearchResultsRenderer: {
             primaryContents: {
@@ -163,4 +163,4 @@ export type InnertubeSearchRequest = {
             };
         };
     };
-};
+}

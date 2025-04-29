@@ -37,6 +37,7 @@ client.once(Events.ClientReady, async (bot) => {
     fetchLatestUploads();
     setInterval(updatePresence, 60000);
     setInterval(fetchLatestUploads, config.updateIntervalYouTube as number);
-    checkIfStreamersAreLive();
-    setInterval(checkIfStreamersAreLive, config.updateIntervalTwitch as number);
+    // One at a time
+    // checkIfStreamersAreLive();
+    // setInterval(checkIfStreamersAreLive, config.updateIntervalTwitch as number);
 });

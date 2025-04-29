@@ -113,20 +113,6 @@ export async function addNewGuildToTrackChannel(
     }
 }
 
-export async function getAllChannelsToTrack() {
-    const query = `SELECT * FROM youtube`;
-
-    try {
-        const statement = db.prepare(query);
-        const results = statement.all() as dbYouTube[];
-
-        return results;
-    } catch (err) {
-        console.error("Error getting all channels to track:", err);
-        throw err;
-    }
-}
-
 export async function getGuildsTrackingChannel(channelId: string) {
     const query = `SELECT * FROM discord WHERE platform_user_id = ?`;
 

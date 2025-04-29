@@ -94,9 +94,9 @@ export default async function initTables(): Promise<boolean> {
 
     const createBotInfoNotificationsTimingsTable = `
         CREATE TABLE IF NOT EXISTS bot_info_notifications_timings (
-            time DATETIME NOT NULL,
+            time TIMESTAMP NOT NULL,
             channel_id TEXT NOT NULL REFERENCES youtube(youtube_channel_id),
-            time_ms INTEGER NOT NULL DEFAULT 0,
+            time_ms INTEGER NOT NULL DEFAULT 0
         );
     `;
 
@@ -126,43 +126,45 @@ export default async function initTables(): Promise<boolean> {
     `;
 
     try {
-        await pool.query(createDiscordTable);
+        const client = await pool.connect();
+
+        await client.query(createDiscordTable);
         console.log("Discord table created");
 
-        await pool.query(createBlueskyTable);
+        await client.query(createBlueskyTable);
         console.log("Bluesky table created");
 
-        await pool.query(createYouTubeTable);
+        await client.query(createYouTubeTable);
         console.log("YouTube table created");
 
-        await pool.query(createTwitchTable);
+        await client.query(createTwitchTable);
         console.log("Twitch table created");
 
-        await pool.query(createGuildBlueskySubscriptionsTable);
+        await client.query(createGuildBlueskySubscriptionsTable);
         console.log("Guild Bluesky Subscriptions table created");
 
-        await pool.query(createGuildYouTubeSubscriptionsTable);
+        await client.query(createGuildYouTubeSubscriptionsTable);
         console.log("Guild YouTube Subscriptions table created");
 
-        await pool.query(createGuildTwitchSubscriptionsTable);
+        await client.query(createGuildTwitchSubscriptionsTable);
         console.log("Guild Twitch Subscriptions table created");
 
-        await pool.query(createBotInfoTable);
+        await client.query(createBotInfoTable);
         console.log("Bot Info table created");
 
-        await pool.query(createBotInfoNotificationsTable);
+        await client.query(createBotInfoNotificationsTable);
         console.log("Bot Info Notifications table created");
 
-        await pool.query(createBotInfoNotificationsTimingsTable);
+        await client.query(createBotInfoNotificationsTimingsTable);
         console.log("Bot Info Notifications Timings table created");
 
-        await pool.query(createBotInfoTopChannelsTable);
+        await client.query(createBotInfoTopChannelsTable);
         console.log("Bot Info Top Channels table created");
 
-        await pool.query(createBotInfoTopGuildsTable);
+        await client.query(createBotInfoTopGuildsTable);
         console.log("Bot Info Top Guilds table created");
 
-        await pool.query(createAuditLogsTable);
+        await client.query(createAuditLogsTable);
         console.log("Audit Logs table created");
 
         return true;
