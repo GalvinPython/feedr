@@ -5,6 +5,9 @@ export const ScrollUpButton = () => {
 
     useEffect(() => {
         window.addEventListener("scroll", toggleVisible);
+        return () => {
+            window.removeEventListener("scroll", toggleVisible);
+        };
     }, []);
 
     const toggleVisible = () => {
