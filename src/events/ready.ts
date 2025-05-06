@@ -1,42 +1,26 @@
-import { ActivityType, Events, PresenceUpdateStatus } from "discord.js";
+import { Events } from "discord.js";
+import { CronJob } from "cron";
 
 import client from "../index";
 import fetchLatestUploads from "../utils/youtube/fetchLatestUploads";
 import { config } from "../config";
-import { checkIfStreamersAreLive } from "../utils/twitch/checkIfStreamerIsLive";
-import { updateBotInfo } from "../utils/database";
-
-// update the bot's presence
-async function updatePresence() {
-    if (!client?.user) return;
-
-    const servers = client.guilds.cache.size;
-    const members = client.guilds.cache.reduce(
-        (acc, guild) => acc + guild.memberCount,
-        0,
-    );
-
-    await updateBotInfo(servers, members);
-    client.user.setPresence({
-        activities: [
-            {
-                name: `Notifying ${servers.toLocaleString()} servers [${members.toLocaleString()} members]`,
-                type: ActivityType.Custom,
-            },
-        ],
-        status: PresenceUpdateStatus.Online,
-    });
-}
+// import { checkIfStreamersAreLive } from "../utils/twitch/checkIfStreamerIsLive";
+import { cronUpdateBotInfo } from "../utils/cronJobs";
 
 // Log into the bot
 client.once(Events.ClientReady, async (bot) => {
     console.log(`Ready! Logged in as ${bot.user?.tag}`);
 
     // Set the bot's presence and update it every minute
-    await updatePresence();
+    await cronUpdateBotInfo();
     fetchLatestUploads();
-    setInterval(updatePresence, 60000);
+
+    // Set the bot's presence and update it every minute
+    new CronJob("0 * * * * *", async () => {
+        await cronUpdateBotInfo();
+    }).start();
     setInterval(fetchLatestUploads, config.updateIntervalYouTube as number);
+
     // One at a time
     // checkIfStreamersAreLive();
     // setInterval(checkIfStreamersAreLive, config.updateIntervalTwitch as number);

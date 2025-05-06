@@ -305,42 +305,6 @@ export async function twitchStopGuildTrackingChannel(
 }
 // #endregion
 
-// #region Bot Info
-export async function getBotInfo() {
-    const query = `SELECT * FROM bot_info`;
-
-    try {
-        const statement = db.prepare(query);
-        const result = statement.get();
-
-        return result;
-    } catch (err) {
-        console.error("Error getting bot info:", err);
-        throw err;
-    }
-}
-
-export async function updateBotInfo(
-    total_servers: number,
-    total_members: number,
-) {
-    console.log("Updating bot info:", total_servers, total_members);
-    const query = `UPDATE bot_info SET total_servers = ?, total_members = ?`;
-
-    try {
-        const statement = db.prepare(query);
-
-        statement.run(total_servers, total_members);
-
-        return true;
-    } catch (err) {
-        console.error("Error updating bot info:", err);
-
-        return false;
-    }
-}
-// #endregion
-
 // #region i have no idea what im doing here
 
 export async function getAllTrackedInGuild(

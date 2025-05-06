@@ -76,6 +76,7 @@ export default async function initTables(): Promise<boolean> {
 
     const createBotInfoTable = `
         CREATE TABLE IF NOT EXISTS bot_info (
+            locked_row BOOLEAN NOT NULL DEFAULT TRUE,
             guilds_total INTEGER NOT NULL DEFAULT 0,
             channels_tracked INTEGER NOT NULL DEFAULT 0,
             total_members INTEGER NOT NULL DEFAULT 0,
@@ -125,6 +126,10 @@ export default async function initTables(): Promise<boolean> {
         );
     `;
 
+    const seedBotInfoTable = `
+        INSERT INTO bot_info (locked_row, guilds_total, channels_tracked, total_members) VALUES (true, 0, 0, 0)
+    `;
+
     try {
         const client = await pool.connect();
 
@@ -166,6 +171,11 @@ export default async function initTables(): Promise<boolean> {
 
         await client.query(createAuditLogsTable);
         console.log("Audit Logs table created");
+
+        await client.query(seedBotInfoTable);
+        console.log("Bot Info table seeded");
+
+        client.release();
 
         return true;
     } catch (err) {

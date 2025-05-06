@@ -21,3 +21,12 @@ export type dbDiscordTable = {
     platform_user_id: string;
     guild_ping_role: null | string;
 };
+
+export interface dbBotInfo {
+    locked_row: boolean;
+    guilds_total: number;
+    channels_tracked: number;
+    total_members: number;
+    updated_at: string;
+    extended_info_updated_at: string;
+}
