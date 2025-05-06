@@ -26,7 +26,8 @@
     "test:site": "bun --watch src/web/web.ts",
     "test:jetstream": "bun --watch src/utils/bluesky/jetstream.ts",
     "lint": "eslint . --ext .ts -c .eslintrc.json",
-    "lint:fix": "eslint . --ext .ts -c .eslintrc.json --fix"
+    "lint:fix": "eslint . --ext .ts -c .eslintrc.json --fix",
+    "cargo:api:dev": "cd api && cargo watch -x \"run -- --dev\""
   },
   "dependencies": {
     "cors": "^2.8.5",

@@ -1,5 +1,8 @@
 node_modules/
 .env
+.astro/
+dist/
+target/
 
 # Database stuff
 /backups

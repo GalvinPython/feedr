@@ -3,7 +3,6 @@ import { ActivityType, Events, PresenceUpdateStatus } from "discord.js";
 import client from "../index";
 import fetchLatestUploads from "../utils/youtube/fetchLatestUploads";
 import { config } from "../config";
-import { checkIfStreamersAreLive } from "../utils/twitch/checkIfStreamerIsLive";
 import { updateBotInfo } from "../utils/database";
 
 // update the bot's presence

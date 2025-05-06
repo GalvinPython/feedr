@@ -1,4 +1,4 @@
-import type { dbDiscordTable, dbYouTube } from "../types/database";
+import type { dbDiscordTable } from "../types/database";
 
 import { Pool } from "pg";
 
