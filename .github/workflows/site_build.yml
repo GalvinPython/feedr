@@ -40,5 +40,5 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Run ESLint
-        run: bun run build
+      - name: Build Site
+        run: bun run web:build

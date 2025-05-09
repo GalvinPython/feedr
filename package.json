@@ -25,7 +25,9 @@
     "test:jetstream": "bun --watch src/utils/bluesky/jetstream.ts",
     "lint": "eslint . --ext .ts -c .eslintrc.json",
     "lint:fix": "eslint . --ext .ts -c .eslintrc.json --fix",
-    "cargo:api:dev": "cd api && cargo watch -x \"run -- --dev\""
+    "cargo:api:dev": "cd api && cargo watch -x \"run -- --dev\"",
+    "web:dev": "cd web && bun dev",
+    "web:build": "cd web && bun build"
   },
   "dependencies": {
     "cron": "^4.3.0",
