@@ -28,7 +28,7 @@ export const Navbar = () => {
                     transition={{ duration: 0.3 }}
                     exit={{ opacity: 0 }}
                 >
-                    <a href="/#home" aria-label="Home">
+                    <a href="/" aria-label="Home">
                         <div className="flex justify-start items-center grow basis-0">
                             <div className="text-white mr-2 text-6xl">
                                 <img
