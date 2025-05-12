@@ -4,7 +4,7 @@
   "type": "module",
   "version": "2.0.0-dev",
   "devDependencies": {
-    "@types/bun": "1.2.10",
+    "@types/bun": "1.2.13",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
     "@types/pg": "^8.11.14",
