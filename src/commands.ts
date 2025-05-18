@@ -15,9 +15,7 @@ import { PermissionFlagsBits } from "discord-api-types/v8";
 
 import checkIfChannelIdIsValid from "./utils/youtube/checkIfChannelIdIsValid";
 import {
-    addNewChannelToTrack,
     addNewGuildToTrackChannel,
-    checkIfChannelIsAlreadyTracked,
     checkIfGuildIsTrackingChannelAlready,
     getAllTrackedInGuild,
     stopGuildTrackingChannel,
@@ -30,6 +28,10 @@ import {
 import getChannelDetails from "./utils/youtube/getChannelDetails";
 import { getStreamerId } from "./utils/twitch/getStreamerId";
 import { checkIfStreamerIsLive } from "./utils/twitch/checkIfStreamerIsLive";
+import {
+    checkIfChannelIsAlreadyTracked,
+    addNewChannelToTrack,
+} from "./utils/db/youtube";
 
 import client from ".";
 

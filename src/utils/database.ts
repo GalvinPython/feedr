@@ -27,51 +27,6 @@ export const pool: Pool = new Pool({
 });
 
 // #region YouTube
-// These two functions are for checking/adding a new channel to the youtube table
-export async function checkIfChannelIsAlreadyTracked(channelId: string) {
-    const query = `SELECT * FROM youtube WHERE youtube_channel_id = ?`;
-
-    try {
-        const statement = db.prepare(query);
-        const result = statement.all(channelId);
-
-        return result.length > 0;
-    } catch (err) {
-        console.error("Error checking if channel is already tracked:", err);
-        throw err;
-    }
-}
-
-export async function addNewChannelToTrack(channelId: string) {
-    console.log("Adding channel to track:", channelId);
-    const res = await fetch(
-        `https://youtube.googleapis.com/youtube/v3/playlists?part=snippet&id=${channelId.replace("UC", "UU")}&key=${env.youtubeApiKey}`,
-    );
-
-    if (!res.ok) {
-        return false;
-    }
-
-    const data = await res.json();
-    const videoId =
-        data.items?.[0]?.snippet?.thumbnails?.default?.url?.split("/")[4] ||
-        null;
-
-    const query = `INSERT INTO youtube (youtube_channel_id, latest_video_id) VALUES (?, ?)`;
-
-    try {
-        const statement = db.prepare(query);
-
-        statement.run(channelId, videoId);
-
-        return true;
-    } catch (err) {
-        console.error("Error adding channel to track:", err);
-
-        return false;
-    }
-}
-
 export async function checkIfGuildIsTrackingChannelAlready(
     channelId: string,
     guild_id: string,

@@ -5,7 +5,8 @@ export default async function initTables(): Promise<boolean> {
         CREATE TABLE IF NOT EXISTS discord (
             guild_id TEXT PRIMARY KEY,
             is_dm BOOLEAN NOT NULL DEFAULT FALSE,
-            allowed_public_sharing BOOLEAN NOT NULL DEFAULT FALSE
+            allowed_public_sharing BOOLEAN NOT NULL DEFAULT FALSE,
+            feedr_updates_channel_id TEXT
         );
     `;
 
