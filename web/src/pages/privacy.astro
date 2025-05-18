@@ -1,0 +1,18 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { Hero } from "../components/Hero";
+import { Navbar } from "../components/Navbar";
+import { Footer } from "../components/Footer";
+import { ScrollUpButton } from "../components/ScrollUpButton";
+import { LegalStuffPrivacy } from "../components/LegalStuffPrivacy";
+import "../styles/Theme.css";
+import "../styles/Diagonals.css";
+---
+
+<Layout title="TOS - Feedr Discord Bot">
+    <Navbar client:load />
+    <!-- <Hero client:load /> -->
+    <LegalStuffPrivacy client:load />
+    <Footer />
+    <ScrollUpButton client:load />
+</Layout>
