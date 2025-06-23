@@ -2,7 +2,10 @@ import { Events } from "discord.js";
 import { CronJob } from "cron";
 
 import client from "../index";
-import fetchLatestUploads from "../utils/youtube/fetchLatestUploads";
+import {
+    fetchLatestUploads,
+    sendLatestUploads,
+} from "../utils/youtube/fetchLatestUploads";
 import { config } from "../config";
 // import { checkIfStreamersAreLive } from "../utils/twitch/checkIfStreamerIsLive";
 import { cronUpdateBotInfo } from "../utils/cronJobs";
@@ -11,15 +14,16 @@ import { cronUpdateBotInfo } from "../utils/cronJobs";
 client.once(Events.ClientReady, async (bot) => {
     console.log(`Ready! Logged in as ${bot.user?.tag}`);
 
-    // Set the bot's presence and update it every minute
     await cronUpdateBotInfo();
-    fetchLatestUploads();
-
-    // Set the bot's presence and update it every minute
     new CronJob("0 * * * * *", async () => {
         await cronUpdateBotInfo();
     }).start();
+
+    fetchLatestUploads();
     setInterval(fetchLatestUploads, config.updateIntervalYouTube as number);
+
+    sendLatestUploads();
+    setInterval(sendLatestUploads, config.updateIntervalYouTube as number);
 
     // One at a time
     // checkIfStreamersAreLive();
