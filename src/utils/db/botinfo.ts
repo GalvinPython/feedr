@@ -1,6 +1,7 @@
 import type { PoolClient, QueryResult } from "pg";
-import { pool } from "../database";
 import type { dbBotInfo } from "../../types/database";
+
+import { pool } from "../database";
 
 export async function updateBotInfo(
     guilds_total: number = 0,
@@ -8,9 +9,12 @@ export async function updateBotInfo(
     total_members: number = 0,
 ): Promise<void> {
     const query = `
-        UPDATE bot_info
-        SET guilds_total = $1, channels_tracked = $2, total_members = $3, updated_at = NOW()
-        WHERE locked_row = true;
+        INSERT INTO bot_info (guilds_total, channels_tracked, total_members, time)
+        VALUES ($1, $2, $3, NOW())
+        ON CONFLICT (time) DO UPDATE
+        SET guilds_total = EXCLUDED.guilds_total,
+            channels_tracked = EXCLUDED.channels_tracked,
+            total_members = EXCLUDED.total_members;
     `;
 
     try {

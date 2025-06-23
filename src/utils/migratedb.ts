@@ -122,8 +122,8 @@ if (botInfoData.length > 0) {
 
     await client.query(
         `
-    INSERT INTO bot_info (guilds_total, channels_tracked, total_members, updated_at, extended_info_updated_at)
-    VALUES ($1, 0, $2, now(), now())
+    INSERT INTO bot_info (guilds_total, channels_tracked, total_members, time)
+    VALUES ($1, 0, $2, now())
   `,
         [row.total_servers, row.total_members],
     );

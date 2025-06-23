@@ -17,7 +17,7 @@ const playlistIdPrefixes: Record<PlaylistType, string> = {
 export default async function (
     channelId: string,
     playlistType?: PlaylistType,
-): Promise<string | null> {
+): Promise<{ videoId: string; datePublished: Date } | null> {
     const playlistIdPrefix = !playlistType
         ? "UU"
         : playlistIdPrefixes[playlistType];
@@ -43,5 +43,8 @@ export default async function (
     }
 
     // Yes this does actually return the video ID, you'll be surprised how weird YouTube's API is
-    return atob(json.items[0].id).split(".")[1];
+    return {
+        videoId: atob(json.items[0].id).split(".")[1],
+        datePublished: new Date(json.items[0].snippet.publishedAt),
+    };
 }

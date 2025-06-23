@@ -3,7 +3,7 @@ import type { dbYouTube } from "../../types/database";
 import { pool } from "../database";
 import getSinglePlaylistAndReturnVideoId, {
     PlaylistType,
-} from "../youtube/getSinglePlaylistAndReturnVideoId";
+} from "../youtube/getSinglePlaylistAndReturnVideoData";
 
 export async function dbYouTubeGetAllChannelsToTrack(): Promise<
     dbYouTube[] | []
@@ -38,7 +38,8 @@ export async function checkIfChannelIsAlreadyTracked(
     } catch (err) {
         console.error("Error checking if channel is already tracked:", err);
 
-        return false;
+        // Return true if there's an error as we don't want to add the channel if we can't check it
+        return true;
     }
 }
 
@@ -61,16 +62,19 @@ export async function addNewChannelToTrack(
         PlaylistType.Stream,
     );
 
-    const query = `INSERT INTO youtube (youtube_channel_id, latest_video_id, latest_short_id, latest_stream_id) VALUES (?, ?, ?, ?)`;
+    const query = `INSERT INTO youtube (youtube_channel_id, latest_video_id_updated, latest_video_id, latest_short_id, latest_short_id_updated, latest_stream_id, latest_stream_id_updated) VALUES (?, ?, ?, ?, ?, ?, ?)`;
 
     try {
         const client = await pool.connect();
 
         await client.query(query, [
             channelId,
-            longId || null,
-            shortId || null,
-            liveId || null,
+            longId?.videoId || null,
+            longId?.datePublished || null,
+            shortId?.videoId || null,
+            shortId?.datePublished || null,
+            liveId?.videoId || null,
+            liveId?.datePublished || null,
         ]);
 
         return true;

@@ -60,11 +60,10 @@ Table twitch {
 }
 
 Table bot_info {
+  time datetime [not null, default: `now()`]
   guilds_total int [not null, default: 0]
   channels_tracked int [not null, default: 0]
   total_members int [not null, default: 0]
-  updated_at datetime [not null, default: `now()`]
-  extended_info_updated_at datetime [not null, default: `now()`]
 }
 
 Table bot_info_notifications {
