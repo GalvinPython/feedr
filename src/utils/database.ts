@@ -150,26 +150,6 @@ export async function twitchCheckIfChannelIsAlreadyTracked(channelId: string) {
     }
 }
 
-export async function twitchCheckIfGuildIsTrackingChannelAlready(
-    channelId: string,
-    guild_id: string,
-) {
-    const query = `SELECT * FROM discord WHERE platform_user_id = ? AND guild_id = ?`;
-
-    try {
-        const statement = db.prepare(query);
-        const result = statement.all(channelId, guild_id);
-
-        return result.length > 0;
-    } catch (err) {
-        console.error(
-            "Error checking if guild is tracking Twitch channel already:",
-            err,
-        );
-        throw err;
-    }
-}
-
 export async function twitchAddNewChannelToTrack(
     channelId: string,
     isLive: boolean,
