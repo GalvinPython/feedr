@@ -10,7 +10,7 @@ export default async function (
     channelId: string,
 ): Promise<channelDetails | null> {
     const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channelId}&key=${env.youtubeApiKey}`,
+        `https://youtube.googleapis.com/youtube/v3/channels?part=snippet&id=${channelId}&key=${env.youtubeApiKey}`,
     );
 
     if (!res.ok) {

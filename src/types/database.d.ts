@@ -1,3 +1,5 @@
+// This file contains TypeScript interfaces for the database schema used in the application.
+// YouTube Table Interface
 export interface dbYouTube {
     youtube_channel_id: string;
     latest_video_id: string | null;
@@ -9,19 +11,22 @@ export interface dbYouTube {
     youtube_channel_is_live: boolean;
 }
 
+// Twitch Table Interface
 export interface dbTwitch {
     twitch_channel_id: string;
     is_live: boolean;
 }
 
-export type dbDiscordTable = {
+// Guild YouTube Subscriptions Table Interface
+export interface dbDiscordTable {
     guild_id: string;
     guild_channel_id: string;
     guild_platform: string;
     platform_user_id: string;
     guild_ping_role: null | string;
-};
+}
 
+// Bot Info Table Interface
 export interface dbBotInfo {
     locked_row: boolean;
     guilds_total: number;

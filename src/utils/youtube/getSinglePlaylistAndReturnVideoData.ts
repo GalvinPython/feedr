@@ -1,3 +1,6 @@
+// This function is used when a new channel is being added to the database
+// It will also be used to get the content type of a new upload
+
 import type { YouTubePlaylistResponse } from "../../types/youtube";
 
 import { env } from "../../config";
