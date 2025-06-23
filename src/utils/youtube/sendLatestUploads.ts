@@ -44,5 +44,7 @@ export default async function sendLatestUploads() {
                 );
             }
         }
+        // Remove the processed entry from the updates map
+        updates.delete(videoId);
     }
 }
