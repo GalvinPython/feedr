@@ -2,13 +2,11 @@ import { Events } from "discord.js";
 import { CronJob } from "cron";
 
 import client from "../index";
-import {
-    fetchLatestUploads,
-    sendLatestUploads,
-} from "../utils/youtube/fetchLatestUploads";
 import { config } from "../config";
 // import { checkIfStreamersAreLive } from "../utils/twitch/checkIfStreamerIsLive";
 import { cronUpdateBotInfo } from "../utils/cronJobs";
+import sendLatestUploads from "../utils/youtube/sendLatestUploads";
+import fetchLatestUploads from "../utils/youtube/fetchLatestUploads";
 
 // Log into the bot
 client.once(Events.ClientReady, async (bot) => {
