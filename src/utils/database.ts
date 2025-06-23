@@ -1,8 +1,8 @@
-import type { dbDiscordTable, dbYouTube } from "../types/database";
+import type { dbDiscordTable } from "../types/database";
 
 import { Pool } from "pg";
 
-import { dbCredentials, env } from "../config";
+import { dbCredentials } from "../config";
 
 // import path from "path";
 // import { Database } from "bun:sqlite";
@@ -30,14 +30,14 @@ export const pool: Pool = new Pool({
 export async function checkIfGuildIsTrackingChannelAlready(
     channelId: string,
     guild_id: string,
-) {
+): Promise<dbDiscordTable[]> {
     const query = `SELECT * FROM discord WHERE platform_user_id = ? AND guild_id = ?`;
 
     try {
         const statement = db.prepare(query);
         const result = statement.all(channelId, guild_id);
 
-        return result.length > 0;
+        return result;
     } catch (err) {
         console.error(
             "Error checking if guild is tracking channel already:",

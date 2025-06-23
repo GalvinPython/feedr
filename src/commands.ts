@@ -343,16 +343,17 @@ const commands: Record<string, Command> = {
                         return;
                     }
 
-                    // Check if the channel is already being tracked in the guild
-                    if (
+                    const trackedChannels =
                         await checkIfGuildIsTrackingChannelAlready(
                             platformUserId,
                             guildId,
-                        )
-                    ) {
+                        );
+
+                    // Check if the channel is already being tracked in the guild
+                    if (trackedChannels.length) {
                         await interaction.reply({
                             flags: MessageFlags.Ephemeral,
-                            content: "This channel is already being tracked!",
+                            content: `This channel is already being tracked in ${trackedChannels.map((channel, index) => `${index > 0 && index === trackedChannels.length - 1 ? "and " : ""}<#${channel.guild_channel_id}>`).join(", ")}!`,
                         });
 
                         return;
