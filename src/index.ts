@@ -2,6 +2,7 @@
 import fs from "fs/promises";
 import path from "path";
 
+import Bun from "bun";
 import {
     Client,
     GatewayIntentBits,
@@ -78,4 +79,12 @@ await Promise.all(
     getEvents.map(async (file) => {
         await import("./events/" + file);
     }),
+);
+
+// Attempt the garbage collection every hour
+setInterval(
+    () => {
+        Bun.gc(true);
+    },
+    60 * 60 * 1000,
 );

@@ -22,7 +22,6 @@ import {
     twitchAddNewChannelToTrack,
     twitchAddNewGuildToTrackChannel,
     twitchCheckIfChannelIsAlreadyTracked,
-    twitchCheckIfGuildIsTrackingChannelAlready,
     twitchStopGuildTrackingChannel,
 } from "./utils/database";
 import getChannelDetails from "./utils/youtube/getChannelDetails";
@@ -133,7 +132,8 @@ const commands: Record<string, Command> = {
         data: {
             options: [],
             name: "usage",
-            description: "Check the heap size and disk usage of the bot!",
+            description:
+                "Check the heap size and disk usage of the bot! (Stats for nerds)",
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
@@ -318,7 +318,7 @@ const commands: Record<string, Command> = {
             }
 
             switch (targetPlatform) {
-                case "youtube":
+                case "youtube": {
                     // Check that the channel ID is in a valid format
                     if (
                         platformUserId.length != 24 ||
@@ -400,6 +400,7 @@ const commands: Record<string, Command> = {
                     }
 
                     return;
+                }
                 case "twitch": {
                     // Check if the streamer exists by getting the ID
                     const streamerId = await getStreamerId(platformUserId);
@@ -626,7 +627,7 @@ const commands: Record<string, Command> = {
 
                     // check if the channel is not being tracked in the guild
                     if (
-                        !(await twitchCheckIfGuildIsTrackingChannelAlready(
+                        !(await checkIfGuildIsTrackingChannelAlready(
                             streamerId,
                             guildId,
                         ))
