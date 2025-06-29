@@ -15,21 +15,22 @@ import { PermissionFlagsBits } from "discord-api-types/v8";
 
 import checkIfChannelIdIsValid from "./utils/youtube/checkIfChannelIdIsValid";
 import {
-    addNewChannelToTrack,
     addNewGuildToTrackChannel,
-    checkIfChannelIsAlreadyTracked,
     checkIfGuildIsTrackingChannelAlready,
     getAllTrackedInGuild,
     stopGuildTrackingChannel,
     twitchAddNewChannelToTrack,
     twitchAddNewGuildToTrackChannel,
     twitchCheckIfChannelIsAlreadyTracked,
-    twitchCheckIfGuildIsTrackingChannelAlready,
     twitchStopGuildTrackingChannel,
 } from "./utils/database";
 import getChannelDetails from "./utils/youtube/getChannelDetails";
 import { getStreamerId } from "./utils/twitch/getStreamerId";
 import { checkIfStreamerIsLive } from "./utils/twitch/checkIfStreamerIsLive";
+import {
+    checkIfChannelIsAlreadyTracked,
+    addNewChannelToTrack,
+} from "./utils/db/youtube";
 
 import client from ".";
 
@@ -131,7 +132,8 @@ const commands: Record<string, Command> = {
         data: {
             options: [],
             name: "usage",
-            description: "Check the heap size and disk usage of the bot!",
+            description:
+                "Check the heap size and disk usage of the bot! (Stats for nerds)",
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
@@ -316,7 +318,7 @@ const commands: Record<string, Command> = {
             }
 
             switch (targetPlatform) {
-                case "youtube":
+                case "youtube": {
                     // Check that the channel ID is in a valid format
                     if (
                         platformUserId.length != 24 ||
@@ -341,16 +343,17 @@ const commands: Record<string, Command> = {
                         return;
                     }
 
-                    // Check if the channel is already being tracked in the guild
-                    if (
+                    const trackedChannels =
                         await checkIfGuildIsTrackingChannelAlready(
                             platformUserId,
                             guildId,
-                        )
-                    ) {
+                        );
+
+                    // Check if the channel is already being tracked in the guild
+                    if (trackedChannels.length) {
                         await interaction.reply({
                             flags: MessageFlags.Ephemeral,
-                            content: "This channel is already being tracked!",
+                            content: `This channel is already being tracked in ${trackedChannels.map((channel, index) => `${index > 0 && index === trackedChannels.length - 1 ? "and " : ""}<#${channel.guild_channel_id}>`).join(", ")}!`,
                         });
 
                         return;
@@ -397,6 +400,7 @@ const commands: Record<string, Command> = {
                     }
 
                     return;
+                }
                 case "twitch": {
                     // Check if the streamer exists by getting the ID
                     const streamerId = await getStreamerId(platformUserId);
@@ -410,16 +414,17 @@ const commands: Record<string, Command> = {
                         return;
                     }
 
-                    // Check if the channel is already being tracked in the guild
-                    if (
-                        await twitchCheckIfGuildIsTrackingChannelAlready(
-                            streamerId,
+                    const trackedChannels =
+                        await checkIfGuildIsTrackingChannelAlready(
+                            platformUserId,
                             guildId,
-                        )
-                    ) {
+                        );
+
+                    // Check if the channel is already being tracked in the guild
+                    if (trackedChannels.length) {
                         await interaction.reply({
                             flags: MessageFlags.Ephemeral,
-                            content: "This streamer is already being tracked!",
+                            content: `This channel is already being tracked in ${trackedChannels.map((channel, index) => `${index > 0 && index === trackedChannels.length - 1 ? "and " : ""}<#${channel.guild_channel_id}>`).join(", ")}!`,
                         });
 
                         return;
@@ -622,7 +627,7 @@ const commands: Record<string, Command> = {
 
                     // check if the channel is not being tracked in the guild
                     if (
-                        !(await twitchCheckIfGuildIsTrackingChannelAlready(
+                        !(await checkIfGuildIsTrackingChannelAlready(
                             streamerId,
                             guildId,
                         ))

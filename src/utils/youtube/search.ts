@@ -1,5 +1,5 @@
 // NOTE: Experimental
-import type { InnertubeSearchRequest } from "../../types/innertube";
+import type { InnertubeSearchRequest } from "../../types/youtube";
 
 export default async function (query: string) {
     try {

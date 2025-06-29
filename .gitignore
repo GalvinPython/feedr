@@ -11,3 +11,4 @@ target/
 *.sqlite3*
 *.sql
 dbtests.ts
+perftesting.ts

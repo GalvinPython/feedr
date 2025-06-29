@@ -2,6 +2,7 @@
 import fs from "fs/promises";
 import path from "path";
 
+import Bun from "bun";
 import {
     Client,
     GatewayIntentBits,
@@ -9,13 +10,11 @@ import {
     Routes,
     type APIApplicationCommand,
 } from "discord.js";
-import { CronJob } from "cron";
 
 import { env } from "./config.ts";
 import commandsMap from "./commands.ts";
 import initTables from "./utils/db/init.ts";
 import { getTwitchToken } from "./utils/twitch/auth.ts";
-import backup from "./utils/backup.ts";
 
 if (!env.discordToken || env.discordToken === "YOUR_DISCORD_TOKEN") {
     throw new Error("You MUST provide a discord token in .env!");
@@ -35,15 +34,6 @@ if (
 ) {
     throw new Error("You MUST provide a Twitch client secret in .env!");
 }
-
-// Start the cron jobs
-await fs.mkdir(path.resolve(process.cwd(), "backups"), { recursive: true });
-new CronJob("0 0 * * *", async () => {
-    await backup(
-        path.resolve(process.cwd(), "db.sqlite3"),
-        `./backups/db-${new Date().toISOString().replace(/[:.]/g, "-")}.sqlite3`,
-    );
-}).start();
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
@@ -89,4 +79,12 @@ await Promise.all(
     getEvents.map(async (file) => {
         await import("./events/" + file);
     }),
+);
+
+// Attempt the garbage collection every hour
+setInterval(
+    () => {
+        Bun.gc(true);
+    },
+    60 * 60 * 1000,
 );
