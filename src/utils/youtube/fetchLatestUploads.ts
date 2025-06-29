@@ -1,13 +1,18 @@
-import type { dbYouTube } from "../../types/database";
-
-import { ChannelType, TextChannel } from "discord.js";
+import type { dbDiscordTable, dbYouTube } from "../../types/database";
 
 import { env } from "../../config";
 import { getGuildsTrackingChannel, updateVideoId } from "../database";
-import client from "../..";
 import { dbYouTubeGetAllChannelsToTrack } from "../db/youtube";
 
 import getChannelDetails from "./getChannelDetails";
+
+export const updates = new Map<
+    string,
+    {
+        channelInfo: Awaited<ReturnType<typeof getChannelDetails>>;
+        discordGuildsToUpdate: dbDiscordTable[];
+    }
+>();
 
 export default async function fetchLatestUploads() {
     console.log("Fetching latest uploads...");
@@ -99,42 +104,47 @@ export default async function fetchLatestUploads() {
 
                 const channelInfo = await getChannelDetails(channelId);
 
-                console.log("Discord guilds to update:", discordGuildsToUpdate);
-                for (const guild of discordGuildsToUpdate) {
-                    try {
-                        const channelObj = await client.channels.fetch(
-                            guild.guild_channel_id,
-                        );
+                updates.set(videoId, {
+                    channelInfo,
+                    discordGuildsToUpdate,
+                });
 
-                        if (
-                            !channelObj ||
-                            (channelObj.type !== ChannelType.GuildText &&
-                                channelObj.type !==
-                                    ChannelType.GuildAnnouncement)
-                        ) {
-                            console.error(
-                                "Invalid channel or not a text channel in fetchLatestUploads",
-                            );
-                            continue;
-                        }
+                // console.log("Discord guilds to update:", discordGuildsToUpdate);
+                // for (const guild of discordGuildsToUpdate) {
+                //     try {
+                //         const channelObj = await client.channels.fetch(
+                //             guild.guild_channel_id,
+                //         );
 
-                        await (channelObj as TextChannel).send({
-                            content:
-                                guild.guild_ping_role && channelInfo
-                                    ? `<@&${guild.guild_ping_role}> New video uploaded for ${channelInfo?.channelName}! https://www.youtube.com/watch?v=${videoId}`
-                                    : guild.guild_ping_role
-                                      ? `<@&${guild.guild_ping_role}> New video uploaded! https://www.youtube.com/watch?v=${videoId}`
-                                      : channelInfo
-                                        ? `New video uploaded for ${channelInfo.channelName}! https://www.youtube.com/watch?v=${videoId}`
-                                        : `New video uploaded! https://www.youtube.com/watch?v=${videoId}`,
-                        });
-                    } catch (error) {
-                        console.error(
-                            "Error fetching or sending message to channel in fetchLatestUploads:",
-                            error,
-                        );
-                    }
-                }
+                //         if (
+                //             !channelObj ||
+                //             (channelObj.type !== ChannelType.GuildText &&
+                //                 channelObj.type !==
+                //                     ChannelType.GuildAnnouncement)
+                //         ) {
+                //             console.error(
+                //                 "Invalid channel or not a text channel in fetchLatestUploads",
+                //             );
+                //             continue;
+                //         }
+
+                //         await (channelObj as TextChannel).send({
+                //             content:
+                //                 guild.guild_ping_role && channelInfo
+                //                     ? `<@&${guild.guild_ping_role}> New video uploaded for ${channelInfo?.channelName}! https://www.youtube.com/watch?v=${videoId}`
+                //                     : guild.guild_ping_role
+                //                       ? `<@&${guild.guild_ping_role}> New video uploaded! https://www.youtube.com/watch?v=${videoId}`
+                //                       : channelInfo
+                //                         ? `New video uploaded for ${channelInfo.channelName}! https://www.youtube.com/watch?v=${videoId}`
+                //                         : `New video uploaded! https://www.youtube.com/watch?v=${videoId}`,
+                //         });
+                //     } catch (error) {
+                //         console.error(
+                //             "Error fetching or sending message to channel in fetchLatestUploads:",
+                //             error,
+                //         );
+                //     }
+                // }
             }
         }
     }
