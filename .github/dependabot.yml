@@ -7,3 +7,17 @@ updates:
     assignees:
       - "GalvinPython"
     target-branch: "dev"
+
+  - package-ecosystem: "bun"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+    assignees:
+      - "GalvinPython"
+    target-branch: "dev"
+    labels: ["dependencies", "javascript", "component: web"]
+
+  - package-ecosystem: "cargo"
+    directory: "/api"
+    schedule:
+      interval: "weekly"

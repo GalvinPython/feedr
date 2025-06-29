@@ -1,0 +1,30 @@
+---
+export async function getStaticPaths() {
+    return [{ params: { slug: "bot" } }, { params: { slug: "server" } }];
+}
+
+const { slug } = Astro.params;
+
+const redirects = {
+    bot: "https://discord.com/",
+    server: "https://discord.gg/",
+};
+
+const destination = redirects[slug];
+---
+
+<html>
+    <head>
+        <meta http-equiv="refresh" content={`0; url=${destination}`} />
+        <title>Redirecting...</title>
+        <style>
+            a {
+                color: #007bff;
+                text-decoration: none;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Redirecting to <a href={destination}>{destination}</a>...</p>
+    </body>
+</html>
