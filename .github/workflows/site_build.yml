@@ -1,5 +1,3 @@
-# idk why im bothering with this, not like im going to use cloudflare for it
-
 name: Site Build
 
 on:

@@ -14,7 +14,7 @@ export const TrustedBy = () => {
                 transition={{ duration: 0.5, delay: 0.2 }}
                 onViewportEnter={() => {
                     setTimeout(() => {
-                        setOdometerValue(180);
+                        setOdometerValue(213);
                     }, 500);
                 }}
             >
@@ -51,6 +51,21 @@ export const TrustedBy = () => {
                             </div>
                         </div>
                     </div>
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.15 }}
+                    >
+                        <div className="flex flex-col gap-2 sm:flex-row mt-4">
+                            <a
+                                href="/stats"
+                                className="w-64 sm:w-52 h-12 rounded-xl font-bold text-primaryText border border-solid flex justify-center items-center cursor-pointer bg-bgDark2 hover:bg-bgDark3 border-primaryColor transition"
+                                aria-label="Join Support Server"
+                            >
+                                View more stats ➡️
+                            </a>
+                        </div>
+                    </motion.div>
                 </div>
             </motion.div>
         </section>

@@ -21,12 +21,11 @@
   },
   "scripts": {
     "dev": "bun --watch . --dev",
-    "test:site": "bun --watch src/web/web.ts",
     "test:jetstream": "bun --watch src/utils/bluesky/jetstream.ts",
     "lint": "eslint . --ext .ts -c .eslintrc.json",
     "lint:fix": "eslint . --ext .ts -c .eslintrc.json --fix",
     "cargo:api:dev": "cd api && cargo watch -x \"run -- --dev\"",
-    "web:dev": "cd web && bun dev",
+    "web:dev": "concurrently --names \"WEB,API\" --prefix-colors \"blue,green\" \"cd web && bun dev\" \"cd api && cargo watch -x \\\"run -- --dev\\\"\"",
     "web:build": "cd web && bun build"
   },
   "dependencies": {
