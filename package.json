@@ -7,7 +7,7 @@
     "@types/bun": "1.2.10",
     "@types/pg": "^8.11.14",
     "@typescript-eslint/eslint-plugin": "8.11.0",
-    "@typescript-eslint/parser": "8.11.0",
+    "@typescript-eslint/parser": "8.35.0",
     "concurrently": "^9.1.2",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "9.1.0",
