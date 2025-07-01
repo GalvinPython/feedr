@@ -1,8 +1,13 @@
+// Yes i regret using rust for this
+
 use actix_cors::Cors;
 use actix_web::{App, HttpResponse, HttpServer, Responder, web};
 use dotenvy::from_path;
-use sqlx::PgPool;
-use std::env;
+use sqlx::{Column, PgPool, Row};
+use std::sync::LazyLock;
+use std::{collections::BTreeMap, env};
+
+static IS_DEV: LazyLock<bool> = LazyLock::new(|| std::env::args().any(|arg| arg == "--dev"));
 
 async fn index(db_pool: web::Data<PgPool>) -> impl Responder {
     let row: (String,) = sqlx::query_as("SELECT 'Hello from the database!'")
@@ -13,18 +18,51 @@ async fn index(db_pool: web::Data<PgPool>) -> impl Responder {
     HttpResponse::Ok().body(row.0)
 }
 
+pub async fn get_all_data(db_pool: web::Data<PgPool>) -> impl Responder {
+    if !*IS_DEV {
+        return HttpResponse::Ok().body("This endpoint is not available in production mode.");
+    }
+
+    let tables_query =
+        "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'";
+    let tables: Vec<(String,)> = sqlx::query_as(tables_query)
+        .fetch_all(&**db_pool)
+        .await
+        .unwrap();
+
+    let mut all_data = BTreeMap::new();
+
+    for (table_name,) in tables {
+        let query = format!("SELECT * FROM {}", table_name);
+        let rows = sqlx::query(&query).fetch_all(&**db_pool).await.unwrap();
+
+        let table_data: Vec<BTreeMap<String, Option<String>>> = rows
+            .iter()
+            .map(|row| {
+                let mut map = BTreeMap::new();
+                for (i, column) in row.columns().iter().enumerate() {
+                    let value: Option<String> = row.try_get(i).unwrap_or(None);
+                    map.insert(column.name().to_string(), value);
+                }
+                map
+            })
+            .collect();
+
+        all_data.insert(table_name, table_data);
+    }
+
+    HttpResponse::Ok().json(all_data)
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // Get --dev flag
-    let is_dev = std::env::args().any(|arg| arg == "--dev");
-
     // Load .env from root
     let cwd = env::current_dir().expect("Could not get current directory");
     let dotenv_path = cwd.join("../.env");
     from_path(&dotenv_path).expect(&format!("Failed to load .env from {:?}", dotenv_path));
 
     // Choose DB connection credentials based on mode
-    let (host, port, user, password, db) = if is_dev {
+    let (host, port, user, password, db) = if *IS_DEV {
         (
             env::var("POSTGRES_DEV_HOST").unwrap(),
             env::var("POSTGRES_DEV_PORT").unwrap(),
@@ -53,7 +91,7 @@ async fn main() -> std::io::Result<()> {
     // Start the server
     println!(
         "Running in {} mode",
-        if is_dev { "development" } else { "production" }
+        if *IS_DEV { "development" } else { "production" }
     );
     println!("Server listening on http://127.0.0.1:8080");
 
@@ -67,6 +105,7 @@ async fn main() -> std::io::Result<()> {
                     .allow_any_header(),
             )
             .route("/", web::get().to(index))
+            .route("/getall", web::get().to(get_all_data))
     })
     .bind("0.0.0.0:8080")?
     .run()

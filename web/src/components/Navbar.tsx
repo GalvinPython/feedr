@@ -11,6 +11,7 @@ const navbarLinks = [
     { label: "Twitch", href: "/#twitch", ariaLabel: "Twitch" },
     { label: "Discord", href: "/#discord", ariaLabel: "Discord" },
     { label: "FAQ", href: "/#FAQ", ariaLabel: "FAQ" },
+    { label: "Stats", href: "/stats", ariaLabel: "Stats" },
 ];
 
 export const Navbar = () => {

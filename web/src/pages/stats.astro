@@ -1,0 +1,32 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { Hero } from "../components/Hero";
+import { Navbar } from "../components/Navbar";
+// import { Features1 } from "../components/Features1";
+// import { Features2 } from "../components/Features2";
+// import { Testimonials } from "../components/Testimonials";
+import { FeaturesDiagonal } from "../components/FeaturesDiagonal";
+import { FAQ } from "../components/FAQ";
+import { TrustedBy } from "../components/TrustedBy";
+import { Footer } from "../components/Footer";
+import { ScrollUpButton } from "../components/ScrollUpButton";
+import "../styles/Theme.css";
+import "../styles/Diagonals.css";
+// import { DiscordMessageEmbed } from "../components/DiscordMessageEmbed";
+import { FeaturesYouTube } from "../components/FeaturesYouTube";
+---
+
+<Layout title="Feedr Discord Bot">
+    <Navbar client:load />
+    <Hero client:load />
+    <!-- <DiscordMessageEmbed client:load /> -->
+    <!-- <Features1 client:load />
+    <Features2 client:load /> -->
+    <FeaturesYouTube client:load />
+    <FeaturesDiagonal client:load />
+    <!-- <Testimonials client:load /> -->
+    <TrustedBy client:load />
+    <FAQ client:load />
+    <Footer />
+    <ScrollUpButton client:load />
+</Layout>

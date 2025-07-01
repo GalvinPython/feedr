@@ -31,6 +31,7 @@ import {
     checkIfChannelIsAlreadyTracked,
     addNewChannelToTrack,
 } from "./utils/db/youtube";
+import search from "./utils/youtube/search";
 
 import client from ".";
 
@@ -488,9 +489,36 @@ const commands: Record<string, Command> = {
                 const platform = interaction.options.get("platform")?.value;
                 const query = interaction.options.get("user_id")?.value;
 
-                if (!query) {
+                // If the query is empty or not a string, return an empty array
+                if (!query || typeof query !== "string") {
+                    await interaction.respond([]);
+
                     return;
                 }
+
+                // If the query is a YouTube channel ID, do not search
+                if (query.length == 24 && query.startsWith("UC")) {
+                    await interaction.respond([
+                        {
+                            name: `${query} (using channel id)`,
+                            value: query,
+                        },
+                    ]);
+
+                    return;
+                }
+
+                const channels = await search(query);
+
+                await interaction.respond(
+                    channels.map((channel) => ({
+                        name: `${channel.title} (${channel.handle}) | ${channel.subscribers} subscriber(s)`.slice(
+                            0,
+                            100,
+                        ),
+                        value: channel.channel_id,
+                    })),
+                );
             } catch (error) {
                 console.error(error);
             }
