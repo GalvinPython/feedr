@@ -27,7 +27,10 @@
     "lint:fix": "eslint . --ext .ts -c .eslintrc.json --fix",
     "cargo:api:dev": "cd api && cargo watch -x \"run -- --dev\"",
     "web:dev": "concurrently --names \"WEB,API\" --prefix-colors \"blue,green\" \"cd web && bun dev\" \"cd api && cargo watch -x \\\"run -- --dev\\\"\"",
-    "web:build": "cd web && bun build"
+    "web:build": "cd web && bun build",
+    "start:api": "echo 'Cannot start API without cargo. Reserved for future use' && exit 1",
+    "start:bot": "bun run src/bot.ts",
+    "start:web": "cd web && bun start"
   },
   "dependencies": {
     "cron": "^4.3.0",

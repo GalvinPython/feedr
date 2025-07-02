@@ -43,3 +43,5 @@ export default async function test(
 
 test("UC1234567890", PlaylistType.Video);
 
+// Crash the program
+process.exit(1);

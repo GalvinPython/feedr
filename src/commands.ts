@@ -232,7 +232,23 @@ const commands: Record<string, Command> = {
                 return;
             }
 
-            // DMs are currently not supported, so throw back an error
+            // TODO: Embed
+            // For YouTube: Check if the channel ID is in a valid format
+            if (
+                targetPlatform === "youtube" &&
+                (platformUserId.length !== 24 ||
+                    !platformUserId.startsWith("UC"))
+            ) {
+                await interaction.reply({
+                    flags: MessageFlags.Ephemeral,
+                    content:
+                        'Invalid YouTube channel ID format! Each channel ID should be 24 characters long and start with "UC". Need to find the channel ID? We have a guide here: https://github.com/GalvinPython/feedr/wiki/Guide:-How-to-get-the-YouTube-Channel-ID. If this was an issue with the autocomplete, please report it!',
+                });
+
+                return;
+            }
+
+            // TODO: Enable DMs :)
             if (!guildId || interaction.channel?.isDMBased()) {
                 await interaction.reply({
                     flags: MessageFlags.Ephemeral,
@@ -243,6 +259,7 @@ const commands: Record<string, Command> = {
                 return;
             }
 
+            // TODO: Embed
             // Check the permissions of the user
             if (
                 !interaction.memberPermissions?.has(
@@ -258,6 +275,7 @@ const commands: Record<string, Command> = {
                 return;
             }
 
+            // TODO: Embed
             // Check if the bot has the required permissions for the target channel
             const targetChannel = await client.channels.fetch(discordChannelId);
 

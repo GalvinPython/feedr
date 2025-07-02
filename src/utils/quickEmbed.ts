@@ -1,4 +1,4 @@
-enum EmbedType {
+export enum EmbedType {
     Success = "success",
     Error = "error",
     Warning = "warning",
