@@ -46,6 +46,31 @@ Feedr requires Bun in order to work
 2. Fill out all the required values in `.env.example` and rename it to `.env` once done
 3. To run in developer mode, just run `bun --watch . --dev`, otherwise `bun run .`
 
+## Design Rules
+
+These rules are what to follow when working and developing on Feedr. There aren't a lot, but important for error handling.
+
+### Database Function Return Guidelines
+
+Each database function should **always** return a success indicator (`true`/`false`) along with associated data. To avoid confusion, here are the expected return types:
+
+- **Success with data:** `true` should always return populated data, even if the data is not used. For example:
+    ```ts
+    return { success: true, data: Data as Data };
+    ```
+
+- **Success without data:** `true` can also indicate a successful operation where no data is returned. In this case, an empty array (`[]`) should be provided:
+    ```ts
+    return { success: true, data: [] };
+    ```
+
+- **Failure:** `false` should indicate an error or unsuccessful operation. This should always return an empty array (`[]`) to ensure consistency:
+    ```ts
+    return { success: false, data: [] };
+    ```
+
+These guidelines ensure predictable behavior and simplify error handling across the application.
+
 # Changelog
 
 ## 1.4.0

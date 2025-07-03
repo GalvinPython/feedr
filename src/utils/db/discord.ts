@@ -1,11 +1,11 @@
-import { Platform } from "../../types/types";
+import { Platform } from "../../types/types.d";
 import { pool } from "../database";
 
 export async function checkIfGuildIsTrackingUserAlready(
     platform: Platform,
     userId: string,
     guildId: string,
-): Promise<boolean> {
+): Promise<{ success: boolean; data: any[] | null }> {
     console.log(
         `Checking if guild ${guildId} is tracking user ${userId} on platform ${platform}`,
     );
@@ -15,19 +15,19 @@ export async function checkIfGuildIsTrackingUserAlready(
     if (platform === Platform.YouTube) {
         query = `
             SELECT * FROM guild_youtube_subscriptions
-            WHERE youtube_channel_id = ? AND guild_id = ?
+            WHERE youtube_channel_id = $1 AND guild_id = $2
         `;
     } else if (platform === Platform.Twitch) {
         query = `
             SELECT * FROM guild_twitch_subscriptions
-            WHERE twitch_user_id = ? AND guild_id = ?
+            WHERE twitch_user_id = $1 AND guild_id = $2
         `;
     }
 
     if (!query) {
         console.error("Invalid platform provided for tracking check.");
 
-        return false;
+        return { success: false, data: null };
     }
 
     try {
@@ -36,10 +36,14 @@ export async function checkIfGuildIsTrackingUserAlready(
 
         client.release();
 
-        return result.rows.length > 0;
+        if (result.rows.length > 0) {
+            return { success: true, data: result.rows };
+        } else {
+            return { success: false, data: null };
+        }
     } catch (error) {
         console.error("Error checking if guild is tracking user:", error);
 
-        return false;
+        return { success: false, data: null };
     }
 }

@@ -27,26 +27,6 @@ export const pool: Pool = new Pool({
 });
 
 // #region YouTube
-export async function checkIfGuildIsTrackingChannelAlready(
-    channelId: string,
-    guild_id: string,
-): Promise<dbDiscordTable[]> {
-    const query = `SELECT * FROM discord WHERE platform_user_id = ? AND guild_id = ?`;
-
-    try {
-        const statement = db.prepare(query);
-        const result = statement.all(channelId, guild_id);
-
-        return result;
-    } catch (err) {
-        console.error(
-            "Error checking if guild is tracking channel already:",
-            err,
-        );
-        throw err;
-    }
-}
-
 export async function addNewGuildToTrackChannel(
     guild_id: string,
     channelId: string,

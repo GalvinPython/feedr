@@ -16,7 +16,6 @@ import { PermissionFlagsBits } from "discord-api-types/v8";
 import checkIfChannelIdIsValid from "./utils/youtube/checkIfChannelIdIsValid";
 import {
     addNewGuildToTrackChannel,
-    checkIfGuildIsTrackingChannelAlready,
     getAllTrackedInGuild,
     stopGuildTrackingChannel,
     twitchAddNewChannelToTrack,
@@ -32,6 +31,8 @@ import {
     addNewChannelToTrack,
 } from "./utils/db/youtube";
 import search from "./utils/youtube/search";
+import { checkIfGuildIsTrackingUserAlready } from "./utils/db/discord";
+import { Platform } from "./types/types.d";
 
 import client from ".";
 
@@ -363,13 +364,15 @@ const commands: Record<string, Command> = {
                     }
 
                     const trackedChannels =
-                        await checkIfGuildIsTrackingChannelAlready(
+                        await checkIfGuildIsTrackingUserAlready(
+                            Platform.YouTube,
                             platformUserId,
                             guildId,
                         );
 
                     // Check if the channel is already being tracked in the guild
-                    if (trackedChannels.length) {
+                    console.log(trackedChannels);
+                    if (trackedChannels) {
                         await interaction.reply({
                             flags: MessageFlags.Ephemeral,
                             content: `This channel is already being tracked in ${trackedChannels.map((channel, index) => `${index > 0 && index === trackedChannels.length - 1 ? "and " : ""}<#${channel.guild_channel_id}>`).join(", ")}!`,
@@ -434,7 +437,7 @@ const commands: Record<string, Command> = {
                     }
 
                     const trackedChannels =
-                        await checkIfGuildIsTrackingChannelAlready(
+                        await checkIfGuildIsTrackingUserAlready(
                             platformUserId,
                             guildId,
                         );
@@ -624,7 +627,7 @@ const commands: Record<string, Command> = {
                 case "youtube":
                     // Check if the channel is not being tracked in the guild
                     if (
-                        !(await checkIfGuildIsTrackingChannelAlready(
+                        !(await checkIfGuildIsTrackingUserAlready(
                             youtubeChannelId,
                             guildId,
                         ))
@@ -673,7 +676,7 @@ const commands: Record<string, Command> = {
 
                     // check if the channel is not being tracked in the guild
                     if (
-                        !(await checkIfGuildIsTrackingChannelAlready(
+                        !(await checkIfGuildIsTrackingUserAlready(
                             streamerId,
                             guildId,
                         ))
