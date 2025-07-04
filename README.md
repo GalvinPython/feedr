@@ -52,22 +52,24 @@ These rules are what to follow when working and developing on Feedr. There aren'
 
 ### Database Function Return Guidelines
 
-Each database function should **always** return a success indicator (`true`/`false`) along with associated data. To avoid confusion, here are the expected return types:
+Each database function (located in `/src/utils/db`) should **always** return a success indicator (`true`/`false`) along with associated data. To avoid confusion, here are the expected return types:
 
 - **Success with data:** `true` should always return populated data, even if the data is not used. For example:
-    ```ts
-    return { success: true, data: Data as Data };
-    ```
+
+  ```ts
+  return { success: true, data: Data as Data };
+  ```
 
 - **Success without data:** `true` can also indicate a successful operation where no data is returned. In this case, an empty array (`[]`) should be provided:
-    ```ts
-    return { success: true, data: [] };
-    ```
+
+  ```ts
+  return { success: true, data: [] };
+  ```
 
 - **Failure:** `false` should indicate an error or unsuccessful operation. This should always return an empty array (`[]`) to ensure consistency:
-    ```ts
-    return { success: false, data: [] };
-    ```
+  ```ts
+  return { success: false, data: [] };
+  ```
 
 These guidelines ensure predictable behavior and simplify error handling across the application.
 

@@ -39,7 +39,7 @@ export async function checkIfGuildIsTrackingUserAlready(
         if (result.rows.length > 0) {
             return { success: true, data: result.rows };
         } else {
-            return { success: false, data: null };
+            return { success: true, data: null };
         }
     } catch (error) {
         console.error("Error checking if guild is tracking user:", error);

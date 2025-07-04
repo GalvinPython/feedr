@@ -27,19 +27,26 @@ export async function dbYouTubeGetAllChannelsToTrack(): Promise<
 // These two functions are for checking/adding a new channel to the youtube table
 export async function checkIfChannelIsAlreadyTracked(
     channelId: string,
-): Promise<boolean> {
-    const query = `SELECT * FROM youtube WHERE youtube_channel_id = ?`;
+): Promise<{ success: boolean; data: dbYouTube[] | [] }> {
+    const query = `SELECT * FROM youtube WHERE youtube_channel_id = $1`;
 
     try {
         const client = await pool.connect();
         const result = await client.query(query, [channelId]);
 
-        return result.rows.length > 0;
+        client.release();
+
+        return {
+            success: true,
+            data: result.rows as dbYouTube[],
+        };
     } catch (err) {
         console.error("Error checking if channel is already tracked:", err);
 
-        // Return true if there's an error as we don't want to add the channel if we can't check it
-        return true;
+        return {
+            success: false,
+            data: [],
+        };
     }
 }
 
