@@ -5,9 +5,10 @@ import getSinglePlaylistAndReturnVideoId, {
     PlaylistType,
 } from "../youtube/getSinglePlaylistAndReturnVideoData";
 
-export async function dbYouTubeGetAllChannelsToTrack(): Promise<
-    dbYouTube[] | []
-> {
+export async function dbYouTubeGetAllChannelsToTrack(): Promise<{
+    success: boolean;
+    data: dbYouTube[] | [];
+}> {
     const query = `SELECT * FROM youtube`;
 
     try {
@@ -16,11 +17,17 @@ export async function dbYouTubeGetAllChannelsToTrack(): Promise<
 
         client.release();
 
-        return result.rows as dbYouTube[];
+        return {
+            success: true,
+            data: result.rows as dbYouTube[],
+        };
     } catch (err) {
         console.error("Error getting all channels to track:", err);
 
-        return [];
+        return {
+            success: false,
+            data: [],
+        };
     }
 }
 
@@ -53,7 +60,7 @@ export async function checkIfChannelIsAlreadyTracked(
 // Before adding a new channel, we need to get the latest video, short and stream ID
 export async function addNewChannelToTrack(
     channelId: string,
-): Promise<boolean> {
+): Promise<{ success: boolean; data: [] }> {
     console.log("Adding channel to track:", channelId);
 
     const longId = await getSinglePlaylistAndReturnVideoId(
@@ -69,7 +76,7 @@ export async function addNewChannelToTrack(
         PlaylistType.Stream,
     );
 
-    const query = `INSERT INTO youtube (youtube_channel_id, latest_video_id_updated, latest_video_id, latest_short_id, latest_short_id_updated, latest_stream_id, latest_stream_id_updated) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+    const query = `INSERT INTO youtube (youtube_channel_id, latest_video_id_updated, latest_video_id, latest_short_id, latest_short_id_updated, latest_stream_id, latest_stream_id_updated) VALUES ($1, $2, $3, $4, $5, $6, $7)`;
 
     try {
         const client = await pool.connect();
@@ -84,10 +91,14 @@ export async function addNewChannelToTrack(
             liveId?.datePublished || null,
         ]);
 
-        return true;
+        client.release();
+
+        console.log("Channel added to track successfully:", channelId);
+
+        return { success: true, data: [] };
     } catch (err) {
         console.error("Error adding channel to track:", err);
 
-        return false;
+        return { success: false, data: [] };
     }
 }

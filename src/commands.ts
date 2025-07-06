@@ -376,8 +376,7 @@ const commands: Record<string, Command> = {
                         // TODO: Embed
                         await interaction.reply({
                             flags: MessageFlags.Ephemeral,
-                            content:
-                                "An error occurred while trying to check if the channel is already being tracked in this guild! Please report this error!",
+                            content: `An error occurred while trying to check if the channel is already being tracked in this guild! Please report this error!`,
                         });
 
                         return;
