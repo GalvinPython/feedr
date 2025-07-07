@@ -20,29 +20,35 @@ const playlistIdPrefixes: Record<PlaylistType, string> = {
 export default async function (
     channelId: string,
     playlistType?: PlaylistType,
-): Promise<{ videoId: string; datePublished: Date } | null> {
+): Promise<
+    | { videoId: string; datePublished: Date }
+    | { videoId: null; datePublished: null }
+> {
     const playlistIdPrefix = !playlistType
         ? "UU"
         : playlistIdPrefixes[playlistType];
 
     if (!channelId.startsWith("UC")) {
-        return null;
+        return { videoId: null, datePublished: null };
     }
 
     const playlistId = playlistIdPrefix + channelId.slice(2);
 
     const res = await fetch(
-        `https://youtube.googleapis.com/youtube/v3/playlists?part=snippet&id=${playlistId}&key=${env.youtubeApiKey}`,
+        `https://youtube.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&key=${env.youtubeApiKey}`,
     );
-
-    if (!res.ok) {
-        return null;
-    }
-
     const json = (await res.json()) as YouTubePlaylistResponse;
 
+    if (!res.ok) {
+        console.error(
+            `Failed to fetch playlist items for channel ${channelId} (${playlistId}): ${res.status}`,
+        );
+
+        return { videoId: null, datePublished: null };
+    }
+
     if (!json.items || json.items.length === 0) {
-        return null;
+        return { videoId: null, datePublished: null };
     }
 
     // Yes this does actually return the video ID, you'll be surprised how weird YouTube's API is

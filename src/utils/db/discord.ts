@@ -47,3 +47,82 @@ export async function checkIfGuildIsTrackingUserAlready(
         return { success: false, data: null };
     }
 }
+
+export async function discordAddGuildTrackingUser(
+    guildId: string,
+    platform: Platform,
+    platformUserId: string,
+    guildChannelId: string,
+    roleId: string | null,
+    isDm: boolean,
+
+    // YouTube specific tracking options
+    youtubeTrackVideos?: boolean | null,
+    youtubeTrackShorts?: boolean | null,
+    youtubeTrackLive?: boolean | null,
+): Promise<{ success: boolean; data: [] }> {
+    console.log(
+        `Adding guild ${guildId} tracking for user ${platformUserId} on platform ${platform}`,
+    );
+
+    let query: string | null = null;
+    let params: any[] = [];
+
+    if (platform === Platform.YouTube) {
+        if (
+            youtubeTrackVideos === undefined ||
+            youtubeTrackVideos === null ||
+            youtubeTrackShorts === undefined ||
+            youtubeTrackShorts === null ||
+            youtubeTrackLive === undefined ||
+            youtubeTrackLive === null
+        ) {
+            console.error(
+                "YouTube tracking options must be provided for YouTube subscriptions.",
+            );
+
+            return { success: false, data: [] };
+        }
+
+        query = `
+            INSERT INTO guild_youtube_subscriptions (
+                youtube_channel_id, guild_id, notification_channel_id, notification_role_id, is_dm,
+                track_videos, track_shorts, track_streams
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `;
+        params = [
+            platformUserId,
+            guildId,
+            guildChannelId,
+            roleId,
+            isDm,
+            youtubeTrackVideos ?? false,
+            youtubeTrackShorts ?? false,
+            youtubeTrackLive ?? false,
+        ];
+    } else if (platform === Platform.Twitch) {
+        query = `
+            INSERT INTO guild_twitch_subscriptions (
+                twitch_user_id, guild_id, guild_channel_id, role_id, is_dm
+            ) VALUES ($1, $2, $3, $4, $5)
+        `;
+        params = [platformUserId, guildId, guildChannelId, roleId, isDm];
+    }
+
+    if (!query) {
+        return { success: false, data: [] };
+    }
+
+    try {
+        const client = await pool.connect();
+
+        await client.query(query, params);
+        client.release();
+
+        return { success: true, data: [] };
+    } catch (error) {
+        console.error("Error adding guild tracking user:", error);
+
+        return { success: false, data: [] };
+    }
+}

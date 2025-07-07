@@ -76,19 +76,28 @@ export async function addNewChannelToTrack(
         PlaylistType.Stream,
     );
 
-    const query = `INSERT INTO youtube (youtube_channel_id, latest_video_id_updated, latest_video_id, latest_short_id, latest_short_id_updated, latest_stream_id, latest_stream_id_updated) VALUES ($1, $2, $3, $4, $5, $6, $7)`;
+    const query = `INSERT INTO youtube (youtube_channel_id, latest_video_id, latest_video_id_updated, latest_short_id, latest_short_id_updated, latest_stream_id, latest_stream_id_updated) VALUES ($1, $2, $3, $4, $5, $6, $7)`;
 
     try {
         const client = await pool.connect();
 
+        console.log(
+            channelId,
+            longId?.videoId,
+            longId?.datePublished,
+            shortId?.videoId,
+            shortId?.datePublished,
+            liveId?.videoId,
+            liveId?.datePublished,
+        );
         await client.query(query, [
             channelId,
             longId?.videoId || null,
-            longId?.datePublished || null,
+            longId?.datePublished ? longId.datePublished : null,
             shortId?.videoId || null,
-            shortId?.datePublished || null,
+            shortId?.datePublished ? shortId.datePublished : null,
             liveId?.videoId || null,
-            liveId?.datePublished || null,
+            liveId?.datePublished ? liveId.datePublished : null,
         ]);
 
         client.release();

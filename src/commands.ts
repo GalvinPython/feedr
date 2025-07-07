@@ -1,6 +1,7 @@
 import Bun from "bun";
 import { heapStats } from "bun:jsc";
 import {
+    ApplicationCommandOptionType,
     ApplicationCommandType,
     AutocompleteInteraction,
     ChannelType,
@@ -15,7 +16,6 @@ import { PermissionFlagsBits } from "discord-api-types/v8";
 
 import checkIfChannelIdIsValid from "./utils/youtube/checkIfChannelIdIsValid";
 import {
-    addNewGuildToTrackChannel,
     getAllTrackedInGuild,
     stopGuildTrackingChannel,
     twitchAddNewChannelToTrack,
@@ -31,8 +31,11 @@ import {
     addNewChannelToTrack,
 } from "./utils/db/youtube";
 import search from "./utils/youtube/search";
-import { checkIfGuildIsTrackingUserAlready } from "./utils/db/discord";
-import { Platform } from "./types/types.d";
+import {
+    checkIfGuildIsTrackingUserAlready,
+    discordAddGuildTrackingUser,
+} from "./utils/db/discord";
+import { Platform, YouTubeContentType } from "./types/types.d";
 
 import client from ".";
 
@@ -165,41 +168,73 @@ const commands: Record<string, Command> = {
         data: {
             options: [
                 {
-                    name: "platform",
-                    description: "Select a supported platform to track",
-                    type: 3,
-                    required: true,
-                    choices: [
+                    type: ApplicationCommandOptionType.Subcommand,
+                    name: "youtube",
+                    description: "Track a YouTube channel",
+                    options: [
                         {
-                            name: "Twitch",
-                            value: "twitch",
+                            type: ApplicationCommandOptionType.String,
+                            name: "channel_id",
+                            description: "Enter the YouTube channel ID",
+                            required: true,
+                            autocomplete: true,
                         },
                         {
-                            name: "YouTube",
-                            value: "youtube",
+                            type: ApplicationCommandOptionType.Integer,
+                            name: "content_type",
+                            description: "Select what content to track",
+                            required: true,
+                            choices: [
+                                { name: "Videos Only", value: 1 },
+                                { name: "Shorts Only", value: 2 },
+                                { name: "Streams Only", value: 4 },
+                                { name: "Videos & Shorts", value: 3 },
+                                { name: "Videos & Streams", value: 5 },
+                                { name: "Shorts & Streams", value: 6 },
+                                { name: "Videos, Shorts, Streams", value: 7 },
+                            ],
+                        },
+                        {
+                            type: ApplicationCommandOptionType.Channel,
+                            name: "updates_channel",
+                            description:
+                                "Channel to receive updates. If not specified, the current channel will be used.",
+                            required: false,
+                        },
+                        {
+                            type: ApplicationCommandOptionType.Role,
+                            name: "role",
+                            description: "Role to mention (optional)",
+                            required: false,
                         },
                     ],
                 },
                 {
-                    name: "user_id",
-                    description:
-                        "Enter the YouTube channel ID or Twitch Streamer to track",
-                    type: 3,
-                    required: true,
-                    autocomplete: true,
-                },
-                {
-                    name: "updates_channel",
-                    description:
-                        "Enter the Guild channel to receive updates in.",
-                    type: 7,
-                    required: false,
-                },
-                {
-                    name: "role",
-                    description: "Enter the role to mention (optional)",
-                    type: 8,
-                    required: false,
+                    type: 1,
+                    name: "twitch",
+                    description: "Track a Twitch streamer",
+                    options: [
+                        {
+                            type: ApplicationCommandOptionType.String,
+                            name: "streamer_id",
+                            description: "Enter the Twitch streamer username",
+                            required: true,
+                            autocomplete: true,
+                        },
+                        {
+                            type: ApplicationCommandOptionType.Channel,
+                            name: "updates_channel",
+                            description:
+                                "Channel to receive updates. If not specified, the current channel will be used.",
+                            required: false,
+                        },
+                        {
+                            type: ApplicationCommandOptionType.Role,
+                            name: "role",
+                            description: "Role to mention (optional)",
+                            required: false,
+                        },
+                    ],
                 },
             ],
             name: "track",
@@ -210,10 +245,13 @@ const commands: Record<string, Command> = {
         },
         execute: async (interaction: CommandInteraction) => {
             // Get the YouTube Channel ID
-            const targetPlatform = interaction.options.get("platform")
-                ?.value as string;
-            const platformUserId = interaction.options.get("user_id")
-                ?.value as string;
+            const targetPlatform = (
+                interaction as ChatInputCommandInteraction
+            ).options.getSubcommand();
+            const platformUserId =
+                targetPlatform === "youtube"
+                    ? (interaction.options.get("channel_id")?.value as string)
+                    : (interaction.options.get("streamer_id")?.value as string);
             const discordChannelId =
                 (interaction.options.get("updates_channel")?.value as string) ??
                 interaction.channelId;
@@ -250,7 +288,9 @@ const commands: Record<string, Command> = {
             }
 
             // TODO: Enable DMs :)
-            if (!guildId || interaction.channel?.isDMBased()) {
+            const isDm = interaction.channel?.isDMBased();
+
+            if (!guildId || isDm || isDm === undefined) {
                 await interaction.reply({
                     flags: MessageFlags.Ephemeral,
                     content:
@@ -339,6 +379,18 @@ const commands: Record<string, Command> = {
 
             switch (targetPlatform) {
                 case "youtube": {
+                    const contentType = interaction.options.get("content_type")
+                        ?.value as number;
+
+                    if (!contentType) {
+                        await interaction.reply({
+                            flags: MessageFlags.Ephemeral,
+                            content: "Please specify a valid content type!",
+                        });
+
+                        return;
+                    }
+
                     // Check that the channel ID is in a valid format
                     if (
                         platformUserId.length != 24 ||
@@ -363,6 +415,33 @@ const commands: Record<string, Command> = {
                         return;
                     }
 
+                    // Check content type
+                    const shouldTrackVideos =
+                        (contentType & YouTubeContentType.Videos) !== 0;
+                    const shouldTrackShorts =
+                        (contentType & YouTubeContentType.Shorts) !== 0;
+                    const shouldTrackStreams =
+                        (contentType & YouTubeContentType.Streams) !== 0;
+
+                    console.log(`Tracking Videos: ${shouldTrackVideos}`);
+                    console.log(`Tracking Shorts: ${shouldTrackShorts}`);
+                    console.log(`Tracking Streams: ${shouldTrackStreams}`);
+
+                    // Optional: prevent empty tracking (e.g., bitmask = 0)
+                    if (
+                        !shouldTrackVideos &&
+                        !shouldTrackShorts &&
+                        !shouldTrackStreams
+                    ) {
+                        await interaction.reply({
+                            flags: MessageFlags.Ephemeral,
+                            content: `You must select at least one type of content to track.`,
+                        });
+
+                        return;
+                    }
+
+                    // Check if the channel is already being tracked in the guild
                     const trackedChannels =
                         await checkIfGuildIsTrackingUserAlready(
                             Platform.YouTube,
@@ -370,7 +449,6 @@ const commands: Record<string, Command> = {
                             guildId,
                         );
 
-                    // Check if the channel is already being tracked in the guild
                     console.log(trackedChannels);
                     if (!trackedChannels || !trackedChannels.success) {
                         // TODO: Embed
@@ -394,14 +472,35 @@ const commands: Record<string, Command> = {
                     }
 
                     // Check if the channel is already being tracked globally
-                    if (
-                        !(await checkIfChannelIsAlreadyTracked(platformUserId))
+                    const isChannelTracked =
+                        await checkIfChannelIsAlreadyTracked(platformUserId);
+
+                    console.log(
+                        `Is channel ${platformUserId} tracked globally?`,
+                        isChannelTracked,
+                    );
+
+                    if (!isChannelTracked.success) {
+                        await interaction.reply({
+                            flags: MessageFlags.Ephemeral,
+                            content:
+                                "An error occurred while trying to check if the channel is already being tracked globally! Please report this error!",
+                        });
+                    } else if (
+                        isChannelTracked.success &&
+                        isChannelTracked.data.length == 0
                     ) {
-                        if (!(await addNewChannelToTrack(platformUserId))) {
+                        console.log(
+                            `Channel ${platformUserId} is not tracked globally, adding it now...`,
+                        );
+                        const channelAdded =
+                            await addNewChannelToTrack(platformUserId);
+
+                        if (!channelAdded.success) {
                             await interaction.reply({
                                 flags: MessageFlags.Ephemeral,
                                 content:
-                                    "An error occurred while trying to add the channel to track! This is a new channel being tracked globally, please report this error!",
+                                    "An error occurred while trying to add the channel to track to the main YouTube database. Please report this issue!",
                             });
 
                             return;
@@ -410,12 +509,17 @@ const commands: Record<string, Command> = {
 
                     // Add the guild to the database
                     if (
-                        await addNewGuildToTrackChannel(
+                        await discordAddGuildTrackingUser(
                             guildId,
+                            Platform.YouTube,
                             platformUserId,
                             discordChannelId,
                             (interaction.options.get("role")
                                 ?.value as string) ?? null,
+                            isDm,
+                            shouldTrackVideos,
+                            shouldTrackShorts,
+                            shouldTrackStreams,
                         )
                     ) {
                         const youtubeChannelInfo =
@@ -521,7 +625,7 @@ const commands: Record<string, Command> = {
         autoComplete: async (interaction: AutocompleteInteraction) => {
             try {
                 const platform = interaction.options.get("platform")?.value;
-                const query = interaction.options.get("user_id")?.value;
+                const query = interaction.options.get("channel_id")?.value;
 
                 // If the query is empty or not a string, return an empty array
                 if (!query || typeof query !== "string") {

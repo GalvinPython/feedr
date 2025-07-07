@@ -12,10 +12,11 @@ import fetchLatestUploads from "../utils/youtube/fetchLatestUploads";
 client.once(Events.ClientReady, async (bot) => {
     console.log(`Ready! Logged in as ${bot.user?.tag}`);
 
-    await cronUpdateBotInfo();
-    new CronJob("0 * * * * *", async () => {
-        await cronUpdateBotInfo();
-    }).start();
+    // TODO: Reimplement this when the bot is ready
+    // await cronUpdateBotInfo();
+    // new CronJob("0 * * * * *", async () => {
+    //     await cronUpdateBotInfo();
+    // }).start();
 
     fetchLatestUploads();
     setInterval(fetchLatestUploads, config.updateIntervalYouTube as number);
@@ -23,6 +24,7 @@ client.once(Events.ClientReady, async (bot) => {
     sendLatestUploads();
     setInterval(sendLatestUploads, config.updateIntervalYouTube as number);
 
+    // TODO: Twitch integration is not ready yet
     // One at a time
     // checkIfStreamersAreLive();
     // setInterval(checkIfStreamersAreLive, config.updateIntervalTwitch as number);

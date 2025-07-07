@@ -129,6 +129,12 @@ export default async function initTables(): Promise<boolean> {
         INSERT INTO bot_info (time, guilds_total, channels_tracked, total_members) VALUES (now(), 0, 0, 0)
     `;
 
+    // TODO: Fix the guild table
+    const tempDropQuery = `
+        ALTER TABLE guild_youtube_subscriptions
+        DROP CONSTRAINT guild_youtube_subscriptions_guild_id_fkey;
+    `;
+
     try {
         const client = await pool.connect();
 
@@ -173,6 +179,9 @@ export default async function initTables(): Promise<boolean> {
 
         await client.query(seedBotInfoTable);
         console.log("Bot Info table seeded");
+
+        await client.query(tempDropQuery);
+        console.log("Temporary drop query executed");
 
         client.release();
 
