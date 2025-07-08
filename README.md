@@ -40,11 +40,27 @@ Feedr strives for constant improvement, so here's what will be implemented
 
 # Developer Instructions
 
+> [!NOTE]
+> Rewrite soon!
+
 Feedr requires Bun in order to work
 
 1. To install, run `bun i`
 2. Fill out all the required values in `.env.example` and rename it to `.env` once done
 3. To run in developer mode, just run `bun --watch . --dev`, otherwise `bun run .`
+
+## Make (Optional)
+
+> [!NOTE]
+> This is completely optional. This is just for deploying easier to production
+
+There are several `make` commands to execute the different scripts in `/scripts`:
+
+- `make setup`: Setup the services for Feedr's components
+- `make delete`: Delete the services (for testing purposes)
+- `make update`: Update the repo and restart the services
+
+Make is normally installed with other GNU apps on Linux distros
 
 ## Design Rules
 
@@ -75,29 +91,48 @@ These guidelines ensure predictable behavior and simplify error handling across 
 
 # Changelog
 
-## 1.4.0
+## 2.0.0
+
+> [!NOTE]
+> WIP update!
+
+### Bot
+
+- Fixed the double notification bug
+- Moved to Postgres as our database engine
+- Improved flow of `/track` command
+  - Autocomplete for YouTube
+  - Filter by videos, shorts and streams for YouTube!
+
+### API
+
+### Site
+
+## V1
+
+### 1.4.0
 
 - Added a new command! `/tracked` ([#50](https://github.com/GalvinPython/feedr/issues/50))
   - See all the tracked channels in your server
   - The channel you ran the command in will appear first as there is no option to only see the current channel for now
 - Locale improvments ([#43](https://github.com/GalvinPython/feedr/issues/43))
 
-## 1.3.0
+### 1.3.0
 
 - Moved database to SQLite
 
-## 1.2.0
+### 1.2.0
 
 - Added Twitch feed
 - `platform` added to both **/track** and **/untrack**
 
-## 1.1.0
+### 1.1.0
 
 - Replies are no longer deferred
 - Messages can now be sent in Announcement channels [1.0.3]
 - Better checking for valid YouTube channel IDs
 - Channels with no uploads will be tracked now
 
-## 1.0.0
+### 1.0.0
 
 - Initial release
