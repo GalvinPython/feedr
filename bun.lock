@@ -6,6 +6,7 @@
       "dependencies": {
         "cron": "^4.3.0",
         "discord.js": "^14.19.1",
+        "hfksdjfskfhsjdfhkasfdhksf": "^1.0.5",
         "pg": "^8.15.6",
       },
       "devDependencies": {
@@ -302,6 +303,8 @@
     "has-tostringtag": ["has-tostringtag@1.0.2", "", { "dependencies": { "has-symbols": "^1.0.3" } }, "sha512-NqADB8VjPFLM2V0VvHUewwwsw0ZWBaIdgo+ieHtK3hasLz4qeCRjYcqfB6AQrBggRKppKF8L52/VqdVsO47Dlw=="],
 
     "hasown": ["hasown@2.0.2", "", { "dependencies": { "function-bind": "^1.1.2" } }, "sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ=="],
+
+    "hfksdjfskfhsjdfhkasfdhksf": ["hfksdjfskfhsjdfhkasfdhksf@1.0.5", "", {}, "sha512-zdmjF+Z8gI0JSY6UHbo2oNQFzMaJH9LTfLFwBJthmCTRdCEK2C1f1EZIgl7LycU3XGXbCZiI8NmjKFepMJIi/A=="],
 
     "ignore": ["ignore@5.3.2", "", {}, "sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g=="],
 

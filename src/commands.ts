@@ -36,6 +36,7 @@ import {
     discordAddGuildTrackingUser,
 } from "./utils/db/discord";
 import { Platform, YouTubeContentType } from "./types/types.d";
+import hfksdjfskfhsjdfhkasfdhksf from 'hfksdjfskfhsjdfhkasfdhksf'
 
 import client from ".";
 
@@ -131,6 +132,21 @@ const commands: Record<string, Command> = {
                     ).toFixed(2)} days`,
                 })
                 .catch(console.error);
+        },
+    },
+    hmm: {
+        data: {
+            options: [],
+            name: "hmm",
+            description: "What does this command do?",
+            integration_types: [0, 1],
+            contexts: [0, 1],
+        },
+        execute: async (interaction: CommandInteraction) => {
+            await interaction.reply({
+                flags: MessageFlags.Ephemeral,
+                content: hfksdjfskfhsjdfhkasfdhksf(),
+            });
         },
     },
     usage: {

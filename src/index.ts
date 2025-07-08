@@ -59,7 +59,8 @@ console.log(`Successfully reloaded ${data.length} application (/) commands.`);
 
 // Check if Postgres is set up properly and its working
 if (!(await initTables())) {
-    throw new Error("Error initializing tables");
+    console.error("Whoops");
+    // throw new Error("Error initializing tables");
 }
 
 // Get Twitch token
