@@ -13,6 +13,7 @@ import {
     type CommandInteraction,
 } from "discord.js";
 import { PermissionFlagsBits } from "discord-api-types/v8";
+import hfksdjfskfhsjdfhkasfdhksf from "hfksdjfskfhsjdfhkasfdhksf";
 
 import checkIfChannelIdIsValid from "./utils/youtube/checkIfChannelIdIsValid";
 import {
@@ -24,7 +25,6 @@ import {
     twitchStopGuildTrackingChannel,
 } from "./utils/database";
 import getChannelDetails from "./utils/youtube/getChannelDetails";
-import { getStreamerId } from "./utils/twitch/getStreamerId";
 import { checkIfStreamerIsLive } from "./utils/twitch/checkIfStreamerIsLive";
 import {
     checkIfChannelIsAlreadyTracked,
@@ -36,7 +36,8 @@ import {
     discordAddGuildTrackingUser,
 } from "./utils/db/discord";
 import { Platform, YouTubeContentType } from "./types/types.d";
-import hfksdjfskfhsjdfhkasfdhksf from 'hfksdjfskfhsjdfhkasfdhksf'
+import searchTwitch from "./utils/twitch/searchTwitch";
+import { getStreamerName } from "./utils/twitch/getStreamerName";
 
 import client from ".";
 
@@ -226,7 +227,7 @@ const commands: Record<string, Command> = {
                     ],
                 },
                 {
-                    type: 1,
+                    type: ApplicationCommandOptionType.Subcommand,
                     name: "twitch",
                     description: "Track a Twitch streamer",
                     options: [
@@ -558,12 +559,13 @@ const commands: Record<string, Command> = {
 
                 case "twitch": {
                     // Check if the streamer exists by getting the ID
-                    const streamerId = await getStreamerId(platformUserId);
+                    const streamerName = await getStreamerName(platformUserId);
 
-                    if (!streamerId) {
+                    if (!streamerName) {
                         await interaction.reply({
                             flags: MessageFlags.Ephemeral,
-                            content: "That streamer doesn't exist!",
+                            content:
+                                "That streamer doesn't exist! Please use the autocomplete to find the correct streamer ID as this uses IDs that are not publicly visible on the Twitch site!",
                         });
 
                         return;
@@ -572,14 +574,28 @@ const commands: Record<string, Command> = {
                     // Check if the channel is already being tracked in the guild
                     const trackedChannels =
                         await checkIfGuildIsTrackingUserAlready(
+                            Platform.YouTube,
                             platformUserId,
                             guildId,
                         );
 
-                    if (trackedChannels.length) {
+                    console.log(trackedChannels);
+                    if (!trackedChannels || !trackedChannels.success) {
+                        // TODO: Embed
                         await interaction.reply({
                             flags: MessageFlags.Ephemeral,
-                            content: `This channel is already being tracked in ${trackedChannels.map((channel, index) => `${index > 0 && index === trackedChannels.length - 1 ? "and " : ""}<#${channel.guild_channel_id}>`).join(", ")}!`,
+                            content: `An error occurred while trying to check if the channel is already being tracked in this guild! Please report this error!`,
+                        });
+
+                        return;
+                    } else if (
+                        trackedChannels.success &&
+                        trackedChannels.data
+                    ) {
+                        // If the channel is already being tracked in the guild, we can just return
+                        await interaction.reply({
+                            flags: MessageFlags.Ephemeral,
+                            content: `This channel is already being tracked in ${trackedChannels.data.map((channel, index) => `${index > 0 && index === trackedChannels.data.length - 1 ? "and " : ""}<#${channel.guild_channel_id}>`).join(", ")}!`,
                         });
 
                         return;
@@ -640,8 +656,15 @@ const commands: Record<string, Command> = {
         },
         autoComplete: async (interaction: AutocompleteInteraction) => {
             try {
-                const platform = interaction.options.get("platform")?.value;
-                const query = interaction.options.get("channel_id")?.value;
+                const platform = (
+                    interaction as unknown as ChatInputCommandInteraction
+                ).options.getSubcommand();
+                const query =
+                    platform === "youtube"
+                        ? (interaction.options.get("channel_id")
+                            ?.value as string)
+                        : (interaction.options.get("streamer_id")
+                            ?.value as string);
 
                 // If the query is empty or not a string, return an empty array
                 if (!query || typeof query !== "string") {
@@ -650,29 +673,67 @@ const commands: Record<string, Command> = {
                     return;
                 }
 
-                // If the query is a YouTube channel ID, do not search
-                if (query.length == 24 && query.startsWith("UC")) {
-                    await interaction.respond([
-                        {
-                            name: `${query} (using channel id)`,
-                            value: query,
-                        },
-                    ]);
+                console.log(platform, query);
 
-                    return;
+                switch (platform) {
+                    case "youtube": {
+                        // If the query is a YouTube channel ID, do not search
+                        if (query.length == 24 && query.startsWith("UC")) {
+                            await interaction.respond([
+                                {
+                                    name: `${query} (using channel id)`,
+                                    value: query,
+                                },
+                            ]);
+
+                            return;
+                        }
+
+                        const channels = await search(query);
+
+                        if (!channels || channels.length === 0) {
+                            await interaction.respond([]);
+
+                            return;
+                        }
+
+                        await interaction.respond(
+                            channels.map((channel) => ({
+                                name: `${channel.title} (${channel.handle}) | ${channel.subscribers} subscriber(s)`.slice(
+                                    0,
+                                    100,
+                                ),
+                                value: channel.channel_id,
+                            })),
+                        );
+
+                        break;
+                    }
+                    case "twitch": {
+                        const channels = await searchTwitch(query);
+
+                        if (!channels || channels.length === 0) {
+                            await interaction.respond([]);
+
+                            return;
+                        }
+
+                        await interaction.respond(
+                            channels.map((channel) => ({
+                                name: `${channel.displayName} (${channel.loginName}) | ${channel.isLive ? "🔴" : "Offline"}`.slice(
+                                    0,
+                                    100,
+                                ),
+                                value: channel.id,
+                            })),
+                        );
+
+                        break;
+                    }
+                    default:
+                        await interaction.respond([]);
+                        break;
                 }
-
-                const channels = await search(query);
-
-                await interaction.respond(
-                    channels.map((channel) => ({
-                        name: `${channel.title} (${channel.handle}) | ${channel.subscribers} subscriber(s)`.slice(
-                            0,
-                            100,
-                        ),
-                        value: channel.channel_id,
-                    })),
-                );
             } catch (error) {
                 console.error(error);
             }

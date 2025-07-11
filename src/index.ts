@@ -59,7 +59,6 @@ console.log(`Successfully reloaded ${data.length} application (/) commands.`);
 
 // Check if Postgres is set up properly and its working
 if (!(await initTables())) {
-    console.error("Whoops");
     // throw new Error("Error initializing tables");
 }
 
