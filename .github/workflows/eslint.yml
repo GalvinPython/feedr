@@ -12,14 +12,6 @@ on:
       - "**/*.mjs"
   pull_request:
     types: [opened, reopened, synchronize]
-    branches:
-      - "*"
-    paths:
-      - "**/*.js"
-      - "**/*.jsx"
-      - "**/*.ts"
-      - "**/*.tsx"
-      - "**/*.mjs"
 
 jobs:
   lint:
