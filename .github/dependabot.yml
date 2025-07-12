@@ -1,23 +1,23 @@
+# Moving back to npm for package management rather than bun
+# because wow dependabot is so broken for it 😭
+# TODO: Labels on package updates after project restructure
+
 version: 2
 updates:
-  - package-ecosystem: "bun"
+  - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
-    assignees:
-      - "GalvinPython"
     target-branch: "dev"
 
-  - package-ecosystem: "bun"
+  - package-ecosystem: "npm"
     directory: "/web"
     schedule:
       interval: "weekly"
-    assignees:
-      - "GalvinPython"
     target-branch: "dev"
-    labels: ["dependencies", "javascript", "component: web"]
 
   - package-ecosystem: "cargo"
     directory: "/api"
     schedule:
       interval: "weekly"
+    target-branch: "dev"
