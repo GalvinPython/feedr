@@ -3,6 +3,9 @@ name: Update bun.lock
 on:
   pull_request:
     branches: [main, dev]
+    paths:
+      - "bun.lock"
+      - "package.json"
 
 permissions:
   contents: write
