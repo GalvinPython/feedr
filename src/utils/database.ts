@@ -27,27 +27,9 @@ export const pool: Pool = new Pool({
 });
 
 // #region YouTube
-export async function addNewGuildToTrackChannel(
-    guild_id: string,
-    channelId: string,
-    guild_channel_id: string,
-    guild_ping_role: string | null,
-) {
-    const query = `INSERT INTO discord (guild_id, platform_user_id, guild_channel_id, guild_ping_role, guild_platform) VALUES (?, ?, ?, ?, 'youtube')`;
-
-    try {
-        const statement = db.prepare(query);
-
-        statement.run(guild_id, channelId, guild_channel_id, guild_ping_role);
-
-        return true;
-    } catch (err) {
-        console.error("Error adding guild to track channel:", err);
-
-        return false;
-    }
-}
-
+/**
+ * @deprecated This function is deprecated and being removed
+ */
 export async function getGuildsTrackingChannel(channelId: string) {
     const query = `SELECT * FROM discord WHERE platform_user_id = ?`;
 
@@ -62,6 +44,9 @@ export async function getGuildsTrackingChannel(channelId: string) {
     }
 }
 
+/**
+ * @deprecated This function is deprecated and being removed
+ */
 export async function updateVideoId(channelId: string, videoId: string) {
     const query = `UPDATE youtube SET latest_video_id = ? WHERE youtube_channel_id = ?`;
 
@@ -78,6 +63,9 @@ export async function updateVideoId(channelId: string, videoId: string) {
     }
 }
 
+/**
+ * @deprecated This function is deprecated and being removed
+ */
 export async function stopGuildTrackingChannel(
     guild_id: string,
     channelId: string,
@@ -99,6 +87,9 @@ export async function stopGuildTrackingChannel(
 
 // #endregion
 // #region Twitch
+/**
+ * @deprecated This function is deprecated and being removed
+ */
 export async function twitchGetAllChannelsToTrack() {
     const query = `SELECT * FROM twitch`;
 
@@ -113,63 +104,9 @@ export async function twitchGetAllChannelsToTrack() {
     }
 }
 
-export async function twitchCheckIfChannelIsAlreadyTracked(channelId: string) {
-    const query = `SELECT * FROM twitch WHERE twitch_channel_id = ?`;
-
-    try {
-        const statement = db.prepare(query);
-        const result = statement.all(channelId);
-
-        return result.length > 0;
-    } catch (err) {
-        console.error(
-            "Error checking if Twitch channel is already tracked:",
-            err,
-        );
-        throw err;
-    }
-}
-
-export async function twitchAddNewChannelToTrack(
-    channelId: string,
-    isLive: boolean,
-) {
-    const query = `INSERT INTO twitch (twitch_channel_id, is_live) VALUES (?, ?)`;
-
-    try {
-        const statement = db.prepare(query);
-
-        statement.run(channelId, isLive);
-
-        return true;
-    } catch (err) {
-        console.error("Error adding Twitch channel to track:", err);
-
-        return false;
-    }
-}
-
-export async function twitchAddNewGuildToTrackChannel(
-    guild_id: string,
-    channelId: string,
-    guild_channel_id: string,
-    guild_ping_role: string | null,
-) {
-    const query = `INSERT INTO discord (guild_id, platform_user_id, guild_channel_id, guild_ping_role, guild_platform) VALUES (?, ?, ?, ?, 'twitch')`;
-
-    try {
-        const statement = db.prepare(query);
-
-        statement.run(guild_id, channelId, guild_channel_id, guild_ping_role);
-
-        return true;
-    } catch (err) {
-        console.error("Error adding guild to track Twitch channel:", err);
-
-        return false;
-    }
-}
-
+/**
+ * @deprecated This function is deprecated and being removed
+ */
 export async function twitchGetGuildsTrackingChannel(channelId: string) {
     const query = `SELECT * FROM discord WHERE platform_user_id = ?`;
 
@@ -184,6 +121,9 @@ export async function twitchGetGuildsTrackingChannel(channelId: string) {
     }
 }
 
+/**
+ * @deprecated This function is deprecated and being removed
+ */
 export async function twitchUpdateIsLive(channelId: string, isLive: boolean) {
     const query = `UPDATE twitch SET is_live = ? WHERE twitch_channel_id = ?`;
 
@@ -200,6 +140,9 @@ export async function twitchUpdateIsLive(channelId: string, isLive: boolean) {
     }
 }
 
+/**
+ * @deprecated This function is deprecated and being removed
+ */
 export async function twitchStopGuildTrackingChannel(
     guild_id: string,
     channelId: string,
@@ -221,7 +164,9 @@ export async function twitchStopGuildTrackingChannel(
 // #endregion
 
 // #region i have no idea what im doing here
-
+/**
+ * @deprecated This function is deprecated and being removed
+ */
 export async function getAllTrackedInGuild(
     guild_id: string,
 ): Promise<dbDiscordTable[]> {

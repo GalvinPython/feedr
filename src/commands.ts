@@ -19,9 +19,6 @@ import checkIfChannelIdIsValid from "./utils/youtube/checkIfChannelIdIsValid";
 import {
     getAllTrackedInGuild,
     stopGuildTrackingChannel,
-    twitchAddNewChannelToTrack,
-    twitchAddNewGuildToTrackChannel,
-    twitchCheckIfChannelIsAlreadyTracked,
     twitchStopGuildTrackingChannel,
 } from "./utils/database";
 import getChannelDetails from "./utils/youtube/getChannelDetails";
@@ -38,6 +35,10 @@ import {
 import { Platform, YouTubeContentType } from "./types/types.d";
 import searchTwitch from "./utils/twitch/searchTwitch";
 import { getStreamerName } from "./utils/twitch/getStreamerName";
+import {
+    addNewStreamerToTrack,
+    checkIfStreamerIsAlreadyTracked,
+} from "./utils/db/twitch";
 
 import client from ".";
 
@@ -602,23 +603,39 @@ const commands: Record<string, Command> = {
                     }
 
                     // Check if the channel is already being tracked globally
-                    if (
-                        !(await twitchCheckIfChannelIsAlreadyTracked(
-                            streamerId,
-                        ))
-                    ) {
-                        const isLive = await checkIfStreamerIsLive(streamerId);
+                    const isChannelTracked =
+                        await checkIfStreamerIsAlreadyTracked(platformUserId);
 
-                        if (
-                            !(await twitchAddNewChannelToTrack(
-                                streamerId,
-                                isLive,
-                            ))
-                        ) {
+                    console.log(
+                        `Is channel ${platformUserId} tracked globally?`,
+                        isChannelTracked,
+                    );
+
+                    if (!isChannelTracked.success) {
+                        await interaction.reply({
+                            flags: MessageFlags.Ephemeral,
+                            content:
+                                "An error occurred while trying to check if the channel is already being tracked globally! Please report this error!",
+                        });
+                    } else if (
+                        isChannelTracked.success &&
+                        isChannelTracked.data.length == 0
+                    ) {
+                        console.log(
+                            `Channel ${platformUserId} is not tracked globally, adding it now...`,
+                        );
+                        const isLive =
+                            await checkIfStreamerIsLive(platformUserId);
+                        const channelAdded = await addNewStreamerToTrack(
+                            platformUserId,
+                            isLive,
+                        );
+
+                        if (!channelAdded.success) {
                             await interaction.reply({
                                 flags: MessageFlags.Ephemeral,
                                 content:
-                                    "An error occurred while trying to add the streamer to track! This is a new streamer being tracked globally, please report this error!",
+                                    "An error occurred while trying to add the channel to track to the main YouTube database. Please report this issue!",
                             });
 
                             return;
@@ -627,17 +644,19 @@ const commands: Record<string, Command> = {
 
                     // Add the guild to the database
                     if (
-                        await twitchAddNewGuildToTrackChannel(
+                        await discordAddGuildTrackingUser(
                             guildId,
-                            streamerId,
+                            Platform.Twitch,
+                            platformUserId,
                             discordChannelId,
                             (interaction.options.get("role")
                                 ?.value as string) ?? null,
+                            isDm,
                         )
                     ) {
                         await interaction.reply({
                             flags: MessageFlags.Ephemeral,
-                            content: `Started tracking the streamer ${platformUserId} (${streamerId}) in ${targetChannel.name}!`,
+                            content: `Started tracking the streamer ${platformUserId} (${platformUserId}) in ${targetChannel.name}!`,
                         });
                     } else {
                         await interaction.reply({
@@ -662,9 +681,9 @@ const commands: Record<string, Command> = {
                 const query =
                     platform === "youtube"
                         ? (interaction.options.get("channel_id")
-                            ?.value as string)
+                              ?.value as string)
                         : (interaction.options.get("streamer_id")
-                            ?.value as string);
+                              ?.value as string);
 
                 // If the query is empty or not a string, return an empty array
                 if (!query || typeof query !== "string") {
@@ -856,9 +875,10 @@ const commands: Record<string, Command> = {
                     return;
                 case "twitch": {
                     // get the twitch id for the streamer
-                    const streamerId = await getStreamerId(youtubeChannelId);
+                    const platformUserId =
+                        await getplatformUserId(youtubeChannelId);
 
-                    if (!streamerId) {
+                    if (!platformUserId) {
                         await interaction.reply({
                             flags: MessageFlags.Ephemeral,
                             content:
@@ -871,7 +891,7 @@ const commands: Record<string, Command> = {
                     // check if the channel is not being tracked in the guild
                     if (
                         !(await checkIfGuildIsTrackingUserAlready(
-                            streamerId,
+                            platformUserId,
                             guildId,
                         ))
                     ) {
@@ -887,7 +907,7 @@ const commands: Record<string, Command> = {
                     if (
                         await twitchStopGuildTrackingChannel(
                             guildId,
-                            streamerId,
+                            platformUserId,
                         )
                     ) {
                         await interaction.reply({

@@ -141,6 +141,15 @@ export default async function initTables(): Promise<boolean> {
         ALTER TABLE guild_youtube_subscriptions
         DROP CONSTRAINT guild_youtube_subscriptions_guild_id_fkey;
     END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE constraint_name = 'guild_twitch_subscriptions_guild_id_fkey'
+        AND table_name = 'guild_twitch_subscriptions'
+    ) THEN
+        ALTER TABLE guild_twitch_subscriptions
+        DROP CONSTRAINT guild_twitch_subscriptions_guild_id_fkey;
+    END IF;
     END$$;
     `;
 

@@ -103,7 +103,7 @@ export async function discordAddGuildTrackingUser(
     } else if (platform === Platform.Twitch) {
         query = `
             INSERT INTO guild_twitch_subscriptions (
-                twitch_user_id, guild_id, guild_channel_id, role_id, is_dm
+                twitch_channel_id, guild_id, notification_channel_id, notification_role_id, is_dm
             ) VALUES ($1, $2, $3, $4, $5)
         `;
         params = [platformUserId, guildId, guildChannelId, roleId, isDm];
