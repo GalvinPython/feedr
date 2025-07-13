@@ -2,7 +2,7 @@ import type { dbDiscordTable, dbYouTube } from "../../types/database";
 
 import { env } from "../../config";
 import { getGuildsTrackingChannel, updateVideoId } from "../database";
-import { dbYouTubeGetAllChannelsToTrack } from "../db/youtube";
+import { dbYouTubeGetAllChannelsToTrack } from "../../db/youtube";
 
 import getChannelDetails from "./getChannelDetails";
 

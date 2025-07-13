@@ -1,5 +1,5 @@
-import { Platform } from "../../types/types.d";
-import { pool } from "../database";
+import { Platform } from "../types/types";
+import { pool } from "../utils/database";
 
 export async function checkIfGuildIsTrackingUserAlready(
     platform: Platform,

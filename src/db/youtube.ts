@@ -1,9 +1,9 @@
-import type { dbYouTube } from "../../types/database";
+import type { dbYouTube } from "../types/database";
 
-import { pool } from "../database";
+import { pool } from "../utils/database";
 import getSinglePlaylistAndReturnVideoId, {
     PlaylistType,
-} from "../youtube/getSinglePlaylistAndReturnVideoData";
+} from "../utils/youtube/getSinglePlaylistAndReturnVideoData";
 
 export async function dbYouTubeGetAllChannelsToTrack(): Promise<{
     success: boolean;

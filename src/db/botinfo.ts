@@ -1,7 +1,7 @@
 import type { PoolClient, QueryResult } from "pg";
-import type { dbBotInfo } from "../../types/database";
+import type { dbBotInfo } from "../types/database";
 
-import { pool } from "../database";
+import { pool } from "../utils/database";
 
 export async function updateBotInfo(
     guilds_total: number = 0,

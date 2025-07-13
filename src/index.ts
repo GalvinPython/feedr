@@ -13,7 +13,7 @@ import {
 
 import { env } from "./config.ts";
 import commandsMap from "./commands.ts";
-import initTables from "./utils/db/init.ts";
+import initTables from "./db/schema.ts";
 import { getTwitchToken } from "./utils/twitch/auth.ts";
 
 if (!env.discordToken || env.discordToken === "YOUR_DISCORD_TOKEN") {

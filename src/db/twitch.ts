@@ -1,6 +1,6 @@
-import type { dbTwitch } from "../../types/database";
+import type { dbTwitch } from "../types/database";
 
-import { pool } from "../database";
+import { pool } from "../utils/database";
 
 export async function dbTwitchGetAllChannelsToTrack(): Promise<{
     success: boolean;

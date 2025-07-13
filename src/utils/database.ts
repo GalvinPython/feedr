@@ -18,6 +18,9 @@ if (
     throw new Error("Database credentials are not set");
 }
 
+/**
+ * @deprecated This pool is deprecated and being removed in the future.
+ */
 export const pool: Pool = new Pool({
     host: dbCredentials.host,
     port: parseInt(dbCredentials.port),

@@ -26,19 +26,19 @@ import { checkIfStreamerIsLive } from "./utils/twitch/checkIfStreamerIsLive";
 import {
     checkIfChannelIsAlreadyTracked,
     addNewChannelToTrack,
-} from "./utils/db/youtube";
+} from "./db/youtube";
 import search from "./utils/youtube/search";
 import {
     checkIfGuildIsTrackingUserAlready,
     discordAddGuildTrackingUser,
-} from "./utils/db/discord";
+} from "./db/discord";
 import { Platform, YouTubeContentType } from "./types/types.d";
 import searchTwitch from "./utils/twitch/searchTwitch";
 import { getStreamerName } from "./utils/twitch/getStreamerName";
 import {
     addNewStreamerToTrack,
     checkIfStreamerIsAlreadyTracked,
-} from "./utils/db/twitch";
+} from "./db/twitch";
 
 import client from ".";
 
@@ -681,9 +681,9 @@ const commands: Record<string, Command> = {
                 const query =
                     platform === "youtube"
                         ? (interaction.options.get("channel_id")
-                              ?.value as string)
+                            ?.value as string)
                         : (interaction.options.get("streamer_id")
-                              ?.value as string);
+                            ?.value as string);
 
                 // If the query is empty or not a string, return an empty array
                 if (!query || typeof query !== "string") {
