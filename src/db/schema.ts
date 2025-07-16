@@ -1,4 +1,5 @@
-// To make it easier to work with the database, disable prettier for this file
+// To make it easier to work with the database, disable prettier and some eslint rules for this file
+/* eslint-disable no-inline-comments */
 /* eslint-disable prettier/prettier */
 import { pgTable, serial, text, boolean, timestamp, decimal, unique, index, pgEnum, jsonb, integer } from "drizzle-orm/pg-core";
 
@@ -19,6 +20,8 @@ export const dbBlueskyTable = pgTable("bluesky", {
 
 export const dbYouTubeTable = pgTable("youtube", {
     youtubeChannelId: text("youtube_channel_id").primaryKey(),
+    youtubeChannelName: text("youtube_channel_name").notNull().default(""),
+    latestAllId: text("latest_all_id"), // For verification and optimisation purposes
     latestVideoId: text("latest_video_id"),
     latestVideoIdUpdated: timestamp("latest_video_id_updated"),
     latestShortId: text("latest_short_id"),
@@ -34,6 +37,7 @@ export const dbYouTubeTable = pgTable("youtube", {
 export const dbTwitchTable = pgTable("twitch", {
     twitchChannelId: text("twitch_channel_id").primaryKey(),
     twitchChannelIsLive: boolean("twitch_channel_is_live").notNull().default(false),
+    twitchChannelName: text("twitch_channel_name").notNull().default(""),
 }, (table) => [
     index("idx_twitch_channel_id").on(table.twitchChannelId),
 ]);
@@ -110,11 +114,11 @@ export const dbBotInfoNotificationsTable = pgTable("bot_info_notifications", {
 // });
 
 export const dbAuditLogsEventTypeEnum = pgEnum("event_type", [
-  "subscription_created",
-  "subscription_deleted",
-  "notification_sent",
-  "guild_joined",
-  "guild_left",
+    "subscription_created",
+    "subscription_deleted",
+    "notification_sent",
+    "guild_joined",
+    "guild_left",
 ]);
 
 export const dbAuditLogsSuccessTypeEnum = pgEnum("audit_log_success", [

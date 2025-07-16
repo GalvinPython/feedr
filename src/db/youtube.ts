@@ -1,25 +1,23 @@
-import type { dbYouTube } from "../types/database";
+import { eq } from "drizzle-orm";
 
-import { pool } from "../utils/database";
 import getSinglePlaylistAndReturnVideoId, {
     PlaylistType,
 } from "../utils/youtube/getSinglePlaylistAndReturnVideoData";
+import getChannelDetails from "../utils/youtube/getChannelDetails";
+
+import { dbYouTubeTable } from "./schema";
+import { db } from "./db";
 
 export async function dbYouTubeGetAllChannelsToTrack(): Promise<{
     success: boolean;
-    data: dbYouTube[] | [];
+    data: (typeof dbYouTubeTable.$inferSelect)[];
 }> {
-    const query = `SELECT * FROM youtube`;
-
     try {
-        const client = await pool.connect();
-        const result = await client.query(query);
-
-        client.release();
+        const result = await db.select().from(dbYouTubeTable);
 
         return {
             success: true,
-            data: result.rows as dbYouTube[],
+            data: result,
         };
     } catch (err) {
         console.error("Error getting all channels to track:", err);
@@ -34,18 +32,16 @@ export async function dbYouTubeGetAllChannelsToTrack(): Promise<{
 // These two functions are for checking/adding a new channel to the youtube table
 export async function checkIfChannelIsAlreadyTracked(
     channelId: string,
-): Promise<{ success: boolean; data: dbYouTube[] | [] }> {
-    const query = `SELECT * FROM youtube WHERE youtube_channel_id = $1`;
-
+): Promise<{ success: boolean; data: (typeof dbYouTubeTable.$inferSelect)[] }> {
     try {
-        const client = await pool.connect();
-        const result = await client.query(query, [channelId]);
-
-        client.release();
+        const result = await db
+            .select()
+            .from(dbYouTubeTable)
+            .where(eq(dbYouTubeTable.youtubeChannelId, channelId));
 
         return {
             success: true,
-            data: result.rows as dbYouTube[],
+            data: result,
         };
     } catch (err) {
         console.error("Error checking if channel is already tracked:", err);
@@ -63,44 +59,40 @@ export async function addNewChannelToTrack(
 ): Promise<{ success: boolean; data: [] }> {
     console.log("Adding channel to track:", channelId);
 
-    const longId = await getSinglePlaylistAndReturnVideoId(
-        channelId,
-        PlaylistType.Video,
-    );
-    const shortId = await getSinglePlaylistAndReturnVideoId(
-        channelId,
-        PlaylistType.Short,
-    );
-    const liveId = await getSinglePlaylistAndReturnVideoId(
-        channelId,
-        PlaylistType.Stream,
-    );
-
-    const query = `INSERT INTO youtube (youtube_channel_id, latest_video_id, latest_video_id_updated, latest_short_id, latest_short_id_updated, latest_stream_id, latest_stream_id_updated) VALUES ($1, $2, $3, $4, $5, $6, $7)`;
-
     try {
-        const client = await pool.connect();
+        const channelDetails = await getChannelDetails(channelId);
 
-        console.log(
+        const latestId = await getSinglePlaylistAndReturnVideoId(
             channelId,
-            longId?.videoId,
-            longId?.datePublished,
-            shortId?.videoId,
-            shortId?.datePublished,
-            liveId?.videoId,
-            liveId?.datePublished,
+            PlaylistType.All,
         );
-        await client.query(query, [
+        const longId = await getSinglePlaylistAndReturnVideoId(
             channelId,
-            longId?.videoId || null,
-            longId?.datePublished ? longId.datePublished : null,
-            shortId?.videoId || null,
-            shortId?.datePublished ? shortId.datePublished : null,
-            liveId?.videoId || null,
-            liveId?.datePublished ? liveId.datePublished : null,
-        ]);
+            PlaylistType.Video,
+        );
+        const shortId = await getSinglePlaylistAndReturnVideoId(
+            channelId,
+            PlaylistType.Short,
+        );
+        const liveId = await getSinglePlaylistAndReturnVideoId(
+            channelId,
+            PlaylistType.Stream,
+        );
 
-        client.release();
+        await db.insert(dbYouTubeTable).values({
+            youtubeChannelId: channelId,
+            youtubeChannelName: channelDetails?.channelName ?? "",
+            latestAllId: latestId?.videoId ?? null,
+            latestVideoId: longId?.videoId ?? null,
+            latestVideoIdUpdated: longId?.datePublished ?? null,
+            latestShortId: shortId?.videoId ?? null,
+            latestShortIdUpdated: shortId?.datePublished ?? null,
+            latestStreamId: liveId?.videoId ?? null,
+            latestStreamIdUpdated: liveId?.datePublished ?? null,
+            // TODO: Add better streaming capabilities in the future
+            youtubeChannelIsLive: false,
+            youtubeLiveIds: [],
+        });
 
         console.log("Channel added to track successfully:", channelId);
 

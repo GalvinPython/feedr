@@ -6,12 +6,14 @@ import type { YouTubePlaylistResponse } from "../../types/youtube";
 import { env } from "../../config";
 
 export enum PlaylistType {
+    All = "all",
     Video = "video",
     Short = "short",
     Stream = "stream",
 }
 
 const playlistIdPrefixes: Record<PlaylistType, string> = {
+    [PlaylistType.All]: "UU",
     [PlaylistType.Video]: "UULF",
     [PlaylistType.Short]: "UUSH",
     [PlaylistType.Stream]: "UULV",

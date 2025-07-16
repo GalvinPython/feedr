@@ -1,22 +1,18 @@
-import type { dbTwitch } from "../types/database";
+import { eq } from "drizzle-orm";
 
-import { pool } from "../utils/database";
+import { db } from "./db";
+import { dbTwitchTable } from "./schema";
 
 export async function dbTwitchGetAllChannelsToTrack(): Promise<{
     success: boolean;
-    data: dbTwitch[] | [];
+    data: (typeof dbTwitchTable.$inferSelect)[];
 }> {
-    const query = `SELECT * FROM twitch`;
-
     try {
-        const client = await pool.connect();
-        const result = await client.query(query);
-
-        client.release();
+        const result = await db.select().from(dbTwitchTable);
 
         return {
             success: true,
-            data: result.rows as dbTwitch[],
+            data: result,
         };
     } catch (err) {
         console.error("Error getting all channels to track:", err);
@@ -30,23 +26,14 @@ export async function dbTwitchGetAllChannelsToTrack(): Promise<{
 
 export async function checkIfStreamerIsAlreadyTracked(
     streamerId: string,
-): Promise<{ success: boolean; data: dbTwitch[] | [] }> {
-    const query = `
-        SELECT * FROM twitch
-        WHERE twitch_channel_id = $1
-    `;
-
+): Promise<{ success: boolean; data: (typeof dbTwitchTable.$inferSelect)[] }> {
     try {
-        const client = await pool.connect();
-        const result = await client.query(query, [streamerId]);
+        const result = await db
+            .select()
+            .from(dbTwitchTable)
+            .where(eq(dbTwitchTable.twitchChannelId, streamerId));
 
-        client.release();
-
-        if (result.rows.length > 0) {
-            return { success: true, data: result.rows };
-        } else {
-            return { success: true, data: [] };
-        }
+        return { success: true, data: result };
     } catch (error) {
         console.error("Error checking if streamer is already tracked:", error);
 
@@ -57,20 +44,22 @@ export async function checkIfStreamerIsAlreadyTracked(
 export async function addNewStreamerToTrack(
     streamerId: string,
     isLive: boolean,
-): Promise<{ success: boolean; data?: dbTwitch }> {
-    const query = `
-        INSERT INTO twitch (twitch_channel_id, twitch_channel_is_live)
-        VALUES ($1, $2)
-        RETURNING *
-    `;
-
+    twitchChannelName: string,
+): Promise<{ success: boolean; data?: typeof dbTwitchTable.$inferSelect }> {
     try {
-        const client = await pool.connect();
-        const result = await client.query(query, [streamerId, isLive]);
+        const [inserted] = await db
+            .insert(dbTwitchTable)
+            .values({
+                twitchChannelId: streamerId,
+                twitchChannelIsLive: isLive,
+                twitchChannelName: twitchChannelName || "",
+            })
+            .returning();
 
-        client.release();
-
-        return { success: true, data: result.rows[0] as dbTwitch };
+        return {
+            success: true,
+            data: inserted,
+        };
     } catch (error) {
         console.error("Error adding new streamer to track:", error);
 

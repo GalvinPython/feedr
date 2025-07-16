@@ -1,46 +1,70 @@
+import { eq, and } from "drizzle-orm";
+
 import { Platform } from "../types/types";
-import { pool } from "../utils/database";
+
+import { db } from "./db";
+import {
+    dbGuildYouTubeSubscriptionsTable,
+    dbGuildTwitchSubscriptionsTable,
+} from "./schema";
 
 export async function checkIfGuildIsTrackingUserAlready(
     platform: Platform,
     userId: string,
     guildId: string,
-): Promise<{ success: boolean; data: any[] | null }> {
+): Promise<
+    | {
+          success: true;
+          data:
+              | (typeof dbGuildYouTubeSubscriptionsTable.$inferSelect)[]
+              | (typeof dbGuildTwitchSubscriptionsTable.$inferSelect)[]
+              | null;
+      }
+    | { success: false; data: null }
+> {
     console.log(
         `Checking if guild ${guildId} is tracking user ${userId} on platform ${platform}`,
     );
 
-    let query: string | null = null;
-
-    if (platform === Platform.YouTube) {
-        query = `
-            SELECT * FROM guild_youtube_subscriptions
-            WHERE youtube_channel_id = $1 AND guild_id = $2
-        `;
-    } else if (platform === Platform.Twitch) {
-        query = `
-            SELECT * FROM guild_twitch_subscriptions
-            WHERE twitch_user_id = $1 AND guild_id = $2
-        `;
-    }
-
-    if (!query) {
-        console.error("Invalid platform provided for tracking check.");
-
-        return { success: false, data: null };
-    }
-
     try {
-        const client = await pool.connect();
-        const result = await client.query(query, [userId, guildId]);
+        let result: any[] = [];
 
-        client.release();
-
-        if (result.rows.length > 0) {
-            return { success: true, data: result.rows };
+        if (platform === Platform.YouTube) {
+            result = await db
+                .select()
+                .from(dbGuildYouTubeSubscriptionsTable)
+                .where(
+                    and(
+                        eq(
+                            dbGuildYouTubeSubscriptionsTable.youtubeChannelId,
+                            userId,
+                        ),
+                        eq(dbGuildYouTubeSubscriptionsTable.guildId, guildId),
+                    ),
+                );
+        } else if (platform === Platform.Twitch) {
+            result = await db
+                .select()
+                .from(dbGuildTwitchSubscriptionsTable)
+                .where(
+                    and(
+                        eq(
+                            dbGuildTwitchSubscriptionsTable.twitchChannelId,
+                            userId,
+                        ),
+                        eq(dbGuildTwitchSubscriptionsTable.guildId, guildId),
+                    ),
+                );
         } else {
-            return { success: true, data: null };
+            console.error("Invalid platform provided for tracking check.");
+
+            return { success: false, data: null };
         }
+
+        return {
+            success: true,
+            data: result.length > 0 ? result : null,
+        };
     } catch (error) {
         console.error("Error checking if guild is tracking user:", error);
 
@@ -65,59 +89,43 @@ export async function discordAddGuildTrackingUser(
         `Adding guild ${guildId} tracking for user ${platformUserId} on platform ${platform}`,
     );
 
-    let query: string | null = null;
-    let params: any[] = [];
+    try {
+        if (platform === Platform.YouTube) {
+            if (
+                youtubeTrackVideos == null ||
+                youtubeTrackShorts == null ||
+                youtubeTrackLive == null
+            ) {
+                console.error(
+                    "YouTube tracking options must be provided for YouTube subscriptions.",
+                );
 
-    if (platform === Platform.YouTube) {
-        if (
-            youtubeTrackVideos === undefined ||
-            youtubeTrackVideos === null ||
-            youtubeTrackShorts === undefined ||
-            youtubeTrackShorts === null ||
-            youtubeTrackLive === undefined ||
-            youtubeTrackLive === null
-        ) {
-            console.error(
-                "YouTube tracking options must be provided for YouTube subscriptions.",
-            );
+                return { success: false, data: [] };
+            }
+
+            await db.insert(dbGuildYouTubeSubscriptionsTable).values({
+                youtubeChannelId: platformUserId,
+                guildId,
+                notificationChannelId: guildChannelId,
+                notificationRoleId: roleId,
+                isDm,
+                trackVideos: youtubeTrackVideos,
+                trackShorts: youtubeTrackShorts,
+                trackStreams: youtubeTrackLive,
+            });
+        } else if (platform === Platform.Twitch) {
+            await db.insert(dbGuildTwitchSubscriptionsTable).values({
+                twitchChannelId: platformUserId,
+                guildId,
+                notificationChannelId: guildChannelId,
+                notificationRoleId: roleId,
+                isDm,
+            });
+        } else {
+            console.error("Invalid platform provided.");
 
             return { success: false, data: [] };
         }
-
-        query = `
-            INSERT INTO guild_youtube_subscriptions (
-                youtube_channel_id, guild_id, notification_channel_id, notification_role_id, is_dm,
-                track_videos, track_shorts, track_streams
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        `;
-        params = [
-            platformUserId,
-            guildId,
-            guildChannelId,
-            roleId,
-            isDm,
-            youtubeTrackVideos ?? false,
-            youtubeTrackShorts ?? false,
-            youtubeTrackLive ?? false,
-        ];
-    } else if (platform === Platform.Twitch) {
-        query = `
-            INSERT INTO guild_twitch_subscriptions (
-                twitch_channel_id, guild_id, notification_channel_id, notification_role_id, is_dm
-            ) VALUES ($1, $2, $3, $4, $5)
-        `;
-        params = [platformUserId, guildId, guildChannelId, roleId, isDm];
-    }
-
-    if (!query) {
-        return { success: false, data: [] };
-    }
-
-    try {
-        const client = await pool.connect();
-
-        await client.query(query, params);
-        client.release();
 
         return { success: true, data: [] };
     } catch (error) {
