@@ -9,6 +9,7 @@
     "@typescript-eslint/eslint-plugin": "8.11.0",
     "@typescript-eslint/parser": "8.11.0",
     "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
     "drizzle-kit": "^0.31.4",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "9.1.0",
@@ -22,6 +23,8 @@
   },
   "scripts": {
     "db:generate": "bun drizzle-kit generate",
+    "db:push:dev": "cross-env NODE_ENV=development bun drizzle-kit push",
+    "db:push:prod": "bun drizzle-kit push",
     "dev": "concurrently --names \"WEB,API,BOT\" --prefix-colors \"blue,green,magenta\" \"cd web && bun dev\" \"cd api && cargo watch -x \\\"run -- --dev\\\"\" \"bun --watch . --dev\"",
     "dev:bot": "bun --watch . --dev",
     "test:jetstream": "bun --watch src/utils/bluesky/jetstream.ts",
