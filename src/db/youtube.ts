@@ -8,6 +8,7 @@ import getChannelDetails from "../utils/youtube/getChannelDetails";
 import { dbYouTubeTable } from "./schema";
 import { db } from "./db";
 
+// Get all the YouTube channels that are being tracked
 export async function dbYouTubeGetAllChannelsToTrack(): Promise<{
     success: boolean;
     data: (typeof dbYouTubeTable.$inferSelect)[];
@@ -101,5 +102,53 @@ export async function addNewChannelToTrack(
         console.error("Error adding channel to track:", err);
 
         return { success: false, data: [] };
+    }
+}
+
+// Update the latest video ID for a channel
+export async function youtubeUpdateVideoId(
+    channelId: string,
+    videoId: string,
+    contentType: PlaylistType,
+    updateTime: Date,
+): Promise<{ success: boolean; data?: typeof dbYouTubeTable.$inferSelect }> {
+    try {
+        const updateData: Record<string, unknown> = {
+            latestAllId: null,
+            latestVideoId: null,
+            latestShortId: null,
+            latestStreamId: null,
+        };
+
+        switch (contentType) {
+            case PlaylistType.Video:
+                updateData.latestVideoId = videoId;
+                updateData.latestVideoIdUpdated = updateTime;
+                break;
+            case PlaylistType.Short:
+                updateData.latestShortId = videoId;
+                updateData.latestShortIdUpdated = updateTime;
+                break;
+            case PlaylistType.Stream:
+                updateData.latestStreamId = videoId;
+                updateData.latestStreamIdUpdated = updateTime;
+                break;
+        }
+
+        // Always update the "all" column regardless of the content type
+        updateData.latestAllId = videoId;
+        updateData.latestAllIdUpdated = updateTime;
+
+        const [updated] = await db
+            .update(dbYouTubeTable)
+            .set(updateData)
+            .where(eq(dbYouTubeTable.youtubeChannelId, channelId))
+            .returning();
+
+        return { success: true, data: updated };
+    } catch (error) {
+        console.error("Error updating YouTube video ID:", error);
+
+        return { success: false };
     }
 }

@@ -1,18 +1,25 @@
-export enum AuditResolution {
-    AUDIT_RESOLUTION_FAIL = "fail",
-    AUDIT_RESOLUTION_SUCCESS = "success",
-    AUDIT_RESOLUTION_ERROR = "error",
-    AUDIT_RESOLUTION_NULL = "null",
-}
+import {
+    dbAuditLogsEventTypeEnum,
+    dbAuditLogsSuccessTypeEnum,
+    dbAuditLogsTable,
+} from "./schema";
+import { db } from "./db";
 
-export enum AuditType {
-    GUILD_CHECKED_YOUTUBE_CHANNEL = "guild_checked_youtube_channel",
-}
-
-export async function addAuditEntry(
-    type: AuditType,
-    resolution: AuditResolution,
-) {
-    console.log("Adding audit entry:", type, resolution);
-    throw new Error("Not implemented");
+export async function dbAuditLogCreate(
+    guildId: string,
+    eventType: (typeof dbAuditLogsEventTypeEnum)["enumValues"][number],
+    successType: (typeof dbAuditLogsSuccessTypeEnum)["enumValues"][number],
+    data: Record<string, unknown> | null = null,
+): Promise<void> {
+    try {
+        await db.insert(dbAuditLogsTable).values({
+            guildId,
+            eventType,
+            successType,
+            data,
+            occurredAt: new Date(),
+        });
+    } catch (error) {
+        console.error("Error creating audit log entry:", error);
+    }
 }

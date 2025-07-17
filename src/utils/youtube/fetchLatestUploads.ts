@@ -1,8 +1,10 @@
-import type { dbDiscordTable, dbYouTube } from "../../types/database";
+import type { dbGuildYouTubeSubscriptionsTable } from "../../db/schema";
 
 import { env } from "../../config";
-import { getGuildsTrackingChannel, updateVideoId } from "../database";
+import { updateVideoId } from "../database";
 import { dbYouTubeGetAllChannelsToTrack } from "../../db/youtube";
+import { discordGetAllGuildsTrackingChannel } from "../../db/discord";
+import { Platform } from "../../types/types";
 
 import getChannelDetails from "./getChannelDetails";
 
@@ -10,23 +12,23 @@ export const updates = new Map<
     string,
     {
         channelInfo: Awaited<ReturnType<typeof getChannelDetails>>;
-        discordGuildsToUpdate: dbDiscordTable[];
+        discordGuildsToUpdate: (typeof dbGuildYouTubeSubscriptionsTable.$inferSelect)[];
     }
 >();
 
 export default async function fetchLatestUploads() {
     console.log("Fetching latest uploads...");
 
-    const channels: dbYouTube[] | [] = await dbYouTubeGetAllChannelsToTrack();
+    const channels = await dbYouTubeGetAllChannelsToTrack();
     const channelDict: Record<string, string> = {};
 
-    if (!channels || channels.length === 0) {
+    if (!channels || !channels.success || channels.data.length === 0) {
         console.log("No channels to track.");
 
         return;
     }
 
-    channels.forEach((channel) => {
+    channels.data.forEach((channel) => {
         if (!channel.youtube_channel_id || !channel.latest_video_id) {
             console.error(
                 "Channel ID or latest video ID is missing in fetchLatestUploads",
@@ -92,7 +94,10 @@ export default async function fetchLatestUploads() {
                 }
 
                 const discordGuildsToUpdate =
-                    await getGuildsTrackingChannel(channelId);
+                    await discordGetAllGuildsTrackingChannel(
+                        Platform.YouTube,
+                        channelId,
+                    );
 
                 if (!discordGuildsToUpdate) {
                     console.error(

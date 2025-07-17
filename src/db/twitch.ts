@@ -66,3 +66,23 @@ export async function addNewStreamerToTrack(
         return { success: false };
     }
 }
+
+// Update a channel to be live or not
+export async function twitchUpdateIsLive(
+    channelId: string,
+    isLive: boolean,
+): Promise<{ success: boolean; data?: typeof dbTwitchTable.$inferSelect }> {
+    try {
+        const [updated] = await db
+            .update(dbTwitchTable)
+            .set({ twitchChannelIsLive: isLive })
+            .where(eq(dbTwitchTable.twitchChannelId, channelId))
+            .returning();
+
+        return { success: true, data: updated };
+    } catch (error) {
+        console.error("Error updating channel live status:", error);
+
+        return { success: false };
+    }
+}
