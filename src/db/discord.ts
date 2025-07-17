@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 
-import { Platform } from "../types/types";
+import { Platform } from "../types/types.d";
 
 import { db } from "./db";
 import {

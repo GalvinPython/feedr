@@ -16,11 +16,6 @@ import { PermissionFlagsBits } from "discord-api-types/v8";
 import hfksdjfskfhsjdfhkasfdhksf from "hfksdjfskfhsjdfhkasfdhksf";
 
 import checkIfChannelIdIsValid from "./utils/youtube/checkIfChannelIdIsValid";
-import {
-    getAllTrackedInGuild,
-    stopGuildTrackingChannel,
-    twitchStopGuildTrackingChannel,
-} from "./utils/database";
 import getChannelDetails from "./utils/youtube/getChannelDetails";
 import { checkIfStreamerIsLive } from "./utils/twitch/checkIfStreamerIsLive";
 import {

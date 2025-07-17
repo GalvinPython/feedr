@@ -13,7 +13,6 @@ import {
 
 import { env } from "./config.ts";
 import commandsMap from "./commands.ts";
-import initTables from "./db/schema.ts";
 import { getTwitchToken } from "./utils/twitch/auth.ts";
 
 if (!env.discordToken || env.discordToken === "YOUR_DISCORD_TOKEN") {
@@ -56,11 +55,6 @@ const data = (await rest.put(Routes.applicationCommands(getAppId.id), {
 })) as APIApplicationCommand[];
 
 console.log(`Successfully reloaded ${data.length} application (/) commands.`);
-
-// Check if Postgres is set up properly and its working
-if (!(await initTables())) {
-    // throw new Error("Error initializing tables");
-}
 
 // Get Twitch token
 if (!(await getTwitchToken())) {

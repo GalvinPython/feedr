@@ -136,3 +136,18 @@ export const dbAuditLogsTable = pgTable("audit_logs", {
     data: jsonb("data"),
     occurredAt: timestamp("occurred_at").defaultNow(),
 });
+
+export default {
+    dbDiscordTable,
+    dbBlueskyTable,
+    dbYouTubeTable,
+    dbTwitchTable,
+    dbGuildBlueskySubscriptionsTable,
+    dbGuildYouTubeSubscriptionsTable,
+    dbGuildTwitchSubscriptionsTable,
+    dbBotInfoTable,
+    dbBotInfoNotificationsTable,
+    dbAuditLogsEventTypeEnum,
+    dbAuditLogsSuccessTypeEnum,
+    dbAuditLogsTable,
+};

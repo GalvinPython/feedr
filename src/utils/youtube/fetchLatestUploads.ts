@@ -1,10 +1,12 @@
-import type { dbGuildYouTubeSubscriptionsTable } from "../../db/schema";
+import type { Platform } from "../../types/types.d.ts";
 
+import {
+    dbGuildYouTubeSubscriptionsTable,
+    dbYouTubeTable,
+} from "../../db/schema";
 import { env } from "../../config";
-import { updateVideoId } from "../database";
 import { dbYouTubeGetAllChannelsToTrack } from "../../db/youtube";
 import { discordGetAllGuildsTrackingChannel } from "../../db/discord";
-import { Platform } from "../../types/types";
 
 import getChannelDetails from "./getChannelDetails";
 
@@ -20,7 +22,7 @@ export default async function fetchLatestUploads() {
     console.log("Fetching latest uploads...");
 
     const channels = await dbYouTubeGetAllChannelsToTrack();
-    const channelDict: Record<string, string> = {};
+    const channelDict: Record<string, typeof dbYouTubeTable.$inferSelect> = {};
 
     if (!channels || !channels.success || channels.data.length === 0) {
         console.log("No channels to track.");
@@ -29,14 +31,14 @@ export default async function fetchLatestUploads() {
     }
 
     channels.data.forEach((channel) => {
-        if (!channel.youtube_channel_id || !channel.latest_video_id) {
+        if (!channel.youtubeChannelId || !channel.latestAllId) {
             console.error(
                 "Channel ID or latest video ID is missing in fetchLatestUploads",
             );
 
             return;
         }
-        channelDict[channel.youtube_channel_id] = channel.latest_video_id;
+        channelDict[channel.youtubeChannelId] = channel;
     });
 
     const chunkSize = 50;

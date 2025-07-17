@@ -1,12 +1,6 @@
-import type { dbTwitch } from "../../types/database";
 import type { TextChannel } from "discord.js";
 
 import { env } from "../../config";
-import {
-    twitchGetAllChannelsToTrack,
-    twitchGetGuildsTrackingChannel,
-    twitchUpdateIsLive,
-} from "../database";
 import client from "../..";
 
 import { twitchToken } from "./auth";
