@@ -4,6 +4,7 @@ export interface Config {
     updateIntervalYouTube: number;
     updateIntervalTwitch: number;
     databaseUrl: string | undefined;
+    discordWaitForGuildCacheTime: number;
 }
 
 export const config: Config = {
@@ -16,6 +17,10 @@ export const config: Config = {
     databaseUrl: runningInDevMode
         ? process.env?.POSTGRES_DEV_URL
         : process.env?.POSTGRES_URL,
+    discordWaitForGuildCacheTime: process.env
+        ?.CONFIG_DISCORD_WAIT_FOR_GUILD_CACHE_TIME
+        ? parseInt(process.env?.CONFIG_DISCORD_WAIT_FOR_GUILD_CACHE_TIME) * 1000
+        : 10_000,
 };
 
 interface Env {

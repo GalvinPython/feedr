@@ -1,5 +1,4 @@
-import type { Platform } from "../../types/types.d.ts";
-
+import { Platform } from "../../types/types.d";
 import {
     dbGuildYouTubeSubscriptionsTable,
     dbYouTubeTable,

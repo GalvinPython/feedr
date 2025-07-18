@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { dbDiscordTable } from "../../db/schema";
 import client from "../..";
 import { db } from "../../db/db";
+import { config } from "../../config";
 
 export default async function () {
     console.log("Checking for guilds to update on startup...");
@@ -15,7 +16,9 @@ export default async function () {
         console.log("Waiting for guilds to load...");
         currentGuilds = client.guilds.cache.map((guild) => guild.id);
         if (currentGuilds.length === 0) {
-            await new Promise((resolve) => setTimeout(resolve, 10000));
+            await new Promise((resolve) =>
+                setTimeout(resolve, config.discordWaitForGuildCacheTime),
+            );
         }
     }
 
@@ -47,7 +50,7 @@ export default async function () {
                     .where(eq(dbDiscordTable.guildId, guild.guildId))
                     .returning();
 
-                if (result) {
+                if (result.length > 0) {
                     console.log(
                         `Successfully removed guild ${guild.guildId} from tracking.`,
                     );
@@ -77,10 +80,14 @@ export default async function () {
                     })
                     .returning();
 
-                if (result) {
-                    console.log(`Successfully added guild ${guildId} to tracking.`);
+                if (result.length > 0) {
+                    console.log(
+                        `Successfully added guild ${guildId} to tracking.`,
+                    );
                 } else {
-                    console.error(`Failed to add guild ${guildId} to tracking.`);
+                    console.error(
+                        `Failed to add guild ${guildId} to tracking.`,
+                    );
                 }
             }),
         );
