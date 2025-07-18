@@ -37,42 +37,54 @@ export default async function () {
     );
 
     // Update the database for missing guilds
-    missingGuilds.forEach(async (guild) => {
-        console.log(`Removing guild from tracking: ${guild.guildId}`);
-        const result = await db
-            .update(dbDiscordTable)
-            .set({ isInServer: false })
-            .where(eq(dbDiscordTable.guildId, guild.guildId))
-            .returning();
+    try {
+        await Promise.all(
+            missingGuilds.map(async (guild) => {
+                console.log(`Removing guild from tracking: ${guild.guildId}`);
+                const result = await db
+                    .update(dbDiscordTable)
+                    .set({ isInServer: false })
+                    .where(eq(dbDiscordTable.guildId, guild.guildId))
+                    .returning();
 
-        if (result) {
-            console.log(
-                `Successfully removed guild ${guild.guildId} from tracking.`,
-            );
-        } else {
-            console.error(
-                `Failed to remove guild ${guild.guildId} from tracking.`,
-            );
-        }
-    });
+                if (result) {
+                    console.log(
+                        `Successfully removed guild ${guild.guildId} from tracking.`,
+                    );
+                } else {
+                    console.error(
+                        `Failed to remove guild ${guild.guildId} from tracking.`,
+                    );
+                }
+            }),
+        );
+    } catch (error) {
+        console.error("Error while removing missing guilds:", error);
+    }
 
-    newGuilds.forEach(async (guildId) => {
-        console.log(`Adding new guild to tracking: ${guildId}`);
-        const result = await db
-            .insert(dbDiscordTable)
-            .values({
-                guildId,
-                allowedPublicSharing: false,
-                feedrUpdatesChannelId: null,
-                isInServer: true,
-                memberCount: 0,
-            })
-            .returning();
+    try {
+        await Promise.all(
+            newGuilds.map(async (guildId) => {
+                console.log(`Adding new guild to tracking: ${guildId}`);
+                const result = await db
+                    .insert(dbDiscordTable)
+                    .values({
+                        guildId,
+                        allowedPublicSharing: false,
+                        feedrUpdatesChannelId: null,
+                        isInServer: true,
+                        memberCount: 0,
+                    })
+                    .returning();
 
-        if (result) {
-            console.log(`Successfully added guild ${guildId} to tracking.`);
-        } else {
-            console.error(`Failed to add guild ${guildId} to tracking.`);
-        }
-    });
+                if (result) {
+                    console.log(`Successfully added guild ${guildId} to tracking.`);
+                } else {
+                    console.error(`Failed to add guild ${guildId} to tracking.`);
+                }
+            }),
+        );
+    } catch (error) {
+        console.error("Error while adding new guilds:", error);
+    }
 }
