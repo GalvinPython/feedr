@@ -6,6 +6,7 @@ import { db } from "./db";
 import {
     dbGuildYouTubeSubscriptionsTable,
     dbGuildTwitchSubscriptionsTable,
+    dbDiscordTable,
 } from "./schema";
 
 export async function checkIfGuildIsTrackingUserAlready(
@@ -276,6 +277,49 @@ export async function discordRemoveGuildTrackingChannel(
         return { success: true, data: [] };
     } catch (error) {
         console.error("Error removing guild tracking channel:", error);
+
+        return { success: false, data: [] };
+    }
+}
+
+// Add a new guild to track
+export async function discordAddNewGuild(
+    guildId: string,
+): Promise<{ success: boolean; data: [] }> {
+    console.log(`Adding new guild to track: ${guildId}`);
+
+    try {
+        await db.insert(dbDiscordTable).values({
+            guildId,
+            allowedPublicSharing: false,
+            isInServer: true,
+            memberCount: 0,
+        });
+
+        return { success: true, data: [] };
+    } catch (error) {
+        console.error("Error adding new guild to track:", error);
+
+        return { success: false, data: [] };
+    }
+}
+
+// "Remove" a guild from tracking
+// Basically just set isInServer to false for archival purposes
+export async function discordRemoveGuildFromTracking(
+    guildId: string,
+): Promise<{ success: boolean; data: [] }> {
+    console.log(`Removing guild from tracking: ${guildId}`);
+
+    try {
+        await db
+            .update(dbDiscordTable)
+            .set({ isInServer: false })
+            .where(eq(dbDiscordTable.guildId, guildId));
+
+        return { success: true, data: [] };
+    } catch (error) {
+        console.error("Error removing guild from tracking:", error);
 
         return { success: false, data: [] };
     }
