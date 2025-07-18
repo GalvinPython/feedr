@@ -290,7 +290,7 @@ export async function discordAddNewGuild(
 
     try {
         await db.insert(dbDiscordTable).values({
-            guildId: guildId,
+            guildId,
             allowedPublicSharing: false,
             isInServer: true,
             memberCount: 0,
