@@ -8,6 +8,7 @@ export const dbDiscordTable = pgTable("discord", {
     allowedPublicSharing: boolean("allowed_public_sharing").notNull().default(false),
     feedrUpdatesChannelId: text("feedr_updates_channel_id"),
     isInServer: boolean("is_in_server").notNull().default(true),
+    memberCount: integer("member_count").notNull().default(0),
 });
 
 export const dbBlueskyTable = pgTable("bluesky", {
