@@ -13,7 +13,7 @@ export default async function sendLatestUploads() {
         for (const guild of discordGuildsToUpdate) {
             try {
                 const channelObj = await client.channels.fetch(
-                    guild.guild_channel_id,
+                    guild.notificationChannelId,
                 );
 
                 if (
@@ -27,12 +27,19 @@ export default async function sendLatestUploads() {
                     continue;
                 }
 
+                console.log(
+                    "Sending message to channel:",
+                    channelObj.id,
+                    "for video ID:",
+                    videoId,
+                );
+
                 await (channelObj as TextChannel).send({
                     content:
-                        guild.guild_ping_role && channelInfo
-                            ? `<@&${guild.guild_ping_role}> New video uploaded for ${channelInfo?.channelName}! https://www.youtube.com/watch?v=${videoId}`
-                            : guild.guild_ping_role
-                              ? `<@&${guild.guild_ping_role}> New video uploaded! https://www.youtube.com/watch?v=${videoId}`
+                        guild.notificationRoleId && channelInfo
+                            ? `<@&${guild.notificationRoleId}> New video uploaded for ${channelInfo?.channelName}! https://www.youtube.com/watch?v=${videoId}`
+                            : guild.notificationRoleId
+                              ? `<@&${guild.notificationRoleId}> New video uploaded! https://www.youtube.com/watch?v=${videoId}`
                               : channelInfo
                                 ? `New video uploaded for ${channelInfo.channelName}! https://www.youtube.com/watch?v=${videoId}`
                                 : `New video uploaded! https://www.youtube.com/watch?v=${videoId}`,

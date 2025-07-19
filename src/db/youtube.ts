@@ -133,6 +133,14 @@ export async function youtubeUpdateVideoId(
                 updateData.latestStreamId = videoId;
                 updateData.latestStreamIdUpdated = updateTime;
                 break;
+            case PlaylistType.All:
+                console.error(
+                    "All content type should not be used for updating video IDs",
+                );
+
+                return { success: false };
+            default:
+                break;
         }
 
         // Always update the "all" column regardless of the content type

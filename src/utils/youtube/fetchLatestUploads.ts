@@ -4,10 +4,16 @@ import {
     dbYouTubeTable,
 } from "../../db/schema";
 import { env } from "../../config";
-import { dbYouTubeGetAllChannelsToTrack } from "../../db/youtube";
+import {
+    dbYouTubeGetAllChannelsToTrack,
+    youtubeUpdateVideoId,
+} from "../../db/youtube";
 import { discordGetAllGuildsTrackingChannel } from "../../db/discord";
 
 import getChannelDetails from "./getChannelDetails";
+import getSinglePlaylistAndReturnVideoData, {
+    PlaylistType,
+} from "./getSinglePlaylistAndReturnVideoData";
 
 export const updates = new Map<
     string,
@@ -30,10 +36,8 @@ export default async function fetchLatestUploads() {
     }
 
     channels.data.forEach((channel) => {
-        if (!channel.youtubeChannelId || !channel.latestAllId) {
-            console.error(
-                "Channel ID or latest video ID is missing in fetchLatestUploads",
-            );
+        if (!channel.youtubeChannelId) {
+            console.error("Channel ID is missing in fetchLatestUploads");
 
             return;
         }
@@ -69,12 +73,14 @@ export default async function fetchLatestUploads() {
 
         const data = await res.json();
 
+        // TODO: Upload time (https://github.com/GalvinPython/feedr/issues/136)
         for (const playlist of data.items) {
             const channelId = playlist.snippet.channelId;
             const videoId =
                 playlist.snippet.thumbnails.default.url.split("/")[4];
 
-            const requiresUpdate = channelDict[channelId] !== videoId;
+            const requiresUpdate =
+                channelDict[channelId].latestAllId !== videoId;
 
             console.log(
                 "Channel ID:",
@@ -86,7 +92,68 @@ export default async function fetchLatestUploads() {
             );
 
             if (requiresUpdate) {
-                if (!(await updateVideoId(channelId, videoId))) {
+                const [longVideoId, shortVideoId, streamVideoId] =
+                    await Promise.all([
+                        getSinglePlaylistAndReturnVideoData(
+                            channelId,
+                            PlaylistType.Video,
+                        ),
+                        getSinglePlaylistAndReturnVideoData(
+                            channelId,
+                            PlaylistType.Short,
+                        ),
+                        getSinglePlaylistAndReturnVideoData(
+                            channelId,
+                            PlaylistType.Stream,
+                        ),
+                    ]);
+
+                if (!longVideoId && !shortVideoId && !streamVideoId) {
+                    console.error(
+                        "No video IDs found for channel in fetchLatestUploads",
+                    );
+                    continue;
+                }
+
+                let contentType: PlaylistType | null = null;
+
+                const videoIdMap = {
+                    [PlaylistType.Video]: longVideoId,
+                    [PlaylistType.Short]: shortVideoId,
+                    [PlaylistType.Stream]: streamVideoId,
+                };
+
+                contentType = Object.entries(videoIdMap).find(
+                    ([, id]) => id,
+                )?.[0] as PlaylistType | null;
+
+                if (contentType) {
+                    console.log(
+                        `Updating ${contentType} video ID for channel`,
+                        channelId,
+                        "to",
+                        videoIdMap[contentType as keyof typeof videoIdMap],
+                    );
+                } else {
+                    console.error(
+                        "No valid video ID found for channel",
+                        channelId,
+                        "with video ID",
+                        videoId,
+                    );
+                    continue;
+                }
+
+                const updateSuccess = await youtubeUpdateVideoId(
+                    channelId,
+                    videoId,
+                    contentType,
+
+                    // Temporarily using current date for update time
+                    new Date(),
+                );
+
+                if (!updateSuccess) {
                     console.error(
                         "Error updating video ID in fetchLatestUploads",
                     );
@@ -110,9 +177,29 @@ export default async function fetchLatestUploads() {
 
                 const channelInfo = await getChannelDetails(channelId);
 
+                console.log(
+                    discordGuildsToUpdate.data.filter(
+                        (
+                            guild,
+                        ): guild is typeof dbGuildYouTubeSubscriptionsTable.$inferSelect =>
+                            "youtubeChannelId" in guild &&
+                            "trackVideos" in guild &&
+                            "trackShorts" in guild &&
+                            "trackStreams" in guild,
+                    ),
+                );
+
                 updates.set(videoId, {
                     channelInfo,
-                    discordGuildsToUpdate,
+                    discordGuildsToUpdate: discordGuildsToUpdate.data.filter(
+                        (
+                            guild,
+                        ): guild is typeof dbGuildYouTubeSubscriptionsTable.$inferSelect =>
+                            "youtubeChannelId" in guild &&
+                            "trackVideos" in guild &&
+                            "trackShorts" in guild &&
+                            "trackStreams" in guild,
+                    ),
                 });
 
                 // console.log("Discord guilds to update:", discordGuildsToUpdate);
