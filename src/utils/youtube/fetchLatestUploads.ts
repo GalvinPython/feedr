@@ -196,48 +196,14 @@ export default async function fetchLatestUploads() {
                             guild,
                         ): guild is typeof dbGuildYouTubeSubscriptionsTable.$inferSelect =>
                             "youtubeChannelId" in guild &&
-                            "trackVideos" in guild &&
-                            "trackShorts" in guild &&
-                            "trackStreams" in guild,
+                            ((contentType === PlaylistType.Video &&
+                                guild.trackVideos) ||
+                                (contentType === PlaylistType.Short &&
+                                    guild.trackShorts) ||
+                                (contentType === PlaylistType.Stream &&
+                                    guild.trackStreams)),
                     ),
                 });
-
-                // console.log("Discord guilds to update:", discordGuildsToUpdate);
-                // for (const guild of discordGuildsToUpdate) {
-                //     try {
-                //         const channelObj = await client.channels.fetch(
-                //             guild.guild_channel_id,
-                //         );
-
-                //         if (
-                //             !channelObj ||
-                //             (channelObj.type !== ChannelType.GuildText &&
-                //                 channelObj.type !==
-                //                     ChannelType.GuildAnnouncement)
-                //         ) {
-                //             console.error(
-                //                 "Invalid channel or not a text channel in fetchLatestUploads",
-                //             );
-                //             continue;
-                //         }
-
-                //         await (channelObj as TextChannel).send({
-                //             content:
-                //                 guild.guild_ping_role && channelInfo
-                //                     ? `<@&${guild.guild_ping_role}> New video uploaded for ${channelInfo?.channelName}! https://www.youtube.com/watch?v=${videoId}`
-                //                     : guild.guild_ping_role
-                //                       ? `<@&${guild.guild_ping_role}> New video uploaded! https://www.youtube.com/watch?v=${videoId}`
-                //                       : channelInfo
-                //                         ? `New video uploaded for ${channelInfo.channelName}! https://www.youtube.com/watch?v=${videoId}`
-                //                         : `New video uploaded! https://www.youtube.com/watch?v=${videoId}`,
-                //         });
-                //     } catch (error) {
-                //         console.error(
-                //             "Error fetching or sending message to channel in fetchLatestUploads:",
-                //             error,
-                //         );
-                //     }
-                // }
             }
         }
     }
