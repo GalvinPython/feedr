@@ -153,7 +153,7 @@ export default async function fetchLatestUploads() {
                     new Date(),
                 );
 
-                if (!updateSuccess) {
+                if (!updateSuccess.success) {
                     console.error(
                         "Error updating video ID in fetchLatestUploads",
                     );
@@ -177,8 +177,8 @@ export default async function fetchLatestUploads() {
 
                 const channelInfo = await getChannelDetails(channelId);
 
-                console.log(
-                    discordGuildsToUpdate.data.filter(
+                console.info(`Filtered guilds for channel ID ${channelId}:`, {
+                    count: discordGuildsToUpdate.data.filter(
                         (
                             guild,
                         ): guild is typeof dbGuildYouTubeSubscriptionsTable.$inferSelect =>
@@ -186,8 +186,8 @@ export default async function fetchLatestUploads() {
                             "trackVideos" in guild &&
                             "trackShorts" in guild &&
                             "trackStreams" in guild,
-                    ),
-                );
+                    ).length,
+                });
 
                 updates.set(videoId, {
                     channelInfo,

@@ -129,7 +129,7 @@ export async function checkIfStreamersAreLive(): Promise<void> {
                     for (const guild of guildsTrackingStreamer.data) {
                         // Send a message to the channel
                         const channel = await client.channels.fetch(
-                            guild.guildId,
+                            guild.notificationChannelId,
                         );
 
                         await (channel as TextChannel).send(
