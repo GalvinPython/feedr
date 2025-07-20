@@ -1,7 +1,8 @@
 // To make it easier to work with the database, disable prettier and some eslint rules for this file
 /* eslint-disable no-inline-comments */
 /* eslint-disable prettier/prettier */
-import { pgTable, serial, text, boolean, timestamp, decimal, unique, index, pgEnum, jsonb, integer } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { pgTable, serial, text, boolean, timestamp, decimal, unique, index, pgEnum, jsonb, integer, check } from "drizzle-orm/pg-core";
 
 export const dbDiscordTable = pgTable("discord", {
     guildId: text("guild_id").primaryKey(),
@@ -9,7 +10,17 @@ export const dbDiscordTable = pgTable("discord", {
     feedrUpdatesChannelId: text("feedr_updates_channel_id"),
     isInServer: boolean("is_in_server").notNull().default(true),
     memberCount: integer("member_count").notNull().default(0),
-});
+    isDm: boolean("is_dm").notNull().default(false),
+}, (table) => [
+    check("discord_is_dm_constraint",
+        sql`NOT ${table.isDm} OR (
+            ${table.allowedPublicSharing} = false AND
+            ${table.feedrUpdatesChannelId} = ${table.guildId} AND
+            ${table.isInServer} = true AND
+            ${table.memberCount} = 1
+        )`
+    )
+]);
 
 export const dbBlueskyTable = pgTable("bluesky", {
     blueskyUserId: text("bluesky_user_id").primaryKey(),

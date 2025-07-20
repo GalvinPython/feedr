@@ -2,6 +2,12 @@ import type { TextChannel } from "discord.js";
 
 import { env } from "../../config";
 import client from "../..";
+import {
+    dbTwitchGetAllChannelsToTrack,
+    twitchUpdateIsLive,
+} from "../../db/twitch";
+import { discordGetAllGuildsTrackingChannel } from "../../db/discord";
+import { Platform } from "../../types/types.d";
 
 import { twitchToken } from "./auth";
 import { getStreamerName } from "./getStreamerName";
@@ -48,22 +54,19 @@ export async function checkIfStreamersAreLive(): Promise<void> {
         return;
     }
 
-    const allStreamerIds = await twitchGetAllChannelsToTrack();
+    const allStreamerIds = await dbTwitchGetAllChannelsToTrack();
     const chunkSize = 100;
     const chunks = [];
 
-    for (let i = 0; i < allStreamerIds.length; i += chunkSize) {
-        const chunk = allStreamerIds.slice(i, i + chunkSize);
+    for (let i = 0; i < allStreamerIds.data.length; i += chunkSize) {
+        const chunk = allStreamerIds.data.slice(i, i + chunkSize);
 
         chunks.push(chunk);
     }
 
     for (const chunk of chunks) {
         const urlQueries = chunk
-            .map(
-                (streamerId: dbTwitch) =>
-                    `user_id=${streamerId.twitch_channel_id}`,
-            )
+            .map((streamerId) => `user_id=${streamerId.twitchChannelId}`)
             .join("&");
         const res = await fetch(
             `https://api.twitch.tv/helix/streams?${urlQueries}`,
@@ -89,15 +92,16 @@ export async function checkIfStreamersAreLive(): Promise<void> {
 
         for (const streamerId of chunk) {
             const isLive = allLiveStreamers.includes(
-                streamerId.twitch_channel_id,
+                streamerId.twitchChannelId,
             );
-            const needsUpdate = isLive !== Boolean(streamerId.is_live);
+            const needsUpdate =
+                isLive !== Boolean(streamerId.twitchChannelIsLive);
 
             console.log(
-                `[Twitch] ${streamerId.twitch_channel_id} is live:`,
+                `[Twitch] ${streamerId.twitchChannelId} is live:`,
                 isLive,
                 ". Was live:",
-                Boolean(streamerId.is_live),
+                Boolean(streamerId.twitchChannelIsLive),
                 ". Needs update:",
                 needsUpdate,
             );
@@ -105,35 +109,36 @@ export async function checkIfStreamersAreLive(): Promise<void> {
             if (needsUpdate) {
                 // Update the database
                 console.log(
-                    `Updating ${streamerId.twitch_channel_id} to be ${isLive ? "live" : "offline"}`,
+                    `Updating ${streamerId.twitchChannelId} to be ${isLive ? "live" : "offline"}`,
                 );
-                await twitchUpdateIsLive(streamerId.twitch_channel_id, isLive);
+                await twitchUpdateIsLive(streamerId.twitchChannelId, isLive);
 
                 if (isLive) {
                     // Get the streamer's name
                     const streamerName = await getStreamerName(
-                        streamerId.twitch_channel_id,
+                        streamerId.twitchChannelId,
                     );
 
                     // Get all guilds that are tracking this streamer
                     const guildsTrackingStreamer =
-                        await twitchGetGuildsTrackingChannel(
-                            streamerId.twitch_channel_id,
+                        await discordGetAllGuildsTrackingChannel(
+                            Platform.Twitch,
+                            streamerId.twitchChannelId,
                         );
 
-                    for (const guild of guildsTrackingStreamer) {
+                    for (const guild of guildsTrackingStreamer.data) {
                         // Send a message to the channel
                         const channel = await client.channels.fetch(
-                            guild.guild_channel_id,
+                            guild.guildId,
                         );
 
                         await (channel as TextChannel).send(
-                            `${guild.guild_ping_role ? `<@&${guild.guild_ping_role}>` : ""} ${streamerName} is now live <https://twitch.tv/${streamerName}>!`,
+                            `${guild.notificationRoleId ? `<@&${guild.notificationRoleId}>` : ""} ${streamerName} is now live <https://twitch.tv/${streamerName}>!`,
                         );
                     }
                 } else {
                     console.log(
-                        `[Twitch] ${streamerId.twitch_channel_id} is offline!`,
+                        `[Twitch] ${streamerId.twitchChannelId} is offline!`,
                     );
                 }
             }

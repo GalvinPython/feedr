@@ -1,12 +1,12 @@
 import { Events } from "discord.js";
-import { CronJob } from "cron";
+// import { CronJob } from "cron";
 
 import client from "../index";
 import { config } from "../config";
-// import { checkIfStreamersAreLive } from "../utils/twitch/checkIfStreamerIsLive";
-import { cronUpdateBotInfo } from "../utils/cronJobs";
+// import { cronUpdateBotInfo } from "../utils/cronJobs";
 import sendLatestUploads from "../utils/youtube/sendLatestUploads";
 import fetchLatestUploads from "../utils/youtube/fetchLatestUploads";
+import { checkIfStreamersAreLive } from "../utils/twitch/checkIfStreamerIsLive";
 
 // Log into the bot
 client.once(Events.ClientReady, async (bot) => {
@@ -24,8 +24,6 @@ client.once(Events.ClientReady, async (bot) => {
     sendLatestUploads();
     setInterval(sendLatestUploads, config.updateIntervalYouTube as number);
 
-    // TODO: Twitch integration is not ready yet
-    // One at a time
-    // checkIfStreamersAreLive();
-    // setInterval(checkIfStreamersAreLive, config.updateIntervalTwitch as number);
+    checkIfStreamersAreLive();
+    setInterval(checkIfStreamersAreLive, config.updateIntervalTwitch as number);
 });
