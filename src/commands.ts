@@ -625,6 +625,7 @@ const commands: Record<string, Command> = {
                         const channelAdded = await addNewStreamerToTrack(
                             platformUserId,
                             isLive,
+                            streamerName,
                         );
 
                         if (!channelAdded.success) {
