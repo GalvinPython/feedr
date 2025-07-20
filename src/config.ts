@@ -3,6 +3,8 @@ export const runningInDevMode: boolean = process.argv.includes("--dev");
 export interface Config {
     updateIntervalYouTube: number;
     updateIntervalTwitch: number;
+    databaseUrl: string | undefined;
+    discordWaitForGuildCacheTime: number;
 }
 
 export const config: Config = {
@@ -12,6 +14,13 @@ export const config: Config = {
     updateIntervalTwitch: process.env?.CONFIG_UPDATE_INTERVAL_TWITCH
         ? parseInt(process.env?.CONFIG_UPDATE_INTERVAL_TWITCH) * 1000
         : 60_000,
+    databaseUrl: runningInDevMode
+        ? process.env?.POSTGRES_DEV_URL
+        : process.env?.POSTGRES_URL,
+    discordWaitForGuildCacheTime: process.env
+        ?.CONFIG_DISCORD_WAIT_FOR_GUILD_CACHE_TIME
+        ? parseInt(process.env?.CONFIG_DISCORD_WAIT_FOR_GUILD_CACHE_TIME) * 1000
+        : 10_000,
 };
 
 interface Env {
@@ -28,30 +37,4 @@ export const env: Env = {
     youtubeApiKey: process.env?.YOUTUBE_API_KEY,
     twitchClientId: process.env?.TWITCH_CLIENT_ID,
     twitchClientSecret: process.env?.TWITCH_CLIENT_SECRET,
-};
-
-interface DatabaseConfig {
-    host: string | undefined;
-    port: string | undefined;
-    user: string | undefined;
-    password: string | undefined;
-    database: string | undefined;
-}
-
-export const dbCredentials: DatabaseConfig = {
-    host: runningInDevMode
-        ? process.env?.POSTGRES_DEV_HOST
-        : process.env?.POSTGRES_HOST,
-    port: runningInDevMode
-        ? process.env?.POSTGRES_DEV_PORT
-        : process.env?.POSTGRES_PORT,
-    user: runningInDevMode
-        ? process.env?.POSTGRES_DEV_USER
-        : process.env?.POSTGRES_USER,
-    password: runningInDevMode
-        ? process.env?.POSTGRES_DEV_PASSWORD
-        : process.env?.POSTGRES_PASSWORD,
-    database: runningInDevMode
-        ? process.env?.POSTGRES_DEV_DB
-        : process.env?.POSTGRES_DB,
 };

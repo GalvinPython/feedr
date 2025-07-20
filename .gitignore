@@ -5,10 +5,10 @@ dist/
 target/
 
 # Database stuff
-/backups
 *.db
 *.sqlite
 *.sqlite3*
 *.sql
 dbtests.ts
 perftesting.ts
+drizzle/

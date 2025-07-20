@@ -16,29 +16,24 @@ import { PermissionFlagsBits } from "discord-api-types/v8";
 import hfksdjfskfhsjdfhkasfdhksf from "hfksdjfskfhsjdfhkasfdhksf";
 
 import checkIfChannelIdIsValid from "./utils/youtube/checkIfChannelIdIsValid";
-import {
-    getAllTrackedInGuild,
-    stopGuildTrackingChannel,
-    twitchStopGuildTrackingChannel,
-} from "./utils/database";
 import getChannelDetails from "./utils/youtube/getChannelDetails";
 import { checkIfStreamerIsLive } from "./utils/twitch/checkIfStreamerIsLive";
 import {
     checkIfChannelIsAlreadyTracked,
     addNewChannelToTrack,
-} from "./utils/db/youtube";
+} from "./db/youtube";
 import search from "./utils/youtube/search";
 import {
     checkIfGuildIsTrackingUserAlready,
     discordAddGuildTrackingUser,
-} from "./utils/db/discord";
+} from "./db/discord";
 import { Platform, YouTubeContentType } from "./types/types.d";
 import searchTwitch from "./utils/twitch/searchTwitch";
 import { getStreamerName } from "./utils/twitch/getStreamerName";
 import {
     addNewStreamerToTrack,
     checkIfStreamerIsAlreadyTracked,
-} from "./utils/db/twitch";
+} from "./db/twitch";
 
 import client from ".";
 

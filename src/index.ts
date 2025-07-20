@@ -13,8 +13,8 @@ import {
 
 import { env } from "./config.ts";
 import commandsMap from "./commands.ts";
-import initTables from "./utils/db/init.ts";
 import { getTwitchToken } from "./utils/twitch/auth.ts";
+import updateGuildsOnStartup from "./utils/discord/updateGuildsOnStartup.ts";
 
 if (!env.discordToken || env.discordToken === "YOUR_DISCORD_TOKEN") {
     throw new Error("You MUST provide a discord token in .env!");
@@ -57,11 +57,6 @@ const data = (await rest.put(Routes.applicationCommands(getAppId.id), {
 
 console.log(`Successfully reloaded ${data.length} application (/) commands.`);
 
-// Check if Postgres is set up properly and its working
-if (!(await initTables())) {
-    // throw new Error("Error initializing tables");
-}
-
 // Get Twitch token
 if (!(await getTwitchToken())) {
     throw new Error("Error getting Twitch token");
@@ -80,6 +75,9 @@ await Promise.all(
         await import("./events/" + file);
     }),
 );
+
+// Update the guilds on startup
+await updateGuildsOnStartup();
 
 // Attempt the garbage collection every hour
 setInterval(
