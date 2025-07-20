@@ -676,9 +676,9 @@ const commands: Record<string, Command> = {
                 const query =
                     platform === "youtube"
                         ? (interaction.options.get("channel_id")
-                            ?.value as string)
+                              ?.value as string)
                         : (interaction.options.get("streamer_id")
-                            ?.value as string);
+                              ?.value as string);
 
                 // If the query is empty or not a string, return an empty array
                 if (!query || typeof query !== "string") {

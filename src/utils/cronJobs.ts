@@ -1,7 +1,6 @@
 import { ActivityType, Guild, PresenceUpdateStatus } from "discord.js";
 
 import client from "..";
-
 import { updateBotInfo } from "../db/botinfo";
 
 export async function cronUpdateBotInfo() {
