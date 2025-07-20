@@ -26,6 +26,7 @@ import search from "./utils/youtube/search";
 import {
     checkIfGuildIsTrackingUserAlready,
     discordAddGuildTrackingUser,
+    discordGetAllTrackedInGuild,
 } from "./db/discord";
 import { Platform, YouTubeContentType } from "./types/types.d";
 import searchTwitch from "./utils/twitch/searchTwitch";
@@ -757,27 +758,13 @@ const commands: Record<string, Command> = {
         data: {
             options: [
                 {
-                    name: "platform",
-                    description: "Select a supported platform to track",
-                    type: 3,
-                    required: true,
-                    choices: [
-                        {
-                            name: "Twitch",
-                            value: "twitch",
-                        },
-                        {
-                            name: "YouTube",
-                            value: "youtube",
-                        },
-                    ],
-                },
-                {
                     name: "user_id",
+                    // TODO: Searching
                     description:
-                        "Enter the YouTube/Twitch channel ID to stop tracking",
+                        "Select the channel or streamer to stop tracking. Searching is not supported, use the above options!",
                     type: 3,
                     required: true,
+                    autocomplete: true,
                 },
             ],
             name: "untrack",
@@ -923,6 +910,44 @@ const commands: Record<string, Command> = {
                 default:
                     return;
             }
+        },
+        autoComplete: async (interaction: AutocompleteInteraction) => {
+            const trackedChannels = await discordGetAllTrackedInGuild(
+                interaction.guildId as string,
+            );
+
+            console.dir(
+                { message: "Tracked channels:", data: trackedChannels },
+                { depth: null },
+            );
+
+            if (!trackedChannels || !trackedChannels.success) {
+                console.error(
+                    "An error occurred while trying to get the tracked channels in this guild!",
+                );
+                await interaction.respond([]);
+
+                return;
+            }
+
+            const trackedYouTubeChannels =
+                trackedChannels.data.youtubeSubscriptions;
+            const trackedTwitchChannels =
+                trackedChannels.data.twitchSubscriptions;
+
+            return await interaction.respond(
+                trackedYouTubeChannels
+                    .map((channel) => ({
+                        name: `YouTube: ${channel.youtubeChannel.youtubeChannelName} (${channel.youtubeChannel.youtubeChannelId}) | <#${channel.subscription.notificationChannelId}>`,
+                        value: String(channel.subscription.id),
+                    }))
+                    .concat(
+                        trackedTwitchChannels.map((channel) => ({
+                            name: `Twitch: ${channel.twitchChannel.twitchChannelName} (${channel.twitchChannel.twitchChannelId}) | <#${channel.subscription.notificationChannelId}>`,
+                            value: String(channel.subscription.id),
+                        })),
+                    ),
+            );
         },
     },
     tracked: {

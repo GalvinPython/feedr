@@ -7,6 +7,8 @@ import {
     dbGuildYouTubeSubscriptionsTable,
     dbGuildTwitchSubscriptionsTable,
     dbDiscordTable,
+    dbYouTubeTable,
+    dbTwitchTable,
 } from "./schema";
 
 export async function checkIfGuildIsTrackingUserAlready(
@@ -199,22 +201,66 @@ export async function discordGetAllTrackedInGuild(guildId: string): Promise<
     | {
           success: true;
           data: {
-              youtubeSubscriptions: (typeof dbGuildYouTubeSubscriptionsTable.$inferSelect)[];
-              twitchSubscriptions: (typeof dbGuildTwitchSubscriptionsTable.$inferSelect)[];
+              youtubeSubscriptions: {
+                  subscription: typeof dbGuildYouTubeSubscriptionsTable.$inferSelect;
+                  youtubeChannel: typeof dbYouTubeTable.$inferSelect;
+                  discord: typeof dbDiscordTable.$inferSelect;
+              }[];
+              twitchSubscriptions: {
+                  subscription: typeof dbGuildTwitchSubscriptionsTable.$inferSelect;
+                  twitchChannel: typeof dbTwitchTable.$inferSelect;
+                  discord: typeof dbDiscordTable.$inferSelect;
+              }[];
           };
       }
     | { success: false; data: null }
 > {
     try {
         const youtubeSubscriptions = await db
-            .select()
+            .select({
+                subscription: dbGuildYouTubeSubscriptionsTable,
+                youtubeChannel: dbYouTubeTable,
+                discord: dbDiscordTable,
+            })
             .from(dbGuildYouTubeSubscriptionsTable)
-            .where(eq(dbGuildYouTubeSubscriptionsTable.guildId, guildId));
+            .where(eq(dbGuildYouTubeSubscriptionsTable.guildId, guildId))
+            .innerJoin(
+                dbYouTubeTable,
+                eq(
+                    dbGuildYouTubeSubscriptionsTable.youtubeChannelId,
+                    dbYouTubeTable.youtubeChannelId,
+                ),
+            )
+            .innerJoin(
+                dbDiscordTable,
+                eq(
+                    dbGuildYouTubeSubscriptionsTable.guildId,
+                    dbDiscordTable.guildId,
+                ),
+            );
 
         const twitchSubscriptions = await db
-            .select()
+            .select({
+                subscription: dbGuildTwitchSubscriptionsTable,
+                twitchChannel: dbTwitchTable,
+                discord: dbDiscordTable,
+            })
             .from(dbGuildTwitchSubscriptionsTable)
-            .where(eq(dbGuildTwitchSubscriptionsTable.guildId, guildId));
+            .where(eq(dbGuildTwitchSubscriptionsTable.guildId, guildId))
+            .innerJoin(
+                dbTwitchTable,
+                eq(
+                    dbGuildTwitchSubscriptionsTable.twitchChannelId,
+                    dbTwitchTable.twitchChannelId,
+                ),
+            )
+            .innerJoin(
+                dbDiscordTable,
+                eq(
+                    dbGuildTwitchSubscriptionsTable.guildId,
+                    dbDiscordTable.guildId,
+                ),
+            );
 
         return {
             success: true,
