@@ -7,6 +7,8 @@ import {
     dbGuildYouTubeSubscriptionsTable,
     dbGuildTwitchSubscriptionsTable,
     dbDiscordTable,
+    dbYouTubeTable,
+    dbTwitchTable,
 } from "./schema";
 
 export async function checkIfGuildIsTrackingUserAlready(
@@ -199,22 +201,66 @@ export async function discordGetAllTrackedInGuild(guildId: string): Promise<
     | {
           success: true;
           data: {
-              youtubeSubscriptions: (typeof dbGuildYouTubeSubscriptionsTable.$inferSelect)[];
-              twitchSubscriptions: (typeof dbGuildTwitchSubscriptionsTable.$inferSelect)[];
+              youtubeSubscriptions: {
+                  subscription: typeof dbGuildYouTubeSubscriptionsTable.$inferSelect;
+                  youtubeChannel: typeof dbYouTubeTable.$inferSelect;
+                  discord: typeof dbDiscordTable.$inferSelect;
+              }[];
+              twitchSubscriptions: {
+                  subscription: typeof dbGuildTwitchSubscriptionsTable.$inferSelect;
+                  twitchChannel: typeof dbTwitchTable.$inferSelect;
+                  discord: typeof dbDiscordTable.$inferSelect;
+              }[];
           };
       }
     | { success: false; data: null }
 > {
     try {
         const youtubeSubscriptions = await db
-            .select()
+            .select({
+                subscription: dbGuildYouTubeSubscriptionsTable,
+                youtubeChannel: dbYouTubeTable,
+                discord: dbDiscordTable,
+            })
             .from(dbGuildYouTubeSubscriptionsTable)
-            .where(eq(dbGuildYouTubeSubscriptionsTable.guildId, guildId));
+            .where(eq(dbGuildYouTubeSubscriptionsTable.guildId, guildId))
+            .innerJoin(
+                dbYouTubeTable,
+                eq(
+                    dbGuildYouTubeSubscriptionsTable.youtubeChannelId,
+                    dbYouTubeTable.youtubeChannelId,
+                ),
+            )
+            .innerJoin(
+                dbDiscordTable,
+                eq(
+                    dbGuildYouTubeSubscriptionsTable.guildId,
+                    dbDiscordTable.guildId,
+                ),
+            );
 
         const twitchSubscriptions = await db
-            .select()
+            .select({
+                subscription: dbGuildTwitchSubscriptionsTable,
+                twitchChannel: dbTwitchTable,
+                discord: dbDiscordTable,
+            })
             .from(dbGuildTwitchSubscriptionsTable)
-            .where(eq(dbGuildTwitchSubscriptionsTable.guildId, guildId));
+            .where(eq(dbGuildTwitchSubscriptionsTable.guildId, guildId))
+            .innerJoin(
+                dbTwitchTable,
+                eq(
+                    dbGuildTwitchSubscriptionsTable.twitchChannelId,
+                    dbTwitchTable.twitchChannelId,
+                ),
+            )
+            .innerJoin(
+                dbDiscordTable,
+                eq(
+                    dbGuildTwitchSubscriptionsTable.guildId,
+                    dbDiscordTable.guildId,
+                ),
+            );
 
         return {
             success: true,
@@ -234,38 +280,41 @@ export async function discordGetAllTrackedInGuild(guildId: string): Promise<
 }
 
 // Remove tracking for a specific channel in a guild
+// TODO: Make it so that if the channel is no longer tracked by any guilds, it is removed from the db entirely
 export async function discordRemoveGuildTrackingChannel(
-    guildId: string,
-    platform: Platform,
-    platformUserId: string,
+    trackingId: string,
 ): Promise<{ success: boolean; data: [] }> {
-    console.log(
-        `Removing guild ${guildId} tracking for user ${platformUserId} on platform ${platform}`,
-    );
+    console.log(`Removing tracking for ID: ${trackingId}`);
+
+    const parts = trackingId.split(".");
+
+    if (parts.length !== 2) {
+        console.error(
+            "Invalid trackingId format. Expected format: 'platform.id'",
+        );
+
+        return { success: false, data: [] };
+    }
+
+    const [platform, platformTrackingId] = parts;
 
     try {
         if (platform === Platform.YouTube) {
             await db
                 .delete(dbGuildYouTubeSubscriptionsTable)
                 .where(
-                    and(
-                        eq(dbGuildYouTubeSubscriptionsTable.guildId, guildId),
-                        eq(
-                            dbGuildYouTubeSubscriptionsTable.youtubeChannelId,
-                            platformUserId,
-                        ),
+                    eq(
+                        dbGuildYouTubeSubscriptionsTable.id,
+                        Number(platformTrackingId),
                     ),
                 );
         } else if (platform === Platform.Twitch) {
             await db
                 .delete(dbGuildTwitchSubscriptionsTable)
                 .where(
-                    and(
-                        eq(dbGuildTwitchSubscriptionsTable.guildId, guildId),
-                        eq(
-                            dbGuildTwitchSubscriptionsTable.twitchChannelId,
-                            platformUserId,
-                        ),
+                    eq(
+                        dbGuildTwitchSubscriptionsTable.id,
+                        Number(platformTrackingId),
                     ),
                 );
         } else {
