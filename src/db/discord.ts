@@ -287,12 +287,17 @@ export async function discordRemoveGuildTrackingChannel(
     console.log(`Removing tracking for ID: ${trackingId}`);
 
     const parts = trackingId.split(".");
+
     if (parts.length !== 2) {
-        console.error("Invalid trackingId format. Expected format: 'platform.id'");
+        console.error(
+            "Invalid trackingId format. Expected format: 'platform.id'",
+        );
+
         return { success: false, data: [] };
     }
 
     const [platform, platformTrackingId] = parts;
+
     try {
         if (platform === Platform.YouTube) {
             await db
