@@ -294,8 +294,8 @@ export async function discordRemoveGuildTrackingChannel(
                 .delete(dbGuildYouTubeSubscriptionsTable)
                 .where(
                     eq(
-                        dbGuildYouTubeSubscriptionsTable.youtubeChannelId,
-                        platformTrackingId,
+                        dbGuildYouTubeSubscriptionsTable.id,
+                        Number(platformTrackingId),
                     ),
                 );
         } else if (platform === Platform.Twitch) {
@@ -303,8 +303,8 @@ export async function discordRemoveGuildTrackingChannel(
                 .delete(dbGuildTwitchSubscriptionsTable)
                 .where(
                     eq(
-                        dbGuildTwitchSubscriptionsTable.twitchChannelId,
-                        platformTrackingId,
+                        dbGuildTwitchSubscriptionsTable.id,
+                        Number(platformTrackingId),
                     ),
                 );
         } else {
