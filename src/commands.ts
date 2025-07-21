@@ -27,6 +27,7 @@ import {
     checkIfGuildIsTrackingUserAlready,
     discordAddGuildTrackingUser,
     discordGetAllTrackedInGuild,
+    discordRemoveGuildTrackingChannel,
 } from "./db/discord";
 import { Platform, YouTubeContentType } from "./types/types.d";
 import searchTwitch from "./utils/twitch/searchTwitch";
@@ -477,10 +478,25 @@ const commands: Record<string, Command> = {
                         trackedChannels.data
                     ) {
                         // If the channel is already being tracked in the guild, we can just return
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content: `This channel is already being tracked in ${trackedChannels.data.map((channel, index) => `${index > 0 && index === trackedChannels.data.length - 1 ? "and " : ""}<#${channel.guild_channel_id}>`).join(", ")}!`,
-                        });
+                        if (Array.isArray(trackedChannels.data)) {
+                            const channelList = trackedChannels.data
+                                .map(
+                                    (channel, index, arr) =>
+                                        `${index > 0 && index === arr.length - 1 ? "and " : ""}<#${channel.notificationChannelId}>`,
+                                )
+                                .join(", ");
+
+                            await interaction.reply({
+                                flags: MessageFlags.Ephemeral,
+                                content: `This channel is already being tracked in ${channelList}!`,
+                            });
+                        } else {
+                            await interaction.reply({
+                                flags: MessageFlags.Ephemeral,
+                                content:
+                                    "This channel is already being tracked, but the data format is invalid.",
+                            });
+                        }
 
                         return;
                     }
@@ -590,10 +606,25 @@ const commands: Record<string, Command> = {
                         trackedChannels.data
                     ) {
                         // If the channel is already being tracked in the guild, we can just return
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content: `This channel is already being tracked in ${trackedChannels.data.map((channel, index) => `${index > 0 && index === trackedChannels.data.length - 1 ? "and " : ""}<#${channel.guild_channel_id}>`).join(", ")}!`,
-                        });
+                        if (Array.isArray(trackedChannels.data)) {
+                            const channelList = trackedChannels.data
+                                .map(
+                                    (channel, index, arr) =>
+                                        `${index > 0 && index === arr.length - 1 ? "and " : ""}<#${channel.notificationChannelId}>`,
+                                )
+                                .join(", ");
+
+                            await interaction.reply({
+                                flags: MessageFlags.Ephemeral,
+                                content: `This channel is already being tracked in ${channelList}!`,
+                            });
+                        } else {
+                            await interaction.reply({
+                                flags: MessageFlags.Ephemeral,
+                                content:
+                                    "This channel is already being tracked, but the data format is invalid.",
+                            });
+                        }
 
                         return;
                     }
@@ -775,9 +806,7 @@ const commands: Record<string, Command> = {
         },
         execute: async (interaction: CommandInteraction) => {
             // Get the YouTube Channel ID
-            const youtubeChannelId = interaction.options.get("user_id")
-                ?.value as string;
-            const platform = interaction.options.get("platform")
+            const platformUserId = interaction.options.get("user_id")
                 ?.value as string;
             const guildId = interaction.guildId;
 
@@ -807,110 +836,22 @@ const commands: Record<string, Command> = {
                 return;
             }
 
-            // Platform check (to shut up TS)
-            if (platform != "youtube" && platform != "twitch") {
+            // Remove the guild from the database
+            const trackingDeleteSuccess =
+                await discordRemoveGuildTrackingChannel(platformUserId);
+
+            if (!trackingDeleteSuccess || !trackingDeleteSuccess.success) {
                 await interaction.reply({
                     flags: MessageFlags.Ephemeral,
-                    content:
-                        "Platform not supported! Please select a platform to track!",
+                    content: "Failed to stop tracking the channel.",
                 });
 
                 return;
             }
 
-            // Remove the guild from the database
-            switch (platform) {
-                case "youtube":
-                    // Check if the channel is not being tracked in the guild
-                    if (
-                        !(await checkIfGuildIsTrackingUserAlready(
-                            youtubeChannelId,
-                            guildId,
-                        ))
-                    ) {
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content:
-                                "This channel is not being tracked in this guild!",
-                        });
-
-                        return;
-                    }
-                    if (
-                        await stopGuildTrackingChannel(
-                            guildId,
-                            youtubeChannelId,
-                        )
-                    ) {
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content:
-                                "Successfully stopped tracking the channel!",
-                        });
-                    } else {
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content:
-                                "An error occurred while trying to stop tracking the channel! Please report this error!",
-                        });
-                    }
-
-                    return;
-                case "twitch": {
-                    // get the twitch id for the streamer
-                    const platformUserId =
-                        await getplatformUserId(youtubeChannelId);
-
-                    if (!platformUserId) {
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content:
-                                "An error occurred while trying to get the streamer ID! Please report this error!",
-                        });
-
-                        return;
-                    }
-
-                    // check if the channel is not being tracked in the guild
-                    if (
-                        !(await checkIfGuildIsTrackingUserAlready(
-                            platformUserId,
-                            guildId,
-                        ))
-                    ) {
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content:
-                                "This streamer is not being tracked in this guild!",
-                        });
-
-                        return;
-                    }
-
-                    if (
-                        await twitchStopGuildTrackingChannel(
-                            guildId,
-                            platformUserId,
-                        )
-                    ) {
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content:
-                                "Successfully stopped tracking the streamer!",
-                        });
-                    } else {
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content:
-                                "An error occurred while trying to stop tracking the streamer! Please report this error!",
-                        });
-                    }
-
-                    return;
-                }
-                default:
-                    return;
-            }
+            await interaction.reply({
+                content: "Successfully stopped tracking the channel.",
+            });
         },
         autoComplete: async (interaction: AutocompleteInteraction) => {
             const trackedChannels = await discordGetAllTrackedInGuild(
@@ -940,12 +881,12 @@ const commands: Record<string, Command> = {
                 trackedYouTubeChannels
                     .map((channel) => ({
                         name: `YouTube: ${channel.youtubeChannel.youtubeChannelName} (${channel.youtubeChannel.youtubeChannelId}) | <#${channel.subscription.notificationChannelId}>`,
-                        value: String(channel.subscription.id),
+                        value: `youtube.${String(channel.subscription.id)}`,
                     }))
                     .concat(
                         trackedTwitchChannels.map((channel) => ({
                             name: `Twitch: ${channel.twitchChannel.twitchChannelName} (${channel.twitchChannel.twitchChannelId}) | <#${channel.subscription.notificationChannelId}>`,
-                            value: String(channel.subscription.id),
+                            value: `twitch.${String(channel.subscription.id)}`,
                         })),
                     ),
             );

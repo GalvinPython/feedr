@@ -280,38 +280,31 @@ export async function discordGetAllTrackedInGuild(guildId: string): Promise<
 }
 
 // Remove tracking for a specific channel in a guild
+// TODO: Make it so that if the channel is no longer tracked by any guilds, it is removed from the db entirely
 export async function discordRemoveGuildTrackingChannel(
-    guildId: string,
-    platform: Platform,
-    platformUserId: string,
+    trackingId: string,
 ): Promise<{ success: boolean; data: [] }> {
-    console.log(
-        `Removing guild ${guildId} tracking for user ${platformUserId} on platform ${platform}`,
-    );
+    console.log(`Removing tracking for ID: ${trackingId}`);
+
+    const [platform, platformTrackingId] = trackingId.split(".");
 
     try {
         if (platform === Platform.YouTube) {
             await db
                 .delete(dbGuildYouTubeSubscriptionsTable)
                 .where(
-                    and(
-                        eq(dbGuildYouTubeSubscriptionsTable.guildId, guildId),
-                        eq(
-                            dbGuildYouTubeSubscriptionsTable.youtubeChannelId,
-                            platformUserId,
-                        ),
+                    eq(
+                        dbGuildYouTubeSubscriptionsTable.youtubeChannelId,
+                        platformTrackingId,
                     ),
                 );
         } else if (platform === Platform.Twitch) {
             await db
                 .delete(dbGuildTwitchSubscriptionsTable)
                 .where(
-                    and(
-                        eq(dbGuildTwitchSubscriptionsTable.guildId, guildId),
-                        eq(
-                            dbGuildTwitchSubscriptionsTable.twitchChannelId,
-                            platformUserId,
-                        ),
+                    eq(
+                        dbGuildTwitchSubscriptionsTable.twitchChannelId,
+                        platformTrackingId,
                     ),
                 );
         } else {
