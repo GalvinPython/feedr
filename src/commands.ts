@@ -915,9 +915,25 @@ const commands: Record<string, Command> = {
                 return;
             }
 
-            const trackedChannels = await getAllTrackedInGuild(guildId);
+            const trackedChannels = await discordGetAllTrackedInGuild(guildId);
 
-            if (trackedChannels.length === 0) {
+            if (!trackedChannels || !trackedChannels.success) {
+                console.error(
+                    "An error occurred while trying to get the tracked channels in this guild!",
+                );
+                await interaction.reply({
+                    flags: MessageFlags.Ephemeral,
+                    content:
+                        "An error occurred while trying to get the tracked channels in this guild! Please report this error!",
+                });
+
+                return;
+            }
+
+            if (
+                trackedChannels.data.youtubeSubscriptions.length === 0 &&
+                trackedChannels.data.twitchSubscriptions.length === 0
+            ) {
                 await interaction.reply({
                     flags: MessageFlags.Ephemeral,
                     content: "No channels are being tracked in this guild.",
@@ -926,24 +942,32 @@ const commands: Record<string, Command> = {
                 return;
             }
 
-            const filteredChannels = trackedChannels.filter(
-                (channel) => channel.guild_channel_id === channelId,
-            );
+            const youtubeChannels = trackedChannels.data.youtubeSubscriptions
+                .map(
+                    (channel) =>
+                        `YouTube: [${channel.youtubeChannel.youtubeChannelName}](<https://www.youtube.com/channel/${channel.youtubeChannel.youtubeChannelId}>) | <#${channel.subscription.notificationChannelId}>`,
+                )
+                .join("\n");
+            const twitchChannels = trackedChannels.data.twitchSubscriptions
+                .map(
+                    (channel) =>
+                        `Twitch: [${channel.twitchChannel.twitchChannelName}](<https://www.twitch.tv/${channel.twitchChannel.twitchChannelName}>) | <#${channel.subscription.notificationChannelId}>`,
+                )
+                .join("\n");
+            const response = [
+                "Here are the channels being tracked in this guild:",
+                youtubeChannels
+                    ? `**YouTube Channels:**\n${youtubeChannels}`
+                    : "",
+                twitchChannels ? `**Twitch Channels:**\n${twitchChannels}` : "",
+            ]
+                .filter(Boolean)
+                .join("\n\n");
 
-            const newTrackedChannels = trackedChannels.filter(
-                (channel) => channel.guild_channel_id !== channelId,
-            );
-
-            // idk what is happening here anymore, but this is because eslint and prettier are fighting so i put them to rest by using only one line
             await interaction.reply({
+                content: response,
                 flags: MessageFlags.Ephemeral,
-                content: `
-## Tracked channels in this channel (<#${channelId}>):\n${filteredChannels.length ? filteredChannels.map((channel) => `Platform: ${channel.guild_platform} | User ID: ${channel.platform_user_id}`).join("\n") : "No channels are being tracked in this channel."}
-                
-## Other tracked channels in this guild:\n${newTrackedChannels.map((channel) => `Platform: ${channel.guild_platform} | User ID: ${channel.platform_user_id} | Channel: <#${channel.guild_channel_id}>`).join("\n")}`,
             });
-
-            return;
         },
     },
 };
