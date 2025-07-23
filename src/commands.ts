@@ -1,11 +1,16 @@
 import Bun from "bun";
 import { heapStats } from "bun:jsc";
 import {
+    ActionRowBuilder,
     ApplicationCommandOptionType,
     ApplicationCommandType,
     AutocompleteInteraction,
+    ButtonBuilder,
+    ButtonStyle,
     ChannelType,
     ChatInputCommandInteraction,
+    ComponentType,
+    EmbedBuilder,
     GuildMember,
     MessageFlags,
     type ApplicationCommandOptionData,
@@ -29,13 +34,18 @@ import {
     discordGetAllTrackedInGuild,
     discordRemoveGuildTrackingChannel,
 } from "./db/discord";
-import { Platform, YouTubeContentType } from "./types/types.d";
+import {
+    Platform,
+    YouTubeContentType,
+    type PlatformTypes,
+} from "./types/types.d";
 import searchTwitch from "./utils/twitch/searchTwitch";
 import { getStreamerName } from "./utils/twitch/getStreamerName";
 import {
     addNewStreamerToTrack,
     checkIfStreamerIsAlreadyTracked,
 } from "./db/twitch";
+import { config } from "./config";
 
 import client from ".";
 
@@ -915,9 +925,25 @@ const commands: Record<string, Command> = {
                 return;
             }
 
-            const trackedChannels = await getAllTrackedInGuild(guildId);
+            const trackedChannels = await discordGetAllTrackedInGuild(guildId);
 
-            if (trackedChannels.length === 0) {
+            if (!trackedChannels || !trackedChannels.success) {
+                console.error(
+                    "An error occurred while trying to get the tracked channels in this guild!",
+                );
+                await interaction.reply({
+                    flags: MessageFlags.Ephemeral,
+                    content:
+                        "An error occurred while trying to get the tracked channels in this guild! Please report this error!",
+                });
+
+                return;
+            }
+
+            if (
+                trackedChannels.data.youtubeSubscriptions.length === 0 &&
+                trackedChannels.data.twitchSubscriptions.length === 0
+            ) {
                 await interaction.reply({
                     flags: MessageFlags.Ephemeral,
                     content: "No channels are being tracked in this guild.",
@@ -926,24 +952,219 @@ const commands: Record<string, Command> = {
                 return;
             }
 
-            const filteredChannels = trackedChannels.filter(
-                (channel) => channel.guild_channel_id === channelId,
+            const youtubeChannels =
+                trackedChannels.data.youtubeSubscriptions ?? [];
+            const twitchChannels =
+                trackedChannels.data.twitchSubscriptions ?? [];
+
+            const allEntries = [
+                ...youtubeChannels.map((c) => ({
+                    type: "YouTube" as const,
+                    name: c.youtubeChannel.youtubeChannelName,
+                    id: c.youtubeChannel.youtubeChannelId,
+                    notifyId: c.subscription.notificationChannelId,
+                })),
+                ...twitchChannels.map((c) => ({
+                    type: "Twitch" as const,
+                    name: c.twitchChannel.twitchChannelName,
+                    id: c.twitchChannel.twitchChannelName,
+                    notifyId: c.subscription.notificationChannelId,
+                })),
+            ].sort((a, b) => a.name.localeCompare(b.name));
+
+            type FilterType = "all" | PlatformTypes;
+            let currentPage = 0;
+            let currentFilter: FilterType = "all";
+
+            const pageSize = config.discordComponentsPageSize;
+
+            const filterEntries = (filter: FilterType) => {
+                if (filter === Platform.YouTube)
+                    return allEntries.filter((e) => e.type === "YouTube");
+                if (filter === Platform.Twitch)
+                    return allEntries.filter((e) => e.type === "Twitch");
+
+                return allEntries;
+            };
+
+            const getEmbed = (
+                entries: typeof allEntries,
+                page: number,
+                filter: FilterType,
+            ) => {
+                const totalPages = Math.ceil(entries.length / pageSize);
+                const pageEntries = entries.slice(
+                    page * pageSize,
+                    (page + 1) * pageSize,
+                );
+
+                const description =
+                    pageEntries
+                        .map((entry) => {
+                            const link =
+                                entry.type === "YouTube"
+                                    ? `https://www.youtube.com/channel/${entry.id}`
+                                    : `https://www.twitch.tv/${entry.id}`;
+
+                            return `**[${entry.name}](${link})** • ${entry.type} • <#${entry.notifyId}>`;
+                        })
+                        .join("\n") || "No entries.";
+
+                return new EmbedBuilder()
+                    .setTitle("Tracked Channels")
+                    .setDescription(description)
+                    .setColor(0x5865f2)
+                    .setFooter({
+                        text: `Page ${page + 1} of ${Math.max(totalPages, 1)} — Filter: ${filter.toUpperCase()}`,
+                    });
+            };
+
+            const getButtons = (
+                filter: FilterType,
+                page: number,
+                entriesLength: number,
+            ) => {
+                const totalPages = Math.ceil(entriesLength / pageSize);
+
+                const toggleRow =
+                    new ActionRowBuilder<ButtonBuilder>().addComponents(
+                        new ButtonBuilder()
+                            .setCustomId("filter_all")
+                            .setLabel("🌐 All")
+                            .setStyle(
+                                filter === "all"
+                                    ? ButtonStyle.Primary
+                                    : ButtonStyle.Secondary,
+                            ),
+                        new ButtonBuilder()
+                            .setCustomId("filter_youtube")
+                            .setLabel("❤️ YouTube")
+                            .setStyle(
+                                filter === "youtube"
+                                    ? ButtonStyle.Primary
+                                    : ButtonStyle.Secondary,
+                            ),
+                        new ButtonBuilder()
+                            .setCustomId("filter_twitch")
+                            .setLabel("💜 Twitch")
+                            .setStyle(
+                                filter === "twitch"
+                                    ? ButtonStyle.Primary
+                                    : ButtonStyle.Secondary,
+                            ),
+                    );
+
+                const navRow =
+                    new ActionRowBuilder<ButtonBuilder>().addComponents(
+                        new ButtonBuilder()
+                            .setCustomId("prev_page")
+                            .setLabel("⬅️ Previous")
+                            .setStyle(ButtonStyle.Secondary)
+                            .setDisabled(page === 0),
+                        new ButtonBuilder()
+                            .setCustomId("next_page")
+                            .setLabel("Next ➡️")
+                            .setStyle(ButtonStyle.Secondary)
+                            .setDisabled(
+                                page >= totalPages - 1 || totalPages === 0,
+                            ),
+                    );
+
+                return [toggleRow, navRow];
+            };
+
+            const entries = filterEntries(currentFilter);
+            const embed = getEmbed(entries, currentPage, currentFilter);
+            const buttons = getButtons(
+                currentFilter,
+                currentPage,
+                entries.length,
             );
 
-            const newTrackedChannels = trackedChannels.filter(
-                (channel) => channel.guild_channel_id !== channelId,
-            );
-
-            // idk what is happening here anymore, but this is because eslint and prettier are fighting so i put them to rest by using only one line
             await interaction.reply({
+                embeds: [embed],
+                components: buttons,
                 flags: MessageFlags.Ephemeral,
-                content: `
-## Tracked channels in this channel (<#${channelId}>):\n${filteredChannels.length ? filteredChannels.map((channel) => `Platform: ${channel.guild_platform} | User ID: ${channel.platform_user_id}`).join("\n") : "No channels are being tracked in this channel."}
-                
-## Other tracked channels in this guild:\n${newTrackedChannels.map((channel) => `Platform: ${channel.guild_platform} | User ID: ${channel.platform_user_id} | Channel: <#${channel.guild_channel_id}>`).join("\n")}`,
             });
 
-            return;
+            const message = await interaction.fetchReply();
+
+            const collector = message.createMessageComponentCollector({
+                componentType: ComponentType.Button,
+                time: config.discordCollectorTimeout,
+                filter: (i) => i.user.id === interaction.user.id,
+            });
+
+            collector.on("collect", async (i) => {
+                let needsUpdate = false;
+
+                switch (i.customId) {
+                    case "filter_all":
+                    case "filter_youtube":
+                    case "filter_twitch": {
+                        const newFilter = i.customId.replace(
+                            "filter_",
+                            "",
+                        ) as FilterType;
+
+                        if (currentFilter !== newFilter) {
+                            currentFilter = newFilter;
+                            currentPage = 0;
+                            needsUpdate = true;
+                        }
+                        break;
+                    }
+                    case "prev_page":
+                        if (currentPage > 0) {
+                            currentPage--;
+                            needsUpdate = true;
+                        }
+                        break;
+                    case "next_page": {
+                        const filteredEntries = filterEntries(currentFilter);
+                        const totalPages = Math.ceil(
+                            filteredEntries.length / pageSize,
+                        );
+
+                        if (currentPage < totalPages - 1) {
+                            currentPage++;
+                            needsUpdate = true;
+                        }
+                        break;
+                    }
+                }
+
+                if (needsUpdate) {
+                    const filteredEntries = filterEntries(currentFilter);
+
+                    await i.update({
+                        embeds: [
+                            getEmbed(
+                                filteredEntries,
+                                currentPage,
+                                currentFilter,
+                            ),
+                        ],
+                        components: getButtons(
+                            currentFilter,
+                            currentPage,
+                            filteredEntries.length,
+                        ),
+                    });
+                } else {
+                    await i.deferUpdate();
+                }
+            });
+
+            collector.on("end", async () => {
+                try {
+                    await interaction.editReply({
+                        components: [],
+                    });
+                } catch (err) {
+                    console.error("Failed to edit reply:", err);
+                }
+            });
         },
     },
 };
