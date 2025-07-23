@@ -5,6 +5,8 @@ export enum Platform {
     Twitch = "twitch",
 }
 
+export type PlatformTypes = (typeof Platform)[keyof typeof Platform];
+
 export enum YouTubeContentType {
     Videos = 1 << 0,
     Shorts = 1 << 1,

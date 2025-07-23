@@ -34,7 +34,11 @@ import {
     discordGetAllTrackedInGuild,
     discordRemoveGuildTrackingChannel,
 } from "./db/discord";
-import { Platform, YouTubeContentType } from "./types/types.d";
+import {
+    Platform,
+    YouTubeContentType,
+    type PlatformTypes,
+} from "./types/types.d";
 import searchTwitch from "./utils/twitch/searchTwitch";
 import { getStreamerName } from "./utils/twitch/getStreamerName";
 import {
@@ -952,7 +956,7 @@ const commands: Record<string, Command> = {
             const twitchChannels =
                 trackedChannels.data.twitchSubscriptions ?? [];
 
-            const entries = [
+            const allEntries = [
                 ...youtubeChannels.map((c) => ({
                     type: "YouTube" as const,
                     name: c.youtubeChannel.youtubeChannelName,
@@ -967,14 +971,31 @@ const commands: Record<string, Command> = {
                 })),
             ].sort((a, b) => a.name.localeCompare(b.name));
 
-            const pageSize = 10;
-            const totalPages = Math.ceil(entries.length / pageSize);
+            type FilterType = "all" | PlatformTypes;
             let currentPage = 0;
+            let currentFilter: FilterType = "all";
 
-            const getPageEmbed = (page: number) => {
-                const start = page * pageSize;
-                const end = start + pageSize;
-                const pageEntries = entries.slice(start, end);
+            const pageSize = 10;
+
+            const filterEntries = (filter: FilterType) => {
+                if (filter === Platform.YouTube)
+                    return allEntries.filter((e) => e.type === "YouTube");
+                if (filter === Platform.Twitch)
+                    return allEntries.filter((e) => e.type === "Twitch");
+
+                return allEntries;
+            };
+
+            const getEmbed = (
+                entries: typeof allEntries,
+                page: number,
+                filter: FilterType,
+            ) => {
+                const totalPages = Math.ceil(entries.length / pageSize);
+                const pageEntries = entries.slice(
+                    page * pageSize,
+                    (page + 1) * pageSize,
+                );
 
                 const description =
                     pageEntries
@@ -991,30 +1012,77 @@ const commands: Record<string, Command> = {
                 return new EmbedBuilder()
                     .setTitle("Tracked Channels")
                     .setDescription(description)
+                    .setColor(0x5865f2)
                     .setFooter({
-                        text: `Page ${page + 1} of ${totalPages}`,
-                    })
-                    .setColor(0x5865f2);
+                        text: `Page ${page + 1} of ${Math.max(totalPages, 1)} — Filter: ${filter.toUpperCase()}`,
+                    });
             };
 
-            const getButtons = (page: number) => {
-                return new ActionRowBuilder<ButtonBuilder>().addComponents(
-                    new ButtonBuilder()
-                        .setCustomId("prev")
-                        .setLabel("Previous")
-                        .setStyle(ButtonStyle.Secondary)
-                        .setDisabled(page === 0),
-                    new ButtonBuilder()
-                        .setCustomId("next")
-                        .setLabel("Next")
-                        .setStyle(ButtonStyle.Primary)
-                        .setDisabled(page >= totalPages - 1),
-                );
+            const getButtons = (
+                filter: FilterType,
+                page: number,
+                entriesLength: number,
+            ) => {
+                const totalPages = Math.ceil(entriesLength / pageSize);
+
+                const toggleRow =
+                    new ActionRowBuilder<ButtonBuilder>().addComponents(
+                        new ButtonBuilder()
+                            .setCustomId("filter_all")
+                            .setLabel("🌐 All")
+                            .setStyle(
+                                filter === "all"
+                                    ? ButtonStyle.Primary
+                                    : ButtonStyle.Secondary,
+                            ),
+                        new ButtonBuilder()
+                            .setCustomId("filter_youtube")
+                            .setLabel("❤️ YouTube")
+                            .setStyle(
+                                filter === "youtube"
+                                    ? ButtonStyle.Primary
+                                    : ButtonStyle.Secondary,
+                            ),
+                        new ButtonBuilder()
+                            .setCustomId("filter_twitch")
+                            .setLabel("💜 Twitch")
+                            .setStyle(
+                                filter === "twitch"
+                                    ? ButtonStyle.Primary
+                                    : ButtonStyle.Secondary,
+                            ),
+                    );
+
+                const navRow =
+                    new ActionRowBuilder<ButtonBuilder>().addComponents(
+                        new ButtonBuilder()
+                            .setCustomId("prev_page")
+                            .setLabel("⬅️ Previous")
+                            .setStyle(ButtonStyle.Secondary)
+                            .setDisabled(page === 0),
+                        new ButtonBuilder()
+                            .setCustomId("next_page")
+                            .setLabel("Next ➡️")
+                            .setStyle(ButtonStyle.Secondary)
+                            .setDisabled(
+                                page >= totalPages - 1 || totalPages === 0,
+                            ),
+                    );
+
+                return [toggleRow, navRow];
             };
+
+            const entries = filterEntries(currentFilter);
+            const embed = getEmbed(entries, currentPage, currentFilter);
+            const buttons = getButtons(
+                currentFilter,
+                currentPage,
+                entries.length,
+            );
 
             await interaction.reply({
-                embeds: [getPageEmbed(currentPage)],
-                components: [getButtons(currentPage)],
+                embeds: [embed],
+                components: buttons,
                 flags: MessageFlags.Ephemeral,
             });
 
@@ -1027,16 +1095,64 @@ const commands: Record<string, Command> = {
             });
 
             collector.on("collect", async (i) => {
-                if (i.customId === "next" && currentPage < totalPages - 1) {
-                    currentPage++;
-                } else if (i.customId === "prev" && currentPage > 0) {
-                    currentPage--;
+                let needsUpdate = false;
+
+                switch (i.customId) {
+                    case "filter_all":
+                    case "filter_youtube":
+                    case "filter_twitch": {
+                        const newFilter = i.customId.replace(
+                            "filter_",
+                            "",
+                        ) as FilterType;
+
+                        if (currentFilter !== newFilter) {
+                            currentFilter = newFilter;
+                            currentPage = 0;
+                            needsUpdate = true;
+                        }
+                        break;
+                    }
+                    case "prev_page":
+                        if (currentPage > 0) {
+                            currentPage--;
+                            needsUpdate = true;
+                        }
+                        break;
+                    case "next_page": {
+                        const filteredEntries = filterEntries(currentFilter);
+                        const totalPages = Math.ceil(
+                            filteredEntries.length / pageSize,
+                        );
+
+                        if (currentPage < totalPages - 1) {
+                            currentPage++;
+                            needsUpdate = true;
+                        }
+                        break;
+                    }
                 }
 
-                await i.update({
-                    embeds: [getPageEmbed(currentPage)],
-                    components: [getButtons(currentPage)],
-                });
+                if (needsUpdate) {
+                    const filteredEntries = filterEntries(currentFilter);
+
+                    await i.update({
+                        embeds: [
+                            getEmbed(
+                                filteredEntries,
+                                currentPage,
+                                currentFilter,
+                            ),
+                        ],
+                        components: getButtons(
+                            currentFilter,
+                            currentPage,
+                            filteredEntries.length,
+                        ),
+                    });
+                } else {
+                    await i.deferUpdate();
+                }
             });
 
             collector.on("end", async () => {
