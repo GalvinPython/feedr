@@ -1,11 +1,16 @@
 import Bun from "bun";
 import { heapStats } from "bun:jsc";
 import {
+    ActionRowBuilder,
     ApplicationCommandOptionType,
     ApplicationCommandType,
     AutocompleteInteraction,
+    ButtonBuilder,
+    ButtonStyle,
     ChannelType,
     ChatInputCommandInteraction,
+    ComponentType,
+    EmbedBuilder,
     GuildMember,
     MessageFlags,
     type ApplicationCommandOptionData,
@@ -942,31 +947,106 @@ const commands: Record<string, Command> = {
                 return;
             }
 
-            const youtubeChannels = trackedChannels.data.youtubeSubscriptions
-                .map(
-                    (channel) =>
-                        `YouTube: [${channel.youtubeChannel.youtubeChannelName}](<https://www.youtube.com/channel/${channel.youtubeChannel.youtubeChannelId}>) | <#${channel.subscription.notificationChannelId}>`,
-                )
-                .join("\n");
-            const twitchChannels = trackedChannels.data.twitchSubscriptions
-                .map(
-                    (channel) =>
-                        `Twitch: [${channel.twitchChannel.twitchChannelName}](<https://www.twitch.tv/${channel.twitchChannel.twitchChannelName}>) | <#${channel.subscription.notificationChannelId}>`,
-                )
-                .join("\n");
-            const response = [
-                "Here are the channels being tracked in this guild:",
-                youtubeChannels
-                    ? `**YouTube Channels:**\n${youtubeChannels}`
-                    : "",
-                twitchChannels ? `**Twitch Channels:**\n${twitchChannels}` : "",
-            ]
-                .filter(Boolean)
-                .join("\n\n");
+            const youtubeChannels =
+                trackedChannels.data.youtubeSubscriptions ?? [];
+            const twitchChannels =
+                trackedChannels.data.twitchSubscriptions ?? [];
+
+            const entries = [
+                ...youtubeChannels.map((c) => ({
+                    type: "YouTube" as const,
+                    name: c.youtubeChannel.youtubeChannelName,
+                    id: c.youtubeChannel.youtubeChannelId,
+                    notifyId: c.subscription.notificationChannelId,
+                })),
+                ...twitchChannels.map((c) => ({
+                    type: "Twitch" as const,
+                    name: c.twitchChannel.twitchChannelName,
+                    id: c.twitchChannel.twitchChannelName,
+                    notifyId: c.subscription.notificationChannelId,
+                })),
+            ].sort((a, b) => a.name.localeCompare(b.name));
+
+            const pageSize = 10;
+            const totalPages = Math.ceil(entries.length / pageSize);
+            let currentPage = 0;
+
+            const getPageEmbed = (page: number) => {
+                const start = page * pageSize;
+                const end = start + pageSize;
+                const pageEntries = entries.slice(start, end);
+
+                const description =
+                    pageEntries
+                        .map((entry) => {
+                            const link =
+                                entry.type === "YouTube"
+                                    ? `https://www.youtube.com/channel/${entry.id}`
+                                    : `https://www.twitch.tv/${entry.id}`;
+
+                            return `**[${entry.name}](${link})** • ${entry.type} • <#${entry.notifyId}>`;
+                        })
+                        .join("\n") || "No entries.";
+
+                return new EmbedBuilder()
+                    .setTitle("Tracked Channels")
+                    .setDescription(description)
+                    .setFooter({
+                        text: `Page ${page + 1} of ${totalPages}`,
+                    })
+                    .setColor(0x5865f2);
+            };
+
+            const getButtons = (page: number) => {
+                return new ActionRowBuilder<ButtonBuilder>().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId("prev")
+                        .setLabel("Previous")
+                        .setStyle(ButtonStyle.Secondary)
+                        .setDisabled(page === 0),
+                    new ButtonBuilder()
+                        .setCustomId("next")
+                        .setLabel("Next")
+                        .setStyle(ButtonStyle.Primary)
+                        .setDisabled(page >= totalPages - 1),
+                );
+            };
 
             await interaction.reply({
-                content: response,
+                embeds: [getPageEmbed(currentPage)],
+                components: [getButtons(currentPage)],
                 flags: MessageFlags.Ephemeral,
+            });
+
+            const message = await interaction.fetchReply();
+
+            const collector = message.createMessageComponentCollector({
+                componentType: ComponentType.Button,
+                time: 60_000,
+                filter: (i) => i.user.id === interaction.user.id,
+            });
+
+            collector.on("collect", async (i) => {
+                if (i.customId === "next" && currentPage < totalPages - 1) {
+                    currentPage++;
+                } else if (i.customId === "prev" && currentPage > 0) {
+                    currentPage--;
+                }
+
+                await i.update({
+                    embeds: [getPageEmbed(currentPage)],
+                    components: [getButtons(currentPage)],
+                });
+            });
+
+            collector.on("end", async () => {
+                try {
+                    await interaction.editReply({
+                        components: [],
+                    });
+                } catch {
+                    console.error("Failed to edit reply");
+                }
             });
         },
     },
