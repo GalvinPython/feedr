@@ -5,6 +5,8 @@ export interface Config {
     updateIntervalTwitch: number;
     databaseUrl: string | undefined;
     discordWaitForGuildCacheTime: number;
+    discordCollectorTimeout: number;
+    discordComponentsPageSize: number;
 }
 
 export const config: Config = {
@@ -21,6 +23,12 @@ export const config: Config = {
         ?.CONFIG_DISCORD_WAIT_FOR_GUILD_CACHE_TIME
         ? parseInt(process.env?.CONFIG_DISCORD_WAIT_FOR_GUILD_CACHE_TIME) * 1000
         : 10_000,
+    discordCollectorTimeout: process.env?.CONFIG_DISCORD_COLLECTOR_TIMEOUT
+        ? parseInt(process.env?.CONFIG_DISCORD_COLLECTOR_TIMEOUT) * 1000
+        : 60_000,
+    discordComponentsPageSize: process.env?.CONFIG_DISCORD_COMPONENTS_PAGE_SIZE
+        ? parseInt(process.env?.CONFIG_DISCORD_COMPONENTS_PAGE_SIZE)
+        : 10,
 };
 
 interface Env {

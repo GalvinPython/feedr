@@ -45,6 +45,7 @@ import {
     addNewStreamerToTrack,
     checkIfStreamerIsAlreadyTracked,
 } from "./db/twitch";
+import { config } from "./config";
 
 import client from ".";
 
@@ -975,7 +976,7 @@ const commands: Record<string, Command> = {
             let currentPage = 0;
             let currentFilter: FilterType = "all";
 
-            const pageSize = 10;
+            const pageSize = config.discordComponentsPageSize;
 
             const filterEntries = (filter: FilterType) => {
                 if (filter === Platform.YouTube)
@@ -1090,7 +1091,7 @@ const commands: Record<string, Command> = {
 
             const collector = message.createMessageComponentCollector({
                 componentType: ComponentType.Button,
-                time: 60_000,
+                time: config.discordCollectorTimeout,
                 filter: (i) => i.user.id === interaction.user.id,
             });
 
@@ -1160,8 +1161,8 @@ const commands: Record<string, Command> = {
                     await interaction.editReply({
                         components: [],
                     });
-                } catch {
-                    console.error("Failed to edit reply");
+                } catch (err) {
+                    console.error("Failed to edit reply:", err);
                 }
             });
         },
