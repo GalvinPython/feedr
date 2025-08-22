@@ -11,6 +11,7 @@ import {
     dbTwitchTable,
 } from "./schema";
 
+// Check if the guild is tracking the user already
 export async function checkIfGuildIsTrackingUserAlready(
     platform: Platform,
     userId: string,
@@ -334,6 +335,7 @@ export async function discordRemoveGuildTrackingChannel(
 // Add a new guild to track
 export async function discordAddNewGuild(
     guildId: string,
+    isDm?: boolean,
 ): Promise<{ success: boolean; data: [] }> {
     console.log(`Adding new guild to track: ${guildId}`);
 
@@ -343,6 +345,7 @@ export async function discordAddNewGuild(
             allowedPublicSharing: false,
             isInServer: true,
             memberCount: 0,
+            isDm: isDm ?? false,
         });
 
         return { success: true, data: [] };

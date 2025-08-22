@@ -17,7 +17,7 @@ export const dbDiscordTable = pgTable("discord", {
             ${table.allowedPublicSharing} = false AND
             ${table.feedrUpdatesChannelId} = ${table.guildId} AND
             ${table.isInServer} = true AND
-            ${table.memberCount} = 1
+            ${table.memberCount} = 0
         )`
     )
 ]);

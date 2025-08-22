@@ -4,6 +4,7 @@ import {
     ActionRowBuilder,
     ApplicationCommandOptionType,
     ApplicationCommandType,
+    ApplicationIntegrationType,
     AutocompleteInteraction,
     ButtonBuilder,
     ButtonStyle,
@@ -12,6 +13,7 @@ import {
     ComponentType,
     EmbedBuilder,
     GuildMember,
+    InteractionContextType,
     MessageFlags,
     type ApplicationCommandOptionData,
     type CacheType,
@@ -54,8 +56,8 @@ interface Command {
         name: string;
         description: string;
         options?: ApplicationCommandOptionData[];
-        integration_types?: number[];
-        contexts?: number[];
+        integration_types?: ApplicationIntegrationType[];
+        contexts?: InteractionContextType[];
         type?: ApplicationCommandType;
     };
     execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
@@ -64,6 +66,8 @@ interface Command {
     ) => Promise<any>;
 }
 
+// Context 2: Interaction can be used within Group DMs and DMs other than the app's bot user
+// /track, /tracked and /untracked can't be used in these contexts
 const commands: Record<string, Command> = {
     ping: {
         data: {
@@ -76,7 +80,7 @@ const commands: Record<string, Command> = {
         execute: async (interaction: CommandInteraction) => {
             await interaction
                 .reply({
-                    ephemeral: false,
+                    flags: MessageFlags.Ephemeral,
                     content: `Ping: ${interaction.client.ws.ping}ms`,
                 })
                 .catch(console.error);
@@ -134,7 +138,7 @@ const commands: Record<string, Command> = {
         execute: async (interaction: CommandInteraction) => {
             await interaction
                 .reply({
-                    ephemeral: false,
+                    flags: MessageFlags.Ephemeral,
                     content: `Uptime: ${(
                         performance.now() /
                         (86400 * 1000)
@@ -149,7 +153,7 @@ const commands: Record<string, Command> = {
             name: "hmm",
             description: "What does this command do?",
             integration_types: [0, 1],
-            contexts: [0, 1],
+            contexts: [0, 1, 2],
         },
         execute: async (interaction: CommandInteraction) => {
             await interaction.reply({
@@ -173,7 +177,7 @@ const commands: Record<string, Command> = {
             Bun.gc(false);
             await interaction
                 .reply({
-                    ephemeral: false,
+                    flags: MessageFlags.Ephemeral,
                     content: [
                         `Heap size: ${(heap.heapSize / 1024 / 1024).toFixed(2)} MB / ${(
                             heap.heapCapacity /
@@ -266,7 +270,7 @@ const commands: Record<string, Command> = {
             description:
                 "Track a channel to get notified when they upload a video!",
             integration_types: [0, 1],
-            contexts: [0, 1, 2],
+            contexts: [0, 1],
         },
         execute: async (interaction: CommandInteraction) => {
             // Get the YouTube Channel ID
