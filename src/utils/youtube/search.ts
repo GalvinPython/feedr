@@ -1,12 +1,16 @@
+import { config } from "../../config";
 import type { InnertubeSearchRequest } from "../../types/youtube";
 
 import formatLargeNumber from "../formatLargeNumber";
 
 export default async function (query: string) {
     try {
+        // This will NOT work without Bun due to proxy not being in NodeJS
+        // Unfortunately theres no type for this that will make Typescript happy so this is a TODO: thing
         const response = await fetch(
             "https://www.youtube.com/youtubei/v1/search?prettyPrint=false",
             {
+                proxy: config.youtubeInnertubeProxyUrl,
                 headers: {
                     "X-Goog-Fieldmask":
                         "contents.twoColumnSearchResultsRenderer.primaryContents.sectionListRenderer.contents.itemSectionRenderer.contents",
@@ -22,7 +26,7 @@ export default async function (query: string) {
                     query: query,
                 }),
                 method: "POST",
-            },
+            } as any,
         );
 
         const data = (
