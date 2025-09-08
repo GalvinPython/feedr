@@ -1,6 +1,6 @@
-import { config } from "../../config";
 import type { InnertubeSearchRequest } from "../../types/youtube";
 
+import { config } from "../../config";
 import formatLargeNumber from "../formatLargeNumber";
 
 export default async function (query: string) {

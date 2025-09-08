@@ -1,16 +1,14 @@
-# Moving back to npm for package management rather than bun
-# because wow dependabot is so broken for it 😭
 # TODO: Labels on package updates after project restructure
 
 version: 2
 updates:
-  - package-ecosystem: "npm"
+  - package-ecosystem: "bun"
     directory: "/"
     schedule:
       interval: "weekly"
     target-branch: "dev"
 
-  - package-ecosystem: "npm"
+  - package-ecosystem: "bun"
     directory: "/web"
     schedule:
       interval: "weekly"

@@ -376,3 +376,28 @@ export async function discordRemoveGuildFromTracking(
         return { success: false, data: [] };
     }
 }
+
+// Check if the DM channel is already in the "guilds" table
+export async function discordCheckIfDmChannelExists(
+    channelId: string,
+): Promise<{ success: boolean; data: (typeof dbDiscordTable.$inferSelect)[] }> {
+    console.log(`Checking if DM channel exists: ${channelId}`);
+
+    try {
+        const result = await db
+            .select()
+            .from(dbDiscordTable)
+            .where(
+                and(
+                    eq(dbDiscordTable.guildId, channelId),
+                    eq(dbDiscordTable.isDm, true),
+                ),
+            );
+
+        return { success: true, data: result };
+    } catch (error) {
+        console.error("Error checking if DM channel exists:", error);
+
+        return { success: false, data: [] };
+    }
+}

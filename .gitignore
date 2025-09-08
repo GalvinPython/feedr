@@ -12,3 +12,4 @@ target/
 dbtests.ts
 perftesting.ts
 drizzle/
+fetchTest.ts
