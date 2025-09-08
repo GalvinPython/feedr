@@ -399,7 +399,7 @@ const commands: Record<string, Command> = {
             } else {
                 await interaction.reply({
                     flags: MessageFlags.Ephemeral,
-                    content: `The target channel is not a text channel! ${isDm}`,
+                    content: "The target channel is not a text channel!",
                 });
 
                 return;
@@ -407,13 +407,11 @@ const commands: Record<string, Command> = {
 
             // Before attempting to add the subscription, if it's a DM, check if it's already in the database. If not add it
             if (isDm) {
-                console.log("CHECKING DM");
                 const data = (
                     await discordCheckIfDmChannelExists(discordChannelId)
                 ).data;
 
-                if (!data) {
-                    console.log("ADDING DM");
+                if (!data.length) {
                     await discordAddNewGuild(discordChannelId, true);
                 }
             }
