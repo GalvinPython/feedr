@@ -31,7 +31,7 @@ export default async function () {
 
     // Find any guilds that are in the database but not in the current guilds
     const missingGuilds = data.filter(
-        (guild) => !currentGuilds.includes(guild.guildId),
+        (guild) => !currentGuilds.includes(guild.guildId) && !guild.isDm,
     );
 
     // Find any guilds that are in the current guilds but not in the database

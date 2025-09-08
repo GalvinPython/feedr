@@ -4,6 +4,7 @@ import {
     ActionRowBuilder,
     ApplicationCommandOptionType,
     ApplicationCommandType,
+    ApplicationIntegrationType,
     AutocompleteInteraction,
     ButtonBuilder,
     ButtonStyle,
@@ -12,6 +13,7 @@ import {
     ComponentType,
     EmbedBuilder,
     GuildMember,
+    InteractionContextType,
     MessageFlags,
     type ApplicationCommandOptionData,
     type CacheType,
@@ -31,6 +33,8 @@ import search from "./utils/youtube/search";
 import {
     checkIfGuildIsTrackingUserAlready,
     discordAddGuildTrackingUser,
+    discordAddNewGuild,
+    discordCheckIfDmChannelExists,
     discordGetAllTrackedInGuild,
     discordRemoveGuildTrackingChannel,
 } from "./db/discord";
@@ -54,8 +58,8 @@ interface Command {
         name: string;
         description: string;
         options?: ApplicationCommandOptionData[];
-        integration_types?: number[];
-        contexts?: number[];
+        integration_types?: ApplicationIntegrationType[];
+        contexts?: InteractionContextType[];
         type?: ApplicationCommandType;
     };
     execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
@@ -64,6 +68,8 @@ interface Command {
     ) => Promise<any>;
 }
 
+// Context 2: Interaction can be used within Group DMs and DMs other than the app's bot user
+// /track, /tracked and /untracked can't be used in these contexts
 const commands: Record<string, Command> = {
     ping: {
         data: {
@@ -76,7 +82,7 @@ const commands: Record<string, Command> = {
         execute: async (interaction: CommandInteraction) => {
             await interaction
                 .reply({
-                    ephemeral: false,
+                    flags: MessageFlags.Ephemeral,
                     content: `Ping: ${interaction.client.ws.ping}ms`,
                 })
                 .catch(console.error);
@@ -134,7 +140,7 @@ const commands: Record<string, Command> = {
         execute: async (interaction: CommandInteraction) => {
             await interaction
                 .reply({
-                    ephemeral: false,
+                    flags: MessageFlags.Ephemeral,
                     content: `Uptime: ${(
                         performance.now() /
                         (86400 * 1000)
@@ -149,7 +155,7 @@ const commands: Record<string, Command> = {
             name: "hmm",
             description: "What does this command do?",
             integration_types: [0, 1],
-            contexts: [0, 1],
+            contexts: [0, 1, 2],
         },
         execute: async (interaction: CommandInteraction) => {
             await interaction.reply({
@@ -173,7 +179,7 @@ const commands: Record<string, Command> = {
             Bun.gc(false);
             await interaction
                 .reply({
-                    ephemeral: false,
+                    flags: MessageFlags.Ephemeral,
                     content: [
                         `Heap size: ${(heap.heapSize / 1024 / 1024).toFixed(2)} MB / ${(
                             heap.heapCapacity /
@@ -266,9 +272,11 @@ const commands: Record<string, Command> = {
             description:
                 "Track a channel to get notified when they upload a video!",
             integration_types: [0, 1],
-            contexts: [0, 1, 2],
+            contexts: [0, 1],
         },
         execute: async (interaction: CommandInteraction) => {
+            const isDm = !interaction.inGuild();
+
             // Get the YouTube Channel ID
             const targetPlatform = (
                 interaction as ChatInputCommandInteraction
@@ -280,7 +288,7 @@ const commands: Record<string, Command> = {
             const discordChannelId =
                 (interaction.options.get("updates_channel")?.value as string) ??
                 interaction.channelId;
-            const guildId = interaction.guildId;
+            const guildId = isDm ? discordChannelId : interaction.guildId;
 
             // Log the autocomplete value
             console.log(`Autocomplete value: ${platformUserId}`);
@@ -312,33 +320,26 @@ const commands: Record<string, Command> = {
                 return;
             }
 
-            // TODO: Enable DMs :)
-            const isDm = interaction.channel?.isDMBased();
+            console.log(interaction.channelId);
 
-            if (!guildId || isDm || isDm === undefined) {
-                await interaction.reply({
-                    flags: MessageFlags.Ephemeral,
-                    content:
-                        "This command is not supported in DMs currently!\nNot a DM? Then the bot failed to get the guild info",
-                });
-
-                return;
-            }
+            if (isDm) console.log("DM");
 
             // TODO: Embed
             // Check the permissions of the user
-            if (
-                !interaction.memberPermissions?.has(
-                    PermissionFlagsBits.ManageChannels,
-                )
-            ) {
-                await interaction.reply({
-                    flags: MessageFlags.Ephemeral,
-                    content:
-                        "You do not have the permission to manage channels!",
-                });
+            if (!isDm) {
+                if (
+                    !interaction.memberPermissions?.has(
+                        PermissionFlagsBits.ManageChannels,
+                    )
+                ) {
+                    await interaction.reply({
+                        flags: MessageFlags.Ephemeral,
+                        content:
+                            "You do not have the permission to manage channels!",
+                    });
 
-                return;
+                    return;
+                }
             }
 
             // TODO: Embed
@@ -393,6 +394,8 @@ const commands: Record<string, Command> = {
 
                     return;
                 }
+            } else if (isDm) {
+                // DM channels don't need permission checks
             } else {
                 await interaction.reply({
                     flags: MessageFlags.Ephemeral,
@@ -400,6 +403,17 @@ const commands: Record<string, Command> = {
                 });
 
                 return;
+            }
+
+            // Before attempting to add the subscription, if it's a DM, check if it's already in the database. If not add it
+            if (isDm) {
+                const data = (
+                    await discordCheckIfDmChannelExists(discordChannelId)
+                ).data;
+
+                if (!data.length) {
+                    await discordAddNewGuild(discordChannelId, true);
+                }
             }
 
             switch (targetPlatform) {
@@ -567,7 +581,7 @@ const commands: Record<string, Command> = {
 
                         await interaction.reply({
                             flags: MessageFlags.Ephemeral,
-                            content: `Started tracking the channel ${youtubeChannelInfo?.channelName ?? platformUserId} in ${targetChannel.name}!`,
+                            content: `Started tracking the channel ${youtubeChannelInfo?.channelName ?? platformUserId} in <#${targetChannel?.id}>!`,
                         });
                     } else {
                         await interaction.reply({
@@ -694,7 +708,7 @@ const commands: Record<string, Command> = {
                     ) {
                         await interaction.reply({
                             flags: MessageFlags.Ephemeral,
-                            content: `Started tracking the streamer ${platformUserId} (${platformUserId}) in ${targetChannel.name}!`,
+                            content: `Started tracking the streamer ${platformUserId} (${platformUserId}) in <#${targetChannel?.id}>!`,
                         });
                     } else {
                         await interaction.reply({
@@ -815,24 +829,15 @@ const commands: Record<string, Command> = {
             contexts: [0, 1],
         },
         execute: async (interaction: CommandInteraction) => {
+            const isDm = !interaction.inGuild();
+
             // Get the YouTube Channel ID
             const platformUserId = interaction.options.get("user_id")
                 ?.value as string;
-            const guildId = interaction.guildId;
-
-            // DMs are currently not supported, so throw back an error
-            if (!guildId || interaction.channel?.isDMBased()) {
-                await interaction.reply({
-                    flags: MessageFlags.Ephemeral,
-                    content:
-                        "This command is not supported in DMs currently!\nNot a DM? Then an error has occurred :(",
-                });
-
-                return;
-            }
 
             // Check the permissions of the user
             if (
+                !isDm &&
                 !interaction.memberPermissions?.has(
                     PermissionFlagsBits.ManageChannels,
                 )
@@ -865,7 +870,7 @@ const commands: Record<string, Command> = {
         },
         autoComplete: async (interaction: AutocompleteInteraction) => {
             const trackedChannels = await discordGetAllTrackedInGuild(
-                interaction.guildId as string,
+                interaction.guildId ?? (interaction.channelId as string),
             );
 
             console.dir(
@@ -912,14 +917,16 @@ const commands: Record<string, Command> = {
             contexts: [0, 1],
         },
         execute: async (interaction: CommandInteraction) => {
-            const guildId = interaction.guildId;
-            const channelId = interaction.channelId;
+            let guildId = interaction.guildId;
 
-            if (!guildId || !channelId) {
+            const isDm = !interaction.inGuild();
+
+            if (isDm) guildId = interaction.channelId;
+
+            if (!guildId) {
                 await interaction.reply({
                     flags: MessageFlags.Ephemeral,
-                    content:
-                        "You are likely in a DM, this command is not supported in DMs!",
+                    content: "An error occurred! Please report",
                 });
 
                 return;

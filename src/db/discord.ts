@@ -11,6 +11,7 @@ import {
     dbTwitchTable,
 } from "./schema";
 
+// Check if the guild is tracking the user already
 export async function checkIfGuildIsTrackingUserAlready(
     platform: Platform,
     userId: string,
@@ -334,6 +335,7 @@ export async function discordRemoveGuildTrackingChannel(
 // Add a new guild to track
 export async function discordAddNewGuild(
     guildId: string,
+    isDm?: boolean,
 ): Promise<{ success: boolean; data: [] }> {
     console.log(`Adding new guild to track: ${guildId}`);
 
@@ -343,6 +345,7 @@ export async function discordAddNewGuild(
             allowedPublicSharing: false,
             isInServer: true,
             memberCount: 0,
+            isDm: isDm ?? false,
         });
 
         return { success: true, data: [] };
@@ -369,6 +372,31 @@ export async function discordRemoveGuildFromTracking(
         return { success: true, data: [] };
     } catch (error) {
         console.error("Error removing guild from tracking:", error);
+
+        return { success: false, data: [] };
+    }
+}
+
+// Check if the DM channel is already in the "guilds" table
+export async function discordCheckIfDmChannelExists(
+    channelId: string,
+): Promise<{ success: boolean; data: (typeof dbDiscordTable.$inferSelect)[] }> {
+    console.log(`Checking if DM channel exists: ${channelId}`);
+
+    try {
+        const result = await db
+            .select()
+            .from(dbDiscordTable)
+            .where(
+                and(
+                    eq(dbDiscordTable.guildId, channelId),
+                    eq(dbDiscordTable.isDm, true),
+                ),
+            );
+
+        return { success: true, data: result };
+    } catch (error) {
+        console.error("Error checking if DM channel exists:", error);
 
         return { success: false, data: [] };
     }

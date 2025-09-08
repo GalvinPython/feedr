@@ -1,6 +1,7 @@
 // FILL IN THIS INFORMATION IN .ENV
 export const runningInDevMode: boolean = process.argv.includes("--dev");
 export interface Config {
+    youtubeInnertubeProxyUrl: string | null;
     updateIntervalYouTube: number;
     updateIntervalTwitch: number;
     databaseUrl: string | undefined;
@@ -10,6 +11,7 @@ export interface Config {
 }
 
 export const config: Config = {
+    youtubeInnertubeProxyUrl: process.env?.YOUTUBE_INNERTUBE_PROXY_URL ?? null,
     updateIntervalYouTube: process.env?.CONFIG_UPDATE_INTERVAL_YOUTUBE
         ? parseInt(process.env?.CONFIG_UPDATE_INTERVAL_YOUTUBE) * 1000
         : 60_000,

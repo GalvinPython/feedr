@@ -96,17 +96,26 @@ These guidelines ensure predictable behavior and simplify error handling across 
 > [!NOTE]
 > WIP update!
 
-### Bot
+### Fixes
 
 - Fixed the double notification bug
+
+### Changes
+
 - Moved to Postgres as our database engine
+
+### Features
+
 - Improved flow of `/track` command
   - Autocomplete for YouTube
   - Filter by videos, shorts and streams for YouTube!
+- `/tracked` is now improved and is an interactive embed!
+- Can now use search/autocomplete for `/track` for both YouTube and Twitch
 
-### API
+### Known Issues
 
-### Site
+- Twitch channel username doesn't show up in `/track`
+- Unable to subscribe to updates via the bot
 
 ## V1
 
@@ -115,7 +124,7 @@ These guidelines ensure predictable behavior and simplify error handling across 
 - Added a new command! `/tracked` ([#50](https://github.com/GalvinPython/feedr/issues/50))
   - See all the tracked channels in your server
   - The channel you ran the command in will appear first as there is no option to only see the current channel for now
-- Locale improvments ([#43](https://github.com/GalvinPython/feedr/issues/43))
+- Locale improvements ([#43](https://github.com/GalvinPython/feedr/issues/43))
 
 ### 1.3.0
 
