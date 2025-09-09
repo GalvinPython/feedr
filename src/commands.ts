@@ -708,7 +708,7 @@ const commands: Record<string, Command> = {
                     ) {
                         await interaction.reply({
                             flags: MessageFlags.Ephemeral,
-                            content: `Started tracking the streamer ${platformUserId} (${platformUserId}) in <#${targetChannel?.id}>!`,
+                            content: `Started tracking the streamer ${streamerName} in <#${targetChannel?.id}>!`,
                         });
                     } else {
                         await interaction.reply({
