@@ -401,3 +401,64 @@ export async function discordCheckIfDmChannelExists(
         return { success: false, data: [] };
     }
 }
+
+// Bot updates
+export async function discordUpdateSubscriptionAddChannel(
+    guildId: string,
+    channelId: string,
+): Promise<{ success: boolean; data: [] }> {
+    console.log(
+        `Updating guild ${guildId} to set subscription channel to ${channelId}`,
+    );
+
+    try {
+        await db
+            .update(dbDiscordTable)
+            .set({ feedrUpdatesChannelId: channelId })
+            .where(eq(dbDiscordTable.guildId, guildId));
+
+        return { success: true, data: [] };
+    } catch (error) {
+        console.error("Error updating subscription channel:", error);
+
+        return { success: false, data: [] };
+    }
+}
+
+export async function discordUpdateSubscriptionRemoveChannel(
+    guildId: string,
+): Promise<{ success: boolean; data: [] }> {
+    console.log(`Removing subscription channel for guild ${guildId}`);
+
+    try {
+        await db
+            .update(dbDiscordTable)
+            .set({ feedrUpdatesChannelId: null })
+            .where(eq(dbDiscordTable.guildId, guildId));
+
+        return { success: true, data: [] };
+    } catch (error) {
+        console.error("Error removing subscription channel:", error);
+
+        return { success: false, data: [] };
+    }
+}
+
+export async function discordUpdateSubscriptionCheckGuild(
+    guildId: string,
+): Promise<{ success: boolean; data: (typeof dbDiscordTable.$inferSelect)[] }> {
+    console.log(`Checking subscription settings for guild ${guildId}`);
+
+    try {
+        const result = await db
+            .select()
+            .from(dbDiscordTable)
+            .where(eq(dbDiscordTable.guildId, guildId));
+
+        return { success: true, data: result };
+    } catch (error) {
+        console.error("Error checking subscription settings for guild:", error);
+
+        return { success: false, data: [] };
+    }
+}
