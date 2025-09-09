@@ -1,5 +1,15 @@
 // FILL IN THIS INFORMATION IN .ENV
 export const runningInDevMode: boolean = process.argv.includes("--dev");
+
+// Staging mode is for only testing the production database before breaking the actual production bot
+// Run `bun db:migrate:staging` to migrate the staging database and check for any mistakes before running `bun db:migrate:prod`
+// Do NOT use this mode for regular testing, use --dev for that
+export const runningInStagingMode: boolean = process.argv.includes("--staging");
+
+if (runningInDevMode && runningInStagingMode) {
+    throw new Error("Cannot run in both dev and staging mode!");
+}
+
 export interface Config {
     youtubeInnertubeProxyUrl: string | null;
     updateIntervalYouTube: number;
@@ -20,7 +30,9 @@ export const config: Config = {
         : 60_000,
     databaseUrl: runningInDevMode
         ? process.env?.POSTGRES_DEV_URL
-        : process.env?.POSTGRES_URL,
+        : runningInStagingMode
+          ? process.env?.POSTGRES_STAGING_URL
+          : process.env?.POSTGRES_URL,
     discordWaitForGuildCacheTime: process.env
         ?.CONFIG_DISCORD_WAIT_FOR_GUILD_CACHE_TIME
         ? parseInt(process.env?.CONFIG_DISCORD_WAIT_FOR_GUILD_CACHE_TIME) * 1000
