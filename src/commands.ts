@@ -1290,6 +1290,7 @@ const commands: Record<string, Command> = {
                         desiredState ? "enabled" : "disabled"
                     } in this channel!`,
                 });
+                return;
             }
 
             if (desiredState) {
