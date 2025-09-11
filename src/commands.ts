@@ -1225,7 +1225,7 @@ const commands: Record<string, Command> = {
                 targetChannel &&
                 (targetChannel.type === ChannelType.GuildText ||
                     targetChannel.type === ChannelType.GuildAnnouncement)
-            )
+            ) {
                 if (
                     !isDm &&
                     !interaction.memberPermissions?.has(
@@ -1241,6 +1241,7 @@ const commands: Record<string, Command> = {
 
                     return;
                 }
+            }
 
             // Check the permissions of the bot in the channel
             const botMember = isDm
@@ -1290,6 +1291,7 @@ const commands: Record<string, Command> = {
                         desiredState ? "enabled" : "disabled"
                     } in this channel!`,
                 });
+
                 return;
             }
 

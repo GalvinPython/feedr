@@ -40,6 +40,7 @@ async function migrate() {
 
     for (const row of botInfo) {
         console.log(
+            new Date(),
             `📋 Migrating bot info: guildsTotal=${row.totalServers ?? 0}, totalMembers=${row.totalMembers ?? 0}`,
         );
         await pgDb.insert(pgSchema.dbBotInfoTable).values({
@@ -54,7 +55,7 @@ async function migrate() {
         .from(sqliteSchema.sqliteDiscord);
 
     for (const row of discordRows) {
-        console.log("📋 Migrating discord guild:", row.guildId);
+        console.log(new Date(), `📋 Migrating discord guild: ${row.guildId}`);
         await pgDb
             .insert(pgSchema.dbDiscordTable)
             .values({ guildId: row.guildId ?? "" })
@@ -69,6 +70,7 @@ async function migrate() {
 
         if (!twitchChannelName) {
             console.log(
+                new Date(),
                 `⚠️  Skipping Twitch channel ID ${row.twitchChannelId} as it no longer exists.`,
             );
             continue;
@@ -88,6 +90,7 @@ async function migrate() {
     for (const row of youtubeRows) {
         if (!checkIfChannelIdIsValid(row.youtubeChannelId)) {
             console.log(
+                new Date(),
                 `⚠️  Skipping YouTube channel ID ${row.youtubeChannelId} as it is not a valid channel ID.`,
             );
             continue;
@@ -98,6 +101,10 @@ async function migrate() {
     // 5. Guild Subscriptions (after Twitch/YouTube exist!)
     for (const row of discordRows) {
         if (row.guildPlatform === "twitch") {
+            console.log(
+                new Date(),
+                `📋 Migrating discord guild: ${row.guildId} for Twitch ${row.platformUserId}`,
+            );
             await discordAddGuildTrackingUser(
                 row.guildId,
                 Platform.Twitch,
@@ -107,6 +114,10 @@ async function migrate() {
                 false,
             );
         } else if (row.guildPlatform === "youtube") {
+            console.log(
+                new Date(),
+                `📋 Migrating discord guild: ${row.guildId} for YouTube ${row.platformUserId}`,
+            );
             await discordAddGuildTrackingUser(
                 row.guildId,
                 Platform.YouTube,
