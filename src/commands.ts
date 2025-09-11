@@ -294,9 +294,6 @@ const commands: Record<string, Command> = {
                 interaction.channelId;
             const guildId = isDm ? discordChannelId : interaction.guildId;
 
-            // Log the autocomplete value
-            console.log(`Autocomplete value: ${platformUserId}`);
-
             // Checks if the platform is valid ig
             if (targetPlatform != "youtube" && targetPlatform != "twitch") {
                 await interaction.reply({
@@ -615,7 +612,7 @@ const commands: Record<string, Command> = {
                     // Check if the channel is already being tracked in the guild
                     const trackedChannels =
                         await checkIfGuildIsTrackingUserAlready(
-                            Platform.YouTube,
+                            Platform.Twitch,
                             platformUserId,
                             guildId,
                         );
