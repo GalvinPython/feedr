@@ -15,6 +15,7 @@ import {
     GuildMember,
     InteractionContextType,
     MessageFlags,
+    TextChannel,
     type ApplicationCommandOptionData,
     type CacheType,
     type CommandInteraction,
@@ -37,6 +38,9 @@ import {
     discordCheckIfDmChannelExists,
     discordGetAllTrackedInGuild,
     discordRemoveGuildTrackingChannel,
+    discordUpdateSubscriptionAddChannel,
+    discordUpdateSubscriptionCheckGuild,
+    discordUpdateSubscriptionRemoveChannel,
 } from "./db/discord";
 import {
     Platform,
@@ -69,7 +73,7 @@ interface Command {
 }
 
 // Context 2: Interaction can be used within Group DMs and DMs other than the app's bot user
-// /track, /tracked and /untracked can't be used in these contexts
+// /track, /tracked, /untracked and /updates can't be used in these contexts
 const commands: Record<string, Command> = {
     ping: {
         data: {
@@ -708,7 +712,7 @@ const commands: Record<string, Command> = {
                     ) {
                         await interaction.reply({
                             flags: MessageFlags.Ephemeral,
-                            content: `Started tracking the streamer ${platformUserId} (${platformUserId}) in <#${targetChannel?.id}>!`,
+                            content: `Started tracking the streamer ${streamerName} in <#${targetChannel?.id}>!`,
                         });
                     } else {
                         await interaction.reply({
@@ -1172,6 +1176,177 @@ const commands: Record<string, Command> = {
                     console.error("Failed to edit reply:", err);
                 }
             });
+        },
+    },
+    updates: {
+        data: {
+            name: "updates",
+            description: "Enable or disable updates for Feedr in this channel",
+            integration_types: [0, 1],
+            contexts: [0, 1],
+            options: [
+                {
+                    name: "state",
+                    description: "Choose whether to enable or disable updates",
+                    type: ApplicationCommandOptionType.String,
+                    required: true,
+                    choices: [
+                        {
+                            name: "Enable",
+                            value: "enable",
+                        },
+                        {
+                            name: "Disable",
+                            value: "disable",
+                        },
+                    ],
+                },
+            ],
+        },
+        execute: async (interaction: CommandInteraction) => {
+            const isDm = !interaction.inGuild();
+
+            const channelId = interaction.channelId;
+            const guildId = isDm ? channelId : interaction.guildId;
+
+            if (!isDm && !guildId) {
+                await interaction.reply({
+                    flags: MessageFlags.Ephemeral,
+                    content: "An error occurred! Please report",
+                });
+
+                return;
+            }
+
+            // Check type of the channel
+            const targetChannel = await client.channels.fetch(channelId);
+
+            if (
+                targetChannel &&
+                (targetChannel.type === ChannelType.GuildText ||
+                    targetChannel.type === ChannelType.GuildAnnouncement)
+            ) {
+                if (
+                    !isDm &&
+                    !interaction.memberPermissions?.has(
+                        PermissionFlagsBits.ManageChannels,
+                    )
+                ) {
+                    // Check the permissions of the user
+                    await interaction.reply({
+                        flags: MessageFlags.Ephemeral,
+                        content:
+                            "You do not have the permission to manage channels!",
+                    });
+
+                    return;
+                }
+            }
+
+            // Check the permissions of the bot in the channel
+            const botMember = isDm
+                ? null
+                : await interaction.guild?.members.fetchMe();
+
+            if (
+                botMember &&
+                !botMember
+                    .permissionsIn(channelId)
+                    .has(PermissionFlagsBits.SendMessages)
+            ) {
+                await interaction.reply({
+                    flags: MessageFlags.Ephemeral,
+                    content:
+                        "I do not have permission to send messages in that channel!",
+                });
+
+                return;
+            }
+
+            // Get the current state from the database
+            const currentDatabaseState =
+                await discordUpdateSubscriptionCheckGuild(guildId);
+
+            if (!currentDatabaseState || !currentDatabaseState.success) {
+                await interaction.reply({
+                    flags: MessageFlags.Ephemeral,
+                    content:
+                        "An error occurred while trying to get the current update state from the database! Please report this error!",
+                });
+
+                return;
+            }
+
+            const currentState = Boolean(
+                currentDatabaseState.data[0].feedrUpdatesChannelId,
+            );
+            const desiredState = Boolean(
+                interaction.options.get("state")?.value === "enable",
+            );
+
+            if (currentState === desiredState) {
+                await interaction.reply({
+                    flags: MessageFlags.Ephemeral,
+                    content: `Updates are already ${
+                        desiredState ? "enabled" : "disabled"
+                    } in this channel!`,
+                });
+
+                return;
+            }
+
+            if (desiredState) {
+                // Enable updates
+                const updateSuccess = await discordUpdateSubscriptionAddChannel(
+                    guildId,
+                    channelId,
+                );
+
+                if (!updateSuccess || !updateSuccess.success) {
+                    await interaction.reply({
+                        flags: MessageFlags.Ephemeral,
+                        content:
+                            "An error occurred while trying to enable updates in this channel! Please report this error!",
+                    });
+
+                    return;
+                }
+
+                await client.channels
+                    .fetch(channelId)
+                    .then(async (channel) => {
+                        if (channel?.isTextBased()) {
+                            await (channel as TextChannel).send({
+                                content: `Updates have been successfully enabled in this channel!`,
+                            });
+                        }
+                    })
+                    .catch(console.error);
+
+                await interaction.reply({
+                    flags: MessageFlags.Ephemeral,
+                    content:
+                        "If a test message was sent, updates are enabled! If not, please report this as an error!",
+                });
+            } else {
+                // Disable updates
+                const updateSuccess =
+                    await discordUpdateSubscriptionRemoveChannel(guildId);
+
+                if (!updateSuccess || !updateSuccess.success) {
+                    await interaction.reply({
+                        flags: MessageFlags.Ephemeral,
+                        content:
+                            "An error occurred while trying to disable updates in this channel! Please report this error!",
+                    });
+
+                    return;
+                }
+
+                await interaction.reply({
+                    content: `Successfully disabled updates in <#${channelId}>!`,
+                });
+            }
         },
     },
 };

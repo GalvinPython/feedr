@@ -24,7 +24,11 @@
   "scripts": {
     "db:generate": "bun drizzle-kit generate",
     "db:push:dev": "cross-env NODE_ENV=development bun drizzle-kit push",
+    "db:push:staging": "cross-env NODE_ENV=staging bun drizzle-kit push",
     "db:push:prod": "bun drizzle-kit push",
+    "db:migrate:staging": "bun src/db/migratedb.ts --staging",
+    "db:migrate:prod": "bun src/db/migratedb.ts",
+    "db:staging:reset": "bun src/db/resetStagingDatabase.ts --staging",
     "dev": "concurrently --names \"WEB,API,BOT\" --prefix-colors \"blue,green,magenta\" \"cd web && bun dev\" \"cd api && cargo watch -x \\\"run -- --dev\\\"\" \"bun --watch . --dev\"",
     "dev:bot": "bun --watch . --dev",
     "test:jetstream": "bun --watch src/utils/bluesky/jetstream.ts",
