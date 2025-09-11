@@ -1,7 +1,107 @@
-// NOTE: Experimental
-// You think i was typing this all out manually? lol no :p
+// This file contains TypeScript interfaces for the YouTube API responses and requests used in the bot.
+// YouTube Playlist API Response Interface
+export interface YouTubePlaylistResponse {
+    kind: string;
+    etag: string;
+    nextPageToken: string;
+    items: Array<{
+        kind: string;
+        etag: string;
+        id: string;
+        snippet: {
+            publishedAt: string;
+            channelId: string;
+            title: string;
+            description: string;
+            thumbnails: {
+                default: {
+                    url: string;
+                    width: number;
+                    height: number;
+                };
+                medium: {
+                    url: string;
+                    width: number;
+                    height: number;
+                };
+                high: {
+                    url: string;
+                    width: number;
+                    height: number;
+                };
+                standard: {
+                    url: string;
+                    width: number;
+                    height: number;
+                };
+                maxres: {
+                    url: string;
+                    width: number;
+                    height: number;
+                };
+            };
+            channelTitle: string;
+            playlistId: string;
+            position: number;
+            resourceId: {
+                kind: string;
+                videoId: string;
+            };
+            videoOwnerChannelTitle: string;
+            videoOwnerChannelId: string;
+        };
+    }>;
+    pageInfo: {
+        totalResults: number;
+        resultsPerPage: number;
+    };
+}
 
-export type InnertubeSearchRequest = {
+// YouTube Channel API Response Interface
+export interface YouTubeChannelResponse {
+    kind: string;
+    etag: string;
+    pageInfo: {
+        totalResults: number;
+        resultsPerPage: number;
+    };
+    items: Array<{
+        kind: string;
+        etag: string;
+        id: string;
+        snippet: {
+            title: string;
+            description: string;
+            customUrl: string;
+            publishedAt: string;
+            thumbnails: {
+                default: {
+                    url: string;
+                    width: number;
+                    height: number;
+                };
+                medium: {
+                    url: string;
+                    width: number;
+                    height: number;
+                };
+                high: {
+                    url: string;
+                    width: number;
+                    height: number;
+                };
+            };
+            localized: {
+                title: string;
+                description: string;
+            };
+            country: string;
+        };
+    }>;
+}
+
+// YouTube Innertube Search Request Interface
+export interface InnertubeSearchRequest {
     contents: {
         twoColumnSearchResultsRenderer: {
             primaryContents: {
@@ -9,35 +109,7 @@ export type InnertubeSearchRequest = {
                     contents: Array<{
                         itemSectionRenderer?: {
                             contents: Array<{
-                                didYouMeanRenderer?: {
-                                    didYouMean: {
-                                        runs: Array<{
-                                            text: string;
-                                        }>;
-                                    };
-                                    correctedQuery: {
-                                        runs: Array<{
-                                            text: string;
-                                            italics: boolean;
-                                        }>;
-                                    };
-                                    correctedQueryEndpoint: {
-                                        clickTrackingParams: string;
-                                        commandMetadata: {
-                                            webCommandMetadata: {
-                                                url: string;
-                                                webPageType: string;
-                                                rootVe: number;
-                                            };
-                                        };
-                                        searchEndpoint: {
-                                            query: string;
-                                            params: string;
-                                        };
-                                    };
-                                    trackingParams: string;
-                                };
-                                channelRenderer?: {
+                                channelRenderer: {
                                     channelId: string;
                                     title: {
                                         simpleText: string;
@@ -91,18 +163,39 @@ export type InnertubeSearchRequest = {
                                         }>;
                                     };
                                     videoCountText: {
-                                        accessibility: {
+                                        accessibility?: {
                                             accessibilityData: {
                                                 label: string;
                                             };
                                         };
-                                        simpleText: string;
+                                        simpleText?: string;
+                                        runs?: Array<{
+                                            text: string;
+                                        }>;
                                     };
                                     subscriptionButton: {
                                         subscribed: boolean;
                                     };
+                                    ownerBadges?: Array<{
+                                        metadataBadgeRenderer: {
+                                            icon: {
+                                                iconType: string;
+                                            };
+                                            style: string;
+                                            tooltip: string;
+                                            trackingParams: string;
+                                            accessibilityData: {
+                                                label: string;
+                                            };
+                                        };
+                                    }>;
                                     subscriberCountText: {
                                         simpleText: string;
+                                        accessibility?: {
+                                            accessibilityData: {
+                                                label: string;
+                                            };
+                                        };
                                     };
                                     subscribeButton: {
                                         buttonRenderer: {
@@ -173,4 +266,4 @@ export type InnertubeSearchRequest = {
             };
         };
     };
-};
+}

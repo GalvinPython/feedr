@@ -1,16 +1,17 @@
-name: Update bun.lockb
+name: Update bun.lock
 
 on:
-  push:
+  pull_request:
     branches: [main, dev]
 
 permissions:
   contents: write
 
 jobs:
-  update-bun-lockb:
-    name: "Update bun.lockb"
+  update-bun-lock:
+    name: "Update bun.lock"
     runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
     steps:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -24,20 +25,20 @@ jobs:
       - name: Check for changes
         id: git_status
         run: |
-          git add bun.lockb
+          git add bun.lock
           if [ -z "$(git status --porcelain)" ]; then
-            echo "No changes to bun.lockb"
-            echo "::set-output name=changes_detected::false"
+            echo "No changes to bun.lock"
+            echo "changes_detected=false" >> "$GITHUB_OUTPUT"
           else
-            echo "Changes detected to bun.lockb"
-            echo "::set-output name=changes_detected::true"
+            echo "Changes detected to bun.lock"
+            echo "changes_detected=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Commit and push changes to bun.lockb
+      - name: Commit and push changes to bun.lock
         if: steps.git_status.outputs.changes_detected == 'true'
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git commit -m "Update bun.lockb (via GitHub Actions)"
-          git pull --rebase origin ${{ github.ref_name }}
-          git push origin ${{ github.ref_name }}
+          git commit -m "Update bun.lock (via GitHub Actions)"
+          git pull --rebase origin ${{ github.head_ref }}
+          git push origin ${{ github.head_ref }}

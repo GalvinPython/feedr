@@ -1,0 +1,44 @@
+name: Site Build
+
+on:
+  push:
+    branches:
+      - "*"
+    paths:
+      - "./web/**/*.js"
+      - "./web/**/*.jsx"
+      - "./web/**/*.ts"
+      - "./web/**/*.tsx"
+      - "./web/**/*.mjs"
+      - "./web/**/*.css"
+      - "./web/**/*.cjs"
+      - "./web/**/*.astro"
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - "./web/**/*.js"
+      - "./web/**/*.jsx"
+      - "./web/**/*.ts"
+      - "./web/**/*.tsx"
+      - "./web/**/*.mjs"
+      - "./web/**/*.css"
+      - "./web/**/*.cjs"
+      - "./web/**/*.astro"
+
+jobs:
+  lint:
+    name: Build Site
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build Site
+        run: bun run web:build

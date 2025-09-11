@@ -1,5 +1,20 @@
 // Check if all the required environment variables are set
+import fs from "fs/promises";
+import path from "path";
+
+import Bun from "bun";
+import {
+    Client,
+    GatewayIntentBits,
+    REST,
+    Routes,
+    type APIApplicationCommand,
+} from "discord.js";
+
 import { env } from "./config.ts";
+import commandsMap from "./commands.ts";
+import { getTwitchToken } from "./utils/twitch/auth.ts";
+import updateGuildsOnStartup from "./utils/discord/updateGuildsOnStartup.ts";
 
 if (!env.discordToken || env.discordToken === "YOUR_DISCORD_TOKEN") {
     throw new Error("You MUST provide a discord token in .env!");
@@ -19,36 +34,6 @@ if (
 ) {
     throw new Error("You MUST provide a Twitch client secret in .env!");
 }
-
-// If everything is set up correctly, continue with the bot
-import {
-    Client,
-    GatewayIntentBits,
-    REST,
-    Routes,
-    type APIApplicationCommand,
-} from "discord.js";
-
-import commandsMap from "./commands.ts";
-
-import fs from "fs/promises";
-import path from "path";
-
-import { initTables } from "./utils/database.ts";
-import { getTwitchToken } from "./utils/twitch/auth.ts";
-
-import { CronJob } from "cron";
-
-import backup from "./utils/backup.ts";
-
-// Start the cron jobs
-await fs.mkdir(path.resolve(process.cwd(), "backups"), { recursive: true });
-new CronJob("0 0 * * *", async () => {
-    await backup(
-        path.resolve(process.cwd(), "db.sqlite3"),
-        `./backups/db-${new Date().toISOString().replace(/[:.]/g, "-")}.sqlite3`,
-    );
-}).start();
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
@@ -72,11 +57,6 @@ const data = (await rest.put(Routes.applicationCommands(getAppId.id), {
 
 console.log(`Successfully reloaded ${data.length} application (/) commands.`);
 
-// Check if MySQL is set up properly and its working
-if (!(await initTables())) {
-    throw new Error("Error initializing tables");
-}
-
 // Get Twitch token
 if (!(await getTwitchToken())) {
     throw new Error("Error getting Twitch token");
@@ -94,4 +74,15 @@ await Promise.all(
     getEvents.map(async (file) => {
         await import("./events/" + file);
     }),
+);
+
+// Update the guilds on startup
+await updateGuildsOnStartup();
+
+// Attempt the garbage collection every hour
+setInterval(
+    () => {
+        Bun.gc(true);
+    },
+    60 * 60 * 1000,
 );

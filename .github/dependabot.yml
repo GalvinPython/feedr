@@ -1,9 +1,21 @@
+# TODO: Labels on package updates after project restructure
+
 version: 2
 updates:
-  - package-ecosystem: "npm"
+  - package-ecosystem: "bun"
     directory: "/"
     schedule:
       interval: "weekly"
-    assignees:
-      - "GalvinPython"
+    target-branch: "dev"
+
+  - package-ecosystem: "bun"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+    target-branch: "dev"
+
+  - package-ecosystem: "cargo"
+    directory: "/api"
+    schedule:
+      interval: "weekly"
     target-branch: "dev"

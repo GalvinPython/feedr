@@ -40,37 +40,108 @@ Feedr strives for constant improvement, so here's what will be implemented
 
 # Developer Instructions
 
+> [!NOTE]
+> Rewrite soon!
+
 Feedr requires Bun in order to work
 
 1. To install, run `bun i`
 2. Fill out all the required values in `.env.example` and rename it to `.env` once done
 3. To run in developer mode, just run `bun --watch . --dev`, otherwise `bun run .`
 
+## Make (Optional)
+
+> [!NOTE]
+> This is completely optional. This is just for deploying easier to production
+
+There are several `make` commands to execute the different scripts in `/scripts`:
+
+- `make setup`: Setup the services for Feedr's components
+- `make delete`: Delete the services (for testing purposes)
+- `make update`: Update the repo and restart the services
+
+Make is normally installed with other GNU apps on Linux distros
+
+## Design Rules
+
+These rules are what to follow when working and developing on Feedr. There aren't a lot, but important for error handling.
+
+### Database Function Return Guidelines
+
+Each database function (located in `/src/utils/db`) should **always** return a success indicator (`true`/`false`) along with associated data. To avoid confusion, here are the expected return types:
+
+- **Success with data:** `true` should always return populated data, even if the data is not used. For example:
+
+  ```ts
+  return { success: true, data: Data as Data };
+  ```
+
+- **Success without data:** `true` can also indicate a successful operation where no data is returned. In this case, an empty array (`[]`) should be provided:
+
+  ```ts
+  return { success: true, data: [] };
+  ```
+
+- **Failure:** `false` should indicate an error or unsuccessful operation. This should always return an empty array (`[]`) to ensure consistency:
+  ```ts
+  return { success: false, data: [] };
+  ```
+
+These guidelines ensure predictable behavior and simplify error handling across the application.
+
 # Changelog
 
-## 1.4.0
+## 2.0.0
+
+> [!NOTE]
+> WIP update!
+
+### Fixes
+
+- Fixed the double notification bug
+
+### Changes
+
+- Moved to Postgres as our database engine
+
+### Features
+
+- Improved flow of `/track` command
+  - Autocomplete for YouTube
+  - Filter by videos, shorts and streams for YouTube!
+- `/tracked` is now improved and is an interactive embed!
+- Can now use search/autocomplete for `/track` for both YouTube and Twitch
+
+### Known Issues
+
+- Twitch channel username doesn't show up in `/track`
+- Unable to subscribe to updates via the bot
+
+## V1
+
+### 1.4.0
 
 - Added a new command! `/tracked` ([#50](https://github.com/GalvinPython/feedr/issues/50))
   - See all the tracked channels in your server
   - The channel you ran the command in will appear first as there is no option to only see the current channel for now
-- Locale improvments ([#43](https://github.com/GalvinPython/feedr/issues/43))
+- Locale improvements ([#43](https://github.com/GalvinPython/feedr/issues/43))
 
-## 1.3.0
+### 1.3.0
 
 - Moved database to SQLite
 
-## 1.2.0
+### 1.2.0
 
 - Added Twitch feed
 - `platform` added to both **/track** and **/untrack**
 
-## 1.1.0
+### 1.1.0
 
 - Replies are no longer deferred
 - Messages can now be sent in Announcement channels [1.0.3]
 - Better checking for valid YouTube channel IDs
 - Channels with no uploads will be tracked now
 
-## 1.0.0
+### 1.0.0
 
 - Initial release

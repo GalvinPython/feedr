@@ -1,11 +1,16 @@
-// NOTE: Experimental
-import type { InnertubeSearchRequest } from "../../types/innertube";
+import type { InnertubeSearchRequest } from "../../types/youtube";
+
+import { config } from "../../config";
+import formatLargeNumber from "../formatLargeNumber";
 
 export default async function (query: string) {
     try {
+        // This will NOT work without Bun due to proxy not being in NodeJS
+        // Unfortunately theres no type for this that will make Typescript happy so this is a TODO: thing
         const response = await fetch(
             "https://www.youtube.com/youtubei/v1/search?prettyPrint=false",
             {
+                proxy: config.youtubeInnertubeProxyUrl,
                 headers: {
                     "X-Goog-Fieldmask":
                         "contents.twoColumnSearchResultsRenderer.primaryContents.sectionListRenderer.contents.itemSectionRenderer.contents",
@@ -21,12 +26,55 @@ export default async function (query: string) {
                     query: query,
                 }),
                 method: "POST",
-            },
+            } as any,
         );
-        const data = (await response.json()) as Promise<InnertubeSearchRequest>;
+
+        const data = (
+            await ((await response.json()) as Promise<InnertubeSearchRequest>)
+        ).contents.twoColumnSearchResultsRenderer.primaryContents
+            .sectionListRenderer.contents;
 
         console.dir(data, { depth: null });
+
+        if (!data || data.length === 0) {
+            console.error("No search results found for query:", query);
+
+            return [];
+        }
+
+        const channelsResponse: Array<{
+            title: string;
+            handle: string;
+            subscribers: number | string;
+            channel_id: string;
+        }> = [];
+
+        for (const content of data ?? []) {
+            for (const channel of content?.itemSectionRenderer?.contents ??
+                []) {
+                if (channel?.channelRenderer?.channelId) {
+                    channelsResponse.push({
+                        title:
+                            channel?.channelRenderer?.longBylineText?.runs?.[0]
+                                ?.text || "N/A",
+                        handle:
+                            channel?.channelRenderer?.subscriberCountText
+                                ?.simpleText || "N/A",
+                        subscribers: formatLargeNumber(
+                            channel?.channelRenderer?.videoCountText
+                                ?.simpleText,
+                        ),
+                        channel_id:
+                            channel?.channelRenderer?.channelId || "N/A",
+                    });
+                }
+            }
+        }
+
+        return channelsResponse;
     } catch (err) {
         console.error(err);
+
+        return [];
     }
 }

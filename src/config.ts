@@ -1,15 +1,59 @@
 // FILL IN THIS INFORMATION IN .ENV
-export const config: { [key: string]: string | number } = {
+export const runningInDevMode: boolean = process.argv.includes("--dev");
+
+// Staging mode is for only testing the production database before breaking the actual production bot
+// Run `bun db:migrate:staging` to migrate the staging database and check for any mistakes before running `bun db:migrate:prod`
+// Do NOT use this mode for regular testing, use --dev for that
+export const runningInStagingMode: boolean = process.argv.includes("--staging");
+
+if (runningInDevMode && runningInStagingMode) {
+    throw new Error("Cannot run in both dev and staging mode!");
+}
+
+export interface Config {
+    youtubeInnertubeProxyUrl: string | null;
+    updateIntervalYouTube: number;
+    updateIntervalTwitch: number;
+    databaseUrl: string | undefined;
+    discordWaitForGuildCacheTime: number;
+    discordCollectorTimeout: number;
+    discordComponentsPageSize: number;
+}
+
+export const config: Config = {
+    youtubeInnertubeProxyUrl: process.env?.YOUTUBE_INNERTUBE_PROXY_URL ?? null,
     updateIntervalYouTube: process.env?.CONFIG_UPDATE_INTERVAL_YOUTUBE
         ? parseInt(process.env?.CONFIG_UPDATE_INTERVAL_YOUTUBE) * 1000
         : 60_000,
     updateIntervalTwitch: process.env?.CONFIG_UPDATE_INTERVAL_TWITCH
         ? parseInt(process.env?.CONFIG_UPDATE_INTERVAL_TWITCH) * 1000
         : 60_000,
+    databaseUrl: runningInDevMode
+        ? process.env?.POSTGRES_DEV_URL
+        : runningInStagingMode
+          ? process.env?.POSTGRES_STAGING_URL
+          : process.env?.POSTGRES_URL,
+    discordWaitForGuildCacheTime: process.env
+        ?.CONFIG_DISCORD_WAIT_FOR_GUILD_CACHE_TIME
+        ? parseInt(process.env?.CONFIG_DISCORD_WAIT_FOR_GUILD_CACHE_TIME) * 1000
+        : 10_000,
+    discordCollectorTimeout: process.env?.CONFIG_DISCORD_COLLECTOR_TIMEOUT
+        ? parseInt(process.env?.CONFIG_DISCORD_COLLECTOR_TIMEOUT) * 1000
+        : 60_000,
+    discordComponentsPageSize: process.env?.CONFIG_DISCORD_COMPONENTS_PAGE_SIZE
+        ? parseInt(process.env?.CONFIG_DISCORD_COMPONENTS_PAGE_SIZE)
+        : 10,
 };
 
-export const env: { [key: string]: string | undefined } = {
-    discordToken: process.argv.includes("--dev")
+interface Env {
+    discordToken: string | undefined;
+    youtubeApiKey: string | undefined;
+    twitchClientId: string | undefined;
+    twitchClientSecret: string | undefined;
+}
+
+export const env: Env = {
+    discordToken: runningInDevMode
         ? process.env?.DISCORD_DEV_TOKEN
         : process.env?.DISCORD_TOKEN,
     youtubeApiKey: process.env?.YOUTUBE_API_KEY,
