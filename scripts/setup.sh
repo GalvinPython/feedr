@@ -32,8 +32,8 @@ Description=Feedr Bot Service
 After=network.target
 
 [Service]
-WorkingDirectory=${WORKDIR}/src
-ExecStart=${BUN_PATH} run index.ts
+WorkingDirectory=${WORKDIR}
+ExecStart=${BUN_PATH} run src/index.ts
 Restart=on-failure
 User=$USER
 Environment=NODE_ENV=production
