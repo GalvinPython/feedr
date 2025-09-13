@@ -136,10 +136,6 @@ export default async function fetchLatestUploads() {
                     [PlaylistType.Stream]: streamVideoId,
                 };
 
-                // contentType = Object.entries(videoIdMap).find(
-                //     ([, id]) => id,
-                // )?.[0] as PlaylistType | null;
-
                 console.log("Determined content type:", contentType);
 
                 if (contentType) {
