@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "cron": "^4.3.0",
-    "discord.js": "^14.19.1",
+    "discord.js": "^14.22.1",
     "drizzle-orm": "^0.44.2",
     "hfksdjfskfhsjdfhkasfdhksf": "^1.0.5",
     "pg": "^8.15.6"
