@@ -79,19 +79,26 @@ export default async function fetchLatestUploads() {
             const videoId =
                 playlist.snippet.thumbnails.default.url.split("/")[4];
 
+            if (!channelDict[channelId]) {
+                console.error(
+                    "Channel ID not found in channelDict:",
+                    channelId,
+                );
+                continue;
+            }
+
             const requiresUpdate =
                 channelDict[channelId].latestAllId !== videoId;
 
-            console.log(
-                "Channel ID:",
-                channelId,
-                "Video ID:",
-                videoId,
-                "Requires update?",
-                requiresUpdate,
-            );
-
             if (requiresUpdate) {
+                console.log(
+                    "Channel ID:",
+                    channelId,
+                    "Video ID:",
+                    videoId,
+                    "Requires update?",
+                    requiresUpdate,
+                );
                 const [longVideoId, shortVideoId, streamVideoId] =
                     await Promise.all([
                         getSinglePlaylistAndReturnVideoData(
