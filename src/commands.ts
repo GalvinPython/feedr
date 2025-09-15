@@ -18,7 +18,6 @@ import {
     TextChannel,
     type ApplicationCommandOptionData,
     type CacheType,
-    type CommandInteraction,
 } from "discord.js";
 import { PermissionFlagsBits } from "discord-api-types/v8";
 import hfksdjfskfhsjdfhkasfdhksf from "hfksdjfskfhsjdfhkasfdhksf";
@@ -83,7 +82,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction) => {
             await interaction
                 .reply({
                     flags: MessageFlags.Ephemeral,
@@ -100,7 +99,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction) => {
             await client.application?.commands?.fetch().catch(console.error);
             const chat_commands = client.application?.commands.cache.map(
                 (a) => {
@@ -124,7 +123,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction) => {
             await interaction
                 .reply({
                     flags: MessageFlags.Ephemeral,
@@ -141,7 +140,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction) => {
             await interaction
                 .reply({
                     flags: MessageFlags.Ephemeral,
@@ -161,7 +160,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction) => {
             await interaction.reply({
                 flags: MessageFlags.Ephemeral,
                 content: hfksdjfskfhsjdfhkasfdhksf(),
@@ -177,7 +176,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction) => {
             const heap = heapStats();
 
             Bun.gc(false);
@@ -278,13 +277,11 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction) => {
             const isDm = !interaction.inGuild();
 
             // Get the YouTube Channel ID
-            const targetPlatform = (
-                interaction as ChatInputCommandInteraction
-            ).options.getSubcommand();
+            const targetPlatform = interaction.options.getSubcommand();
             const platformUserId =
                 targetPlatform === "youtube"
                     ? (interaction.options.get("channel_id")?.value as string)
@@ -829,7 +826,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction) => {
             const isDm = !interaction.inGuild();
 
             // Get the YouTube Channel ID
@@ -917,7 +914,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction) => {
             let guildId = interaction.guildId;
 
             const isDm = !interaction.inGuild();
@@ -1200,7 +1197,7 @@ const commands: Record<string, Command> = {
                 },
             ],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction) => {
             const isDm = !interaction.inGuild();
 
             const channelId = interaction.channelId;
