@@ -18,6 +18,10 @@ client.once(Events.ClientReady, async (bot) => {
     //     await cronUpdateBotInfo();
     // }).start();
 
+    console.log(
+        `Setting intervals: YouTube - ${config.updateIntervalYouTube}ms, Twitch - ${config.updateIntervalTwitch}ms`,
+    );
+
     fetchLatestUploads();
     setInterval(fetchLatestUploads, config.updateIntervalYouTube as number);
 

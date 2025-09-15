@@ -79,19 +79,26 @@ export default async function fetchLatestUploads() {
             const videoId =
                 playlist.snippet.thumbnails.default.url.split("/")[4];
 
+            if (!channelDict[channelId]) {
+                console.error(
+                    "Channel ID not found in channelDict:",
+                    channelId,
+                );
+                continue;
+            }
+
             const requiresUpdate =
                 channelDict[channelId].latestAllId !== videoId;
 
-            console.log(
-                "Channel ID:",
-                channelId,
-                "Video ID:",
-                videoId,
-                "Requires update?",
-                requiresUpdate,
-            );
-
             if (requiresUpdate) {
+                console.log(
+                    "Channel ID:",
+                    channelId,
+                    "Video ID:",
+                    videoId,
+                    "Requires update?",
+                    requiresUpdate,
+                );
                 const [longVideoId, shortVideoId, streamVideoId] =
                     await Promise.all([
                         getSinglePlaylistAndReturnVideoData(
@@ -117,15 +124,26 @@ export default async function fetchLatestUploads() {
 
                 let contentType: PlaylistType | null = null;
 
+                if (videoId == longVideoId.videoId) {
+                    contentType = PlaylistType.Video;
+                } else if (videoId == shortVideoId.videoId) {
+                    contentType = PlaylistType.Short;
+                } else if (videoId == streamVideoId.videoId) {
+                    contentType = PlaylistType.Stream;
+                } else {
+                    console.error(
+                        "Video ID does not match any fetched video IDs for channel",
+                        channelId,
+                    );
+                }
+
                 const videoIdMap = {
                     [PlaylistType.Video]: longVideoId,
                     [PlaylistType.Short]: shortVideoId,
                     [PlaylistType.Stream]: streamVideoId,
                 };
 
-                contentType = Object.entries(videoIdMap).find(
-                    ([, id]) => id,
-                )?.[0] as PlaylistType | null;
+                console.log("Determined content type:", contentType);
 
                 if (contentType) {
                     console.log(
