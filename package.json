@@ -6,7 +6,7 @@
   "devDependencies": {
     "@types/bun": "1.2.21",
     "@types/pg": "^8.11.14",
-    "@typescript-eslint/eslint-plugin": "8.11.0",
+    "@typescript-eslint/eslint-plugin": "8.45.0",
     "@typescript-eslint/parser": "8.11.0",
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
