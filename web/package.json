@@ -9,7 +9,7 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/tailwind": "^5.1.0",
+    "@astrojs/tailwind": "^6.0.2",
     "@fontsource/inter": "^5.0.18",
     "@number-flow/react": "^0.5.9",
     "@skyra/discord-components-react": "^3.6.1",
