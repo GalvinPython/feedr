@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SiGithub } from "react-icons/si";
+import { SiDiscord, SiGithub } from "react-icons/si";
 
 // @ts-ignore This is an image import
 import FeedrLogo from "../assets/images/feedr.png";
@@ -30,15 +30,15 @@ export const Navbar = () => {
                     exit={{ opacity: 0 }}
                 >
                     <a href="/" aria-label="Home">
-                        <div className="flex justify-start items-center grow basis-0">
-                            <div className="text-white mr-2 text-6xl">
+                        <div className="flex justify-start items-center">
+                            <div className="text-white text-6xl">
                                 <img
                                     src={FeedrLogo.src}
                                     alt="Feedr Logo"
-                                    className="w-10 h-10 rounded-full"
+                                    className="w-10 h-10 aspect-square rounded-full"
                                 />
                             </div>
-                            <div className="text-white font-['Inter'] font-bold text-xl">
+                            <div className="text-white font-bold text-xl">
                                 Feedr
                             </div>
                         </div>
@@ -69,16 +69,36 @@ export const Navbar = () => {
                     transition={{ duration: 0.3 }}
                     exit={{ opacity: 0 }}
                 >
-                    <div className="grow basis-0 justify-end hidden lg:flex">
+                    <div className="grow basis-0 justify-end hidden lg:flex gap-4">
                         <a
                             className="text-white main-border-gray rounded-xl
-           bg-bgDark2 hover:bg-bgDark3  border-gray-700 pl-6 pr-8 pt-2 pb-2 text-sm flex items-center"
+           bg-bgDark2 hover:bg-bgDark3 border-gray-700 pl-6 pr-8 pt-2 pb-2 text-sm inline-flex items-center whitespace-nowrap"
                             href="https://github.com/galvinpython/feedr"
                             target="_blank"
                             aria-label="source code"
                         >
                             <SiGithub className="mr-2" />
                             <span className="pt-px">Source code</span>
+                        </a>
+                        <a
+                            className="text-white main-border-gray rounded-xl
+           bg-bgDark2 hover:bg-bgDark3 border-gray-700 pl-6 pr-8 pt-2 pb-2 text-sm inline-flex items-center whitespace-nowrap"
+                            href="https://github.com/galvinpython/feedr"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            <SiDiscord className="mr-2" />
+                            Add to Discord
+                        </a>
+                        <a
+                            className="text-white main-border-gray rounded-xl
+           bg-bgDark2 hover:bg-bgDark3 border-gray-700 pl-6 pr-8 pt-2 pb-2 text-sm inline-flex items-center whitespace-nowrap"
+                            href="https://github.com/galvinpython/feedr"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            <SiDiscord className="mr-2" />
+                            Support Server
                         </a>
                     </div>
                 </motion.div>
@@ -124,6 +144,24 @@ export const Navbar = () => {
                             >
                                 <SiGithub className="mr-2" />
                                 Source code
+                            </a>
+                            <a
+                                className="outlined-button pl-6 pr-8 pt-2 pb-2  flex items-center"
+                                href="https://github.com/galvinpython/feedr"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <SiDiscord className="mr-2" />
+                                Add to Discord
+                            </a>
+                            <a
+                                className="outlined-button pl-6 pr-8 pt-2 pb-2  flex items-center"
+                                href="https://github.com/galvinpython/feedr"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <SiDiscord className="mr-2" />
+                                Support Server
                             </a>
                         </div>
                     </motion.div>

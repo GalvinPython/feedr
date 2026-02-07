@@ -6,6 +6,30 @@ const FAQData = [
         question: "How often does Feedr check for new posts?",
         answer: "YouTube: 3 seconds, Twitch: 2 seconds",
     },
+    {
+        question: "Is Feedr free to use?",
+        answer: "Yes, Feedr is free to use, and will be free forever with YouTube and Twitch support as they have free API platforms. However, other social media platforms that we wish to support in the future may are not so kind and may require a subscription; however this is not planned at the moment due to legal reasons.",
+    },
+    {
+        question: "Which platforms does Feedr support?",
+        answer: "Currently, Feedr supports YouTube and Twitch. We plan to add more platforms in the future based on user feedback.",
+    },
+    {
+        question: "What platforms are planned for future support?",
+        answer: "We can't guarantee any specific platforms at the moment, and are pending developer agreements and costs. Bluesky is one platform we are looking into, but nothing is confirmed yet",
+    },
+    {
+        question: "Can I self-host Feedr?",
+        answer: "Yes! Feedr is open-source and can be self-hosted. You can find the source code on our GitHub repository. Please note that self-hosting will require your own server and API keys.",
+    },
+    {
+        question: "Where is Feedr hosted?",
+        answer: "Feedr is hosted on cloud infrastructure to ensure reliability and scalability. However, we are hosted in the EU and comply with GDPR regulations.",
+    },
+    {
+        question: "How can I provide feedback or report issues?",
+        answer: "You can provide feedback or report issues by visiting our GitHub repository and opening an issue. Feedr's Discord support is handled through our sister project, socialstats.app. Email support is not available at this time.",
+    },
 ];
 
 export const FAQ = () => (
@@ -59,9 +83,8 @@ const FAQBox = ({ defaultOpen, title, content }) => {
                     {title}
                 </h3>
                 <p
-                    className={`text-secondaryText pt-4 transition-height duration-300 overflow-hidden ${
-                        isOpen ? "max-h-96" : "max-h-0"
-                    }`}
+                    className={`text-secondaryText pt-4 transition-height duration-300 overflow-hidden ${isOpen ? "max-h-96" : "max-h-0"
+                        }`}
                 >
                     {content}
                 </p>
@@ -73,9 +96,8 @@ const FAQBox = ({ defaultOpen, title, content }) => {
                     viewBox="0 0 20 20"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
-                    className={`transition-all duration-500  ${
-                        isOpen ? "rotate-[180deg]" : "rotate-[90deg]"
-                    }`}
+                    className={`transition-all duration-500  ${isOpen ? "rotate-[180deg]" : "rotate-[90deg]"
+                        }`}
                 >
                     <path
                         d="M4.16732 12.5L10.0007 6.66667L15.834 12.5"

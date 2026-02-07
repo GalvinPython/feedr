@@ -14,7 +14,7 @@ export const TrustedBy = () => {
                 transition={{ duration: 0.5, delay: 0.2 }}
                 onViewportEnter={() => {
                     setTimeout(() => {
-                        setOdometerValue(213);
+                        setOdometerValue(387);
                     }, 500);
                 }}
             >
