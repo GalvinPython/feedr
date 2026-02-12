@@ -16,15 +16,21 @@ import getSinglePlaylistAndReturnVideoData, {
 } from "./getSinglePlaylistAndReturnVideoData";
 
 /**
- * Parse an ISO 8601 duration string (e.g. "PT1H2M3S") into total seconds.
+ * Parse a full ISO 8601 duration string into total seconds.
+ * Supports formats like "PT1H2M3S", "P1DT2H3M4S", "PT30S", etc.
+ * Note: YouTube typically returns PT-prefixed durations, but very long
+ * streams/videos could include a day component (P1DT...).
  */
 function parseISO8601Duration(duration: string): number {
-    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    const match = duration.match(
+        /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/,
+    );
     if (!match) return 0;
-    const hours = parseInt(match[1] || "0", 10);
-    const minutes = parseInt(match[2] || "0", 10);
-    const seconds = parseInt(match[3] || "0", 10);
-    return hours * 3600 + minutes * 60 + seconds;
+    const days = parseInt(match[1] || "0", 10);
+    const hours = parseInt(match[2] || "0", 10);
+    const minutes = parseInt(match[3] || "0", 10);
+    const seconds = parseInt(match[4] || "0", 10);
+    return days * 86400 + hours * 3600 + minutes * 60 + seconds;
 }
 
 /**
@@ -44,10 +50,20 @@ async function fetchVideoDuration(videoId: string): Promise<number> {
         return 0;
     }
 
+    // TODO: Type the response from YouTube API for better type safety
     const data = await res.json();
     if (!data.items || data.items.length === 0) return 0;
 
-    return parseISO8601Duration(data.items[0].contentDetails.duration);
+    const durationFirstItem = data.items[0];
+    if (!durationFirstItem.contentDetails || !durationFirstItem.contentDetails.duration) {
+        console.error("Duration not found in video details for video ID:", videoId,);
+        return 0;
+    }
+
+    const duration = durationFirstItem?.contentDetails?.duration;
+    if (typeof duration !== "string") return 0;
+
+    return parseISO8601Duration(duration);
 }
 
 export const updates = new Map<
@@ -135,14 +151,17 @@ export default async function fetchLatestUploads() {
                     requiresUpdate,
                 );
                 // Use duration-based detection to reduce API quota usage
-                // and avoid UULF which is currently lagging
+                // and avoid UULF which is currently lagging.
+                // YouTube Shorts are currently limited to 3 minutes (180s).
+                // Videos at exactly 180s could still be shorts, so we use
+                // a strict greater-than check.
                 const durationSeconds = await fetchVideoDuration(videoId);
-                const THREE_MINUTES = 180;
+                const SHORTS_DURATION = 180;
 
                 let contentType: PlaylistType | null = null;
 
-                if (durationSeconds >= THREE_MINUTES) {
-                    // Over 3 minutes: cannot be a short, check only if it's a stream
+                if (durationSeconds > SHORTS_DURATION) {
+                    // Over the shorts limit: cannot be a short, check only if it's a stream
                     const streamVideoId = await getSinglePlaylistAndReturnVideoData(
                         channelId,
                         PlaylistType.Stream,
