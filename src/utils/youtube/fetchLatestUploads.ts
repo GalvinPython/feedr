@@ -15,6 +15,41 @@ import getSinglePlaylistAndReturnVideoData, {
     PlaylistType,
 } from "./getSinglePlaylistAndReturnVideoData";
 
+/**
+ * Parse an ISO 8601 duration string (e.g. "PT1H2M3S") into total seconds.
+ */
+function parseISO8601Duration(duration: string): number {
+    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    if (!match) return 0;
+    const hours = parseInt(match[1] || "0", 10);
+    const minutes = parseInt(match[2] || "0", 10);
+    const seconds = parseInt(match[3] || "0", 10);
+    return hours * 3600 + minutes * 60 + seconds;
+}
+
+/**
+ * Fetch the duration (in seconds) of a video using the YouTube Videos API.
+ * Returns 0 if the duration cannot be determined.
+ */
+async function fetchVideoDuration(videoId: string): Promise<number> {
+    const res = await fetch(
+        `https://youtube.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoId}&key=${env.youtubeApiKey}`,
+    );
+
+    if (!res.ok) {
+        console.error(
+            "Error fetching video duration:",
+            res.statusText,
+        );
+        return 0;
+    }
+
+    const data = await res.json();
+    if (!data.items || data.items.length === 0) return 0;
+
+    return parseISO8601Duration(data.items[0].contentDetails.duration);
+}
+
 export const updates = new Map<
     string,
     {
@@ -99,12 +134,29 @@ export default async function fetchLatestUploads() {
                     "Requires update?",
                     requiresUpdate,
                 );
-                const [longVideoId, shortVideoId, streamVideoId] =
-                    await Promise.all([
-                        getSinglePlaylistAndReturnVideoData(
-                            channelId,
-                            PlaylistType.Video,
-                        ),
+                // Use duration-based detection to reduce API quota usage
+                // and avoid UULF which is currently lagging
+                const durationSeconds = await fetchVideoDuration(videoId);
+                const THREE_MINUTES = 180;
+
+                let contentType: PlaylistType | null = null;
+
+                if (durationSeconds >= THREE_MINUTES) {
+                    // Over 3 minutes: cannot be a short, check only if it's a stream
+                    const streamVideoId = await getSinglePlaylistAndReturnVideoData(
+                        channelId,
+                        PlaylistType.Stream,
+                    );
+
+                    if (videoId === streamVideoId.videoId) {
+                        contentType = PlaylistType.Stream;
+                    } else {
+                        // Not a stream and over 3 min; must be a regular video
+                        contentType = PlaylistType.Video;
+                    }
+                } else {
+                    // Under 3 minutes: could be a short or a video, check UUSH and UULV
+                    const [shortVideoId, streamVideoId] = await Promise.all([
                         getSinglePlaylistAndReturnVideoData(
                             channelId,
                             PlaylistType.Short,
@@ -115,42 +167,24 @@ export default async function fetchLatestUploads() {
                         ),
                     ]);
 
-                if (!longVideoId && !shortVideoId && !streamVideoId) {
-                    console.error(
-                        "No video IDs found for channel in fetchLatestUploads",
-                    );
-                    continue;
+                    if (videoId === shortVideoId.videoId) {
+                        contentType = PlaylistType.Short;
+                    } else if (videoId === streamVideoId.videoId) {
+                        contentType = PlaylistType.Stream;
+                    } else {
+                        // Not in shorts or streams playlist → regular video
+                        contentType = PlaylistType.Video;
+                    }
                 }
 
-                let contentType: PlaylistType | null = null;
-
-                if (videoId == longVideoId.videoId) {
-                    contentType = PlaylistType.Video;
-                } else if (videoId == shortVideoId.videoId) {
-                    contentType = PlaylistType.Short;
-                } else if (videoId == streamVideoId.videoId) {
-                    contentType = PlaylistType.Stream;
-                } else {
-                    console.error(
-                        "Video ID does not match any fetched video IDs for channel",
-                        channelId,
-                    );
-                }
-
-                const videoIdMap = {
-                    [PlaylistType.Video]: longVideoId,
-                    [PlaylistType.Short]: shortVideoId,
-                    [PlaylistType.Stream]: streamVideoId,
-                };
-
-                console.log("Determined content type:", contentType);
+                console.log("Determined content type:", contentType, `(duration: ${durationSeconds}s)`);
 
                 if (contentType) {
                     console.log(
                         `Updating ${contentType} video ID for channel`,
                         channelId,
                         "to",
-                        videoIdMap[contentType as keyof typeof videoIdMap],
+                        videoId,
                     );
                 } else {
                     console.error(
