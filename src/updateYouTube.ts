@@ -7,8 +7,12 @@ if (!env.youtubeApiKey || env.youtubeApiKey === "YOUR_YOUTUBE_API_KEY") {
 
 console.log("Starting standalone YouTube database update...");
 
-await fetchLatestUploads();
+const updateSucceeded = await fetchLatestUploads();
 
-console.log("YouTube database update complete.");
+if (updateSucceeded === true) {
+    console.log("YouTube database update complete.");
+    process.exit(0);
+}
 
-process.exit(0);
+console.error("YouTube database update failed.");
+process.exit(1);
