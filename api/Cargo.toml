@@ -11,4 +11,4 @@ reqwest = { version = "0.12.14", features = ["json"] }
 dotenvy = "0.15.7"
 actix-cors = "0.7.1"
 lazy_static = "1.5.0"
-sqlx = { version = "0.8.5", features = ["postgres", "runtime-tokio", "chrono", "time"]}
+sqlx = { version = "0.9.0", features = ["postgres", "runtime-tokio", "chrono", "time"]}
