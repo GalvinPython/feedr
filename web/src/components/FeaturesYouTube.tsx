@@ -6,7 +6,7 @@ import featYoutube from "../assets/images/feat_youtube.png";
 export const FeaturesYouTube = () => {
     return (
         <section
-            className="lg:mb-16 w-full flex flex-col justify-center items-center bg-[#650013]"
+            className="lg:mb-16 w-full flex flex-col justify-center items-center bg-[#8b001a]"
             id="youtube"
         >
             <div className="shape-divider-bottom-1665696614">
@@ -19,7 +19,7 @@ export const FeaturesYouTube = () => {
                 >
                     <path
                         d="M1200 120L0 16.48 0 0 1200 0 1200 120z"
-                        className="bg-[#650013]  fill-[#650013]"
+                        className="bg-[#8b001a]  fill-[#8b001a]"
                     ></path>
                 </svg>
             </div>
@@ -29,7 +29,7 @@ export const FeaturesYouTube = () => {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: 0.2 }}
             >
-                <div className=" 2xl:w-[1150px] xl:w-[1050px]  md:w-4/5 flex justify-center bg-[#650013] pt-12 lg:pt-24 pb-8 lg:pb-20 mx-auto flex-col">
+                <div className="2xl:w-[1150px] xl:w-[1050px] md:w-4/5 flex justify-center bg-[#650013] pt-12 lg:pt-24 pb-8 lg:pb-20 mx-auto flex-col rounded-3xl overflow-hidden">
                     <div className="w-3/4 lg:w-1/2 flex flex-col lg:mx-unset mx-auto">
                         <span className="block-subtitle">YouTube</span>
                         <h2 className="mt-10 mb-8 text-4xl lg:text-5xl block-big-title">
@@ -69,7 +69,7 @@ export const FeaturesYouTube = () => {
                 >
                     <path
                         d="M1200 120L0 16.48 0 0 1200 0 1200 120z"
-                        className="bg-[#650013] fill-[#650013]"
+                        className="bg-[#8b001a] fill-[#8b001a]"
                     ></path>
                 </svg>
             </div>
