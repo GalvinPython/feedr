@@ -125,7 +125,7 @@ const commands: Record<string, Command> = {
         execute: async (interaction: CommandInteraction) => {
             await replyWithQuickEmbed(
                 interaction,
-                `[Github repository](https://github.com/GalvinPython/feedr)`,
+                `[GitHub repository](https://github.com/GalvinPython/feedr)`,
                 EmbedType.Info,
                 { title: "Source Code" },
             ).catch(console.error);
