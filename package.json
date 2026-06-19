@@ -1,51 +1,51 @@
 {
-  "name": "feedr",
-  "module": "src/index.ts",
-  "type": "module",
-  "version": "2.0.0-hotfix.1",
-  "devDependencies": {
-    "@types/bun": "1.2.21",
-    "@types/pg": "^8.11.14",
-    "@typescript-eslint/eslint-plugin": "8.11.0",
-    "@typescript-eslint/parser": "8.11.0",
-    "concurrently": "^9.1.2",
-    "cross-env": "^7.0.3",
-    "drizzle-kit": "^0.31.4",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "9.1.0",
-    "eslint-plugin-import": "^2.26.0",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "5.2.1",
-    "eslint-plugin-unused-imports": "4.1.4"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
-  },
-  "scripts": {
-    "db:generate": "bun drizzle-kit generate",
-    "db:push:dev": "cross-env NODE_ENV=development bun drizzle-kit push",
-    "db:push:staging": "cross-env NODE_ENV=staging bun drizzle-kit push",
-    "db:push:prod": "bun drizzle-kit push",
-    "db:migrate:staging": "bun src/db/migratedb.ts --staging",
-    "db:migrate:prod": "bun src/db/migratedb.ts",
-    "db:staging:reset": "bun src/db/resetStagingDatabase.ts --staging",
-    "dev": "concurrently --names \"WEB,API,BOT\" --prefix-colors \"blue,green,magenta\" \"cd web && bun dev\" \"cd api && cargo watch -x \\\"run -- --dev\\\"\" \"bun --watch . --dev\"",
-    "dev:bot": "bun --watch . --dev",
-    "test:jetstream": "bun --watch src/utils/bluesky/jetstream.ts",
-    "lint": "eslint src/ --ext .ts -c .eslintrc.json --debug",
-    "lint:fix": "eslint . --ext .ts -c .eslintrc.json --fix",
-    "cargo:api:dev": "cd api && cargo watch -x \"run -- --dev\"",
-    "web:dev": "concurrently --names \"WEB,API\" --prefix-colors \"blue,green\" \"cd web && bun dev\" \"cd api && cargo watch -x \\\"run -- --dev\\\"\"",
-    "web:build": "cd web && bun build",
-    "start:api": "echo 'Cannot start API without cargo. Reserved for future use' && exit 1",
-    "start:bot": "bun run src/bot.ts",
-    "start:web": "cd web && bun start"
-  },
-  "dependencies": {
-    "cron": "^4.3.0",
-    "discord.js": "^14.19.1",
-    "drizzle-orm": "^0.44.2",
-    "hfksdjfskfhsjdfhkasfdhksf": "^1.0.5",
-    "pg": "^8.15.6"
-  }
+    "name": "feedr",
+    "module": "src/index.ts",
+    "type": "module",
+    "version": "2.0.0-hotfix.1",
+    "devDependencies": {
+        "@types/bun": "1.2.21",
+        "@types/pg": "^8.11.14",
+        "@typescript-eslint/eslint-plugin": "8.11.0",
+        "@typescript-eslint/parser": "8.11.0",
+        "concurrently": "^9.1.2",
+        "cross-env": "^7.0.3",
+        "drizzle-kit": "^0.31.4",
+        "eslint": "^8.57.0",
+        "eslint-config-prettier": "9.1.0",
+        "eslint-plugin-import": "^2.26.0",
+        "eslint-plugin-node": "^11.1.0",
+        "eslint-plugin-prettier": "5.2.1",
+        "eslint-plugin-unused-imports": "4.1.4"
+    },
+    "peerDependencies": {
+        "typescript": "^6.0.3"
+    },
+    "scripts": {
+        "db:generate": "bun drizzle-kit generate",
+        "db:push:dev": "cross-env NODE_ENV=development bun drizzle-kit push",
+        "db:push:staging": "cross-env NODE_ENV=staging bun drizzle-kit push",
+        "db:push:prod": "bun drizzle-kit push",
+        "db:migrate:staging": "bun src/db/migratedb.ts --staging",
+        "db:migrate:prod": "bun src/db/migratedb.ts",
+        "db:staging:reset": "bun src/db/resetStagingDatabase.ts --staging",
+        "dev": "concurrently --names \"WEB,API,BOT\" --prefix-colors \"blue,green,magenta\" \"cd web && bun dev\" \"cd api && cargo watch -x \\\"run -- --dev\\\"\" \"bun --watch . --dev\"",
+        "dev:bot": "bun --watch . --dev",
+        "test:jetstream": "bun --watch src/utils/bluesky/jetstream.ts",
+        "lint": "eslint src/ --ext .ts -c .eslintrc.json --debug",
+        "lint:fix": "eslint . --ext .ts -c .eslintrc.json --fix",
+        "cargo:api:dev": "cd api && cargo watch -x \"run -- --dev\"",
+        "web:dev": "concurrently --names \"WEB,API\" --prefix-colors \"blue,green\" \"cd web && bun dev\" \"cd api && cargo watch -x \\\"run -- --dev\\\"\"",
+        "web:build": "cd web && bun build",
+        "start:api": "echo 'Cannot start API without cargo. Reserved for future use' && exit 1",
+        "start:bot": "bun run .",
+        "start:web": "cd web && bun start"
+    },
+    "dependencies": {
+        "cron": "^4.3.0",
+        "discord.js": "^14.26.4",
+        "drizzle-orm": "^0.44.2",
+        "hfksdjfskfhsjdfhkasfdhksf": "^1.0.5",
+        "pg": "^8.15.6"
+    }
 }

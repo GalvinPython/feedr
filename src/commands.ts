@@ -54,8 +54,8 @@ import {
     checkIfStreamerIsAlreadyTracked,
 } from "./db/twitch";
 import { config } from "./config";
-
-import client from ".";
+import { EmbedType, replyWithQuickEmbed } from "./utils/quickEmbed";
+import client from "./client";
 
 interface Command {
     data: {
@@ -84,12 +84,10 @@ const commands: Record<string, Command> = {
             contexts: [0, 1, 2],
         },
         execute: async (interaction: CommandInteraction) => {
-            await interaction
-                .reply({
-                    flags: MessageFlags.Ephemeral,
-                    content: `Ping: ${interaction.client.ws.ping}ms`,
-                })
-                .catch(console.error);
+            await replyWithQuickEmbed(
+                interaction,
+                `Ping: ${interaction.client.ws.ping}ms`,
+            ).catch(console.error);
         },
     },
     help: {
@@ -108,12 +106,12 @@ const commands: Record<string, Command> = {
                 },
             );
 
-            await interaction
-                .reply({
-                    flags: MessageFlags.Ephemeral,
-                    content: `Commands:\n${chat_commands?.join("\n")}`,
-                })
-                .catch(console.error);
+            await replyWithQuickEmbed(
+                interaction,
+                `Commands:\n${chat_commands?.join("\n")}`,
+                EmbedType.Info,
+                { title: "Available Commands" },
+            ).catch(console.error);
         },
     },
     sourcecode: {
@@ -125,12 +123,12 @@ const commands: Record<string, Command> = {
             contexts: [0, 1, 2],
         },
         execute: async (interaction: CommandInteraction) => {
-            await interaction
-                .reply({
-                    flags: MessageFlags.Ephemeral,
-                    content: `[Github repository](https://github.com/GalvinPython/feedr)`,
-                })
-                .catch(console.error);
+            await replyWithQuickEmbed(
+                interaction,
+                `[Github repository](https://github.com/GalvinPython/feedr)`,
+                EmbedType.Info,
+                { title: "Source Code" },
+            ).catch(console.error);
         },
     },
     uptime: {
@@ -142,15 +140,14 @@ const commands: Record<string, Command> = {
             contexts: [0, 1, 2],
         },
         execute: async (interaction: CommandInteraction) => {
-            await interaction
-                .reply({
-                    flags: MessageFlags.Ephemeral,
-                    content: `Uptime: ${(
-                        performance.now() /
-                        (86400 * 1000)
-                    ).toFixed(2)} days`,
-                })
-                .catch(console.error);
+            const uptimeDays = (performance.now() / (86400 * 1000)).toFixed(2);
+
+            await replyWithQuickEmbed(
+                interaction,
+                `Uptime: ${uptimeDays} days`,
+                EmbedType.Info,
+                { title: "Bot Uptime" },
+            ).catch(console.error);
         },
     },
     hmm: {
@@ -162,10 +159,7 @@ const commands: Record<string, Command> = {
             contexts: [0, 1, 2],
         },
         execute: async (interaction: CommandInteraction) => {
-            await interaction.reply({
-                flags: MessageFlags.Ephemeral,
-                content: hfksdjfskfhsjdfhkasfdhksf(),
-            });
+            await replyWithQuickEmbed(interaction, hfksdjfskfhsjdfhkasfdhksf());
         },
     },
     usage: {
@@ -181,22 +175,22 @@ const commands: Record<string, Command> = {
             const heap = heapStats();
 
             Bun.gc(false);
-            await interaction
-                .reply({
-                    flags: MessageFlags.Ephemeral,
-                    content: [
-                        `Heap size: ${(heap.heapSize / 1024 / 1024).toFixed(2)} MB / ${(
-                            heap.heapCapacity /
-                            1024 /
-                            1024
-                        ).toFixed(
-                            2,
-                        )} MB (${(heap.extraMemorySize / 1024 / 1024).toFixed(2)} MB) (${heap.objectCount.toLocaleString()} objects, ${heap.protectedObjectCount.toLocaleString()} protected-objects)`,
-                    ]
-                        .join("\n")
-                        .slice(0, 2000),
-                })
-                .catch(console.error);
+            await replyWithQuickEmbed(
+                interaction,
+                [
+                    `Heap size: ${(heap.heapSize / 1024 / 1024).toFixed(2)} MB / ${(
+                        heap.heapCapacity /
+                        1024 /
+                        1024
+                    ).toFixed(
+                        2,
+                    )} MB (${(heap.extraMemorySize / 1024 / 1024).toFixed(2)} MB) (${heap.objectCount.toLocaleString()} objects, ${heap.protectedObjectCount.toLocaleString()} protected-objects)`,
+                ]
+                    .join("\n")
+                    .slice(0, 2000),
+                EmbedType.Info,
+                { title: "Usage Stats" },
+            ).catch(console.error);
         },
     },
     track: {
@@ -296,11 +290,11 @@ const commands: Record<string, Command> = {
 
             // Checks if the platform is valid ig
             if (targetPlatform != "youtube" && targetPlatform != "twitch") {
-                await interaction.reply({
-                    flags: MessageFlags.Ephemeral,
-                    content:
-                        "Platform not supported! Please select a platform to track!",
-                });
+                await replyWithQuickEmbed(
+                    interaction,
+                    "Platform not supported! Please select a platform to track!",
+                    EmbedType.Error,
+                );
 
                 return;
             }
@@ -312,11 +306,11 @@ const commands: Record<string, Command> = {
                 (platformUserId.length !== 24 ||
                     !platformUserId.startsWith("UC"))
             ) {
-                await interaction.reply({
-                    flags: MessageFlags.Ephemeral,
-                    content:
-                        'Invalid YouTube channel ID format! Each channel ID should be 24 characters long and start with "UC". Need to find the channel ID? We have a guide here: https://github.com/GalvinPython/feedr/wiki/Guide:-How-to-get-the-YouTube-Channel-ID. If this was an issue with the autocomplete, please report it!',
-                });
+                await replyWithQuickEmbed(
+                    interaction,
+                    'Invalid YouTube channel ID format! Each channel ID should be 24 characters long and start with "UC". Need to find the channel ID? We have a guide here: https://github.com/GalvinPython/feedr/wiki/Guide:-How-to-get-the-YouTube-Channel-ID. If this was an issue with the autocomplete, please report it!',
+                    EmbedType.Error,
+                );
 
                 return;
             }
@@ -333,11 +327,11 @@ const commands: Record<string, Command> = {
                         PermissionFlagsBits.ManageChannels,
                     )
                 ) {
-                    await interaction.reply({
-                        flags: MessageFlags.Ephemeral,
-                        content:
-                            "You do not have the permission to manage channels!",
-                    });
+                    await replyWithQuickEmbed(
+                        interaction,
+                        "You need the Manage Channels permission to use /track in this server.",
+                        EmbedType.Error,
+                    );
 
                     return;
                 }
@@ -388,20 +382,22 @@ const commands: Record<string, Command> = {
                     .map((permission) => permission.name);
 
                 if (missingPermissions.length > 0) {
-                    await interaction.reply({
-                        flags: MessageFlags.Ephemeral,
-                        content: `The bot does not have the required permissions for the target channel! Missing permissions: ${missingPermissions.join(", ")}`,
-                    });
+                    await replyWithQuickEmbed(
+                        interaction,
+                        `I can't post tracking updates to <#${discordChannelId}>. Missing permissions: ${missingPermissions.join(", ")}.`,
+                        EmbedType.Error,
+                    );
 
                     return;
                 }
             } else if (isDm) {
                 // DM channels don't need permission checks
             } else {
-                await interaction.reply({
-                    flags: MessageFlags.Ephemeral,
-                    content: "The target channel is not a text channel!",
-                });
+                await replyWithQuickEmbed(
+                    interaction,
+                    `The selected updates channel (<#${discordChannelId}>) is not a text/announcement channel.`,
+                    EmbedType.Error,
+                );
 
                 return;
             }
@@ -423,10 +419,11 @@ const commands: Record<string, Command> = {
                         ?.value as number;
 
                     if (!contentType) {
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content: "Please specify a valid content type!",
-                        });
+                        await replyWithQuickEmbed(
+                            interaction,
+                            `Please choose at least one YouTube content type to track for channel ${platformUserId}.`,
+                            EmbedType.Error,
+                        );
 
                         return;
                     }
@@ -436,21 +433,22 @@ const commands: Record<string, Command> = {
                         platformUserId.length != 24 ||
                         !platformUserId.startsWith("UC")
                     ) {
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content:
-                                'Invalid YouTube channel ID format! Each channel ID should be 24 characters long and start with "UC". Handles are currently not supported. Need to find the channel ID? We have a guide here: https://github.com/GalvinPython/feedr/wiki/Guide:-How-to-get-the-YouTube-Channel-ID',
-                        });
+                        await replyWithQuickEmbed(
+                            interaction,
+                            'Invalid YouTube channel ID format! Each channel ID should be 24 characters long and start with "UC". Handles are currently not supported. Need to find the channel ID? We have a guide here: https://github.com/GalvinPython/feedr/wiki/Guide:-How-to-get-the-YouTube-Channel-ID',
+                            EmbedType.Error,
+                        );
 
                         return;
                     }
 
                     // Check if the channel is valid
                     if (!(await checkIfChannelIdIsValid(platformUserId))) {
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content: "That channel doesn't exist!",
-                        });
+                        await replyWithQuickEmbed(
+                            interaction,
+                            `The YouTube channel ID ${platformUserId} was not found.`,
+                            EmbedType.Error,
+                        );
 
                         return;
                     }
@@ -473,10 +471,11 @@ const commands: Record<string, Command> = {
                         !shouldTrackShorts &&
                         !shouldTrackStreams
                     ) {
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content: `You must select at least one type of content to track.`,
-                        });
+                        await replyWithQuickEmbed(
+                            interaction,
+                            "You must select at least one type of content to track.",
+                            EmbedType.Error,
+                        );
 
                         return;
                     }
@@ -492,10 +491,11 @@ const commands: Record<string, Command> = {
                     console.log(trackedChannels);
                     if (!trackedChannels || !trackedChannels.success) {
                         // TODO: Embed
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content: `An error occurred while trying to check if the channel is already being tracked in this guild! Please report this error!`,
-                        });
+                        await replyWithQuickEmbed(
+                            interaction,
+                            `Failed to check whether YouTube channel ${platformUserId} is already tracked in this ${isDm ? "DM" : "server"}.`,
+                            EmbedType.Error,
+                        );
 
                         return;
                     } else if (
@@ -513,14 +513,21 @@ const commands: Record<string, Command> = {
 
                             await interaction.reply({
                                 flags: MessageFlags.Ephemeral,
-                                content: `This channel is already being tracked in ${channelList}!`,
+                                embeds: [
+                                    new EmbedBuilder()
+                                        .setColor(0xfee75c)
+                                        .setTitle("Already Tracked")
+                                        .setDescription(
+                                            `YouTube channel ${platformUserId} is already being tracked in ${channelList}.`,
+                                        ),
+                                ],
                             });
                         } else {
-                            await interaction.reply({
-                                flags: MessageFlags.Ephemeral,
-                                content:
-                                    "This channel is already being tracked, but the data format is invalid.",
-                            });
+                            await replyWithQuickEmbed(
+                                interaction,
+                                `YouTube channel ${platformUserId} appears to be already tracked, but the stored subscription data is invalid. This is an internal error, please report it to the developer.`,
+                                EmbedType.Error,
+                            );
                         }
 
                         return;
@@ -536,11 +543,11 @@ const commands: Record<string, Command> = {
                     );
 
                     if (!isChannelTracked.success) {
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content:
-                                "An error occurred while trying to check if the channel is already being tracked globally! Please report this error!",
-                        });
+                        await replyWithQuickEmbed(
+                            interaction,
+                            `Failed to check global tracking status for YouTube channel ${platformUserId}. This is an internal error, please report it to the developer.`,
+                            EmbedType.Error,
+                        );
                     } else if (
                         isChannelTracked.success &&
                         isChannelTracked.data.length == 0
@@ -552,11 +559,11 @@ const commands: Record<string, Command> = {
                             await addNewChannelToTrack(platformUserId);
 
                         if (!channelAdded.success) {
-                            await interaction.reply({
-                                flags: MessageFlags.Ephemeral,
-                                content:
-                                    "An error occurred while trying to add the channel to track to the main YouTube database. Please report this issue!",
-                            });
+                            await replyWithQuickEmbed(
+                                interaction,
+                                `Failed to register YouTube channel ${platformUserId} in the global tracking database. This is an internal error, please report it to the developer.`,
+                                EmbedType.Error,
+                            );
 
                             return;
                         }
@@ -582,14 +589,21 @@ const commands: Record<string, Command> = {
 
                         await interaction.reply({
                             flags: MessageFlags.Ephemeral,
-                            content: `Started tracking the channel ${youtubeChannelInfo?.channelName ?? platformUserId} in <#${targetChannel?.id}>!`,
+                            embeds: [
+                                new EmbedBuilder()
+                                    .setColor(0x57f287)
+                                    .setTitle("Tracking Started")
+                                    .setDescription(
+                                        `Started tracking the channel ${youtubeChannelInfo?.channelName ?? platformUserId} in <#${targetChannel?.id}>!`,
+                                    ),
+                            ],
                         });
                     } else {
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content:
-                                "An error occurred while trying to add the guild to track the channel! Please report this error!",
-                        });
+                        await replyWithQuickEmbed(
+                            interaction,
+                            `Failed to create a YouTube subscription for channel ${platformUserId} in <#${discordChannelId}>. This is an internal error, please report it to the developer.`,
+                            EmbedType.Error,
+                        );
                     }
 
                     return;
@@ -600,11 +614,11 @@ const commands: Record<string, Command> = {
                     const streamerName = await getStreamerName(platformUserId);
 
                     if (!streamerName) {
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content:
-                                "That streamer doesn't exist! Please use the autocomplete to find the correct streamer ID as this uses IDs that are not publicly visible on the Twitch site!",
-                        });
+                        await replyWithQuickEmbed(
+                            interaction,
+                            `Twitch streamer ID ${platformUserId} was not found. Use autocomplete to pick a valid streamer`,
+                            EmbedType.Error,
+                        );
 
                         return;
                     }
@@ -620,10 +634,11 @@ const commands: Record<string, Command> = {
                     console.log(trackedChannels);
                     if (!trackedChannels || !trackedChannels.success) {
                         // TODO: Embed
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content: `An error occurred while trying to check if the channel is already being tracked in this guild! Please report this error!`,
-                        });
+                        await replyWithQuickEmbed(
+                            interaction,
+                            `Failed to check whether Twitch streamer ${streamerName ?? platformUserId} is already tracked in this ${isDm ? "DM" : "server"}.`,
+                            EmbedType.Error,
+                        );
 
                         return;
                     } else if (
@@ -641,14 +656,21 @@ const commands: Record<string, Command> = {
 
                             await interaction.reply({
                                 flags: MessageFlags.Ephemeral,
-                                content: `This channel is already being tracked in ${channelList}!`,
+                                embeds: [
+                                    new EmbedBuilder()
+                                        .setColor(0xfee75c)
+                                        .setTitle("Already Tracked")
+                                        .setDescription(
+                                            `Twitch streamer ${streamerName} is already being tracked in ${channelList}.`,
+                                        ),
+                                ],
                             });
                         } else {
-                            await interaction.reply({
-                                flags: MessageFlags.Ephemeral,
-                                content:
-                                    "This channel is already being tracked, but the data format is invalid.",
-                            });
+                            await replyWithQuickEmbed(
+                                interaction,
+                                `Twitch streamer ${streamerName} appears to be already tracked, but the stored subscription data is invalid.`,
+                                EmbedType.Error,
+                            );
                         }
 
                         return;
@@ -664,11 +686,11 @@ const commands: Record<string, Command> = {
                     );
 
                     if (!isChannelTracked.success) {
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content:
-                                "An error occurred while trying to check if the channel is already being tracked globally! Please report this error!",
-                        });
+                        await replyWithQuickEmbed(
+                            interaction,
+                            `Failed to check global tracking status for Twitch streamer ${streamerName}.`,
+                            EmbedType.Error,
+                        );
                     } else if (
                         isChannelTracked.success &&
                         isChannelTracked.data.length == 0
@@ -685,11 +707,11 @@ const commands: Record<string, Command> = {
                         );
 
                         if (!channelAdded.success) {
-                            await interaction.reply({
-                                flags: MessageFlags.Ephemeral,
-                                content:
-                                    "An error occurred while trying to add the channel to track to the main YouTube database. Please report this issue!",
-                            });
+                            await replyWithQuickEmbed(
+                                interaction,
+                                `Failed to register Twitch streamer ${streamerName} in the global tracking database.`,
+                                EmbedType.Error,
+                            );
 
                             return;
                         }
@@ -707,16 +729,18 @@ const commands: Record<string, Command> = {
                             isDm,
                         )
                     ) {
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content: `Started tracking the streamer ${streamerName} in <#${targetChannel?.id}>!`,
-                        });
+                        await replyWithQuickEmbed(
+                            interaction,
+                            `Started tracking the streamer ${streamerName} in <#${targetChannel?.id}>!`,
+                            EmbedType.Success,
+                            { title: "Tracking Started" },
+                        );
                     } else {
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
-                            content:
-                                "An error occurred while trying to add the guild to track the streamer! Please report this error!",
-                        });
+                        await replyWithQuickEmbed(
+                            interaction,
+                            `Failed to create a Twitch subscription for streamer ${streamerName} in <#${discordChannelId}>.`,
+                            EmbedType.Error,
+                        );
                     }
 
                     return;
@@ -734,9 +758,9 @@ const commands: Record<string, Command> = {
                 const query =
                     platform === "youtube"
                         ? (interaction.options.get("channel_id")
-                              ?.value as string)
+                            ?.value as string)
                         : (interaction.options.get("streamer_id")
-                              ?.value as string);
+                            ?.value as string);
 
                 // If the query is empty or not a string, return an empty array
                 if (!query || typeof query !== "string") {
@@ -835,6 +859,13 @@ const commands: Record<string, Command> = {
             // Get the YouTube Channel ID
             const platformUserId = interaction.options.get("user_id")
                 ?.value as string;
+            const [platform, trackedSubscriptionId] = platformUserId.split(".");
+            const selectedPlatform =
+                platform === Platform.YouTube
+                    ? "YouTube"
+                    : platform === Platform.Twitch
+                        ? "Twitch"
+                        : "Unknown";
 
             // Check the permissions of the user
             if (
@@ -843,11 +874,11 @@ const commands: Record<string, Command> = {
                     PermissionFlagsBits.ManageChannels,
                 )
             ) {
-                await interaction.reply({
-                    flags: MessageFlags.Ephemeral,
-                    content:
-                        "You do not have the permission to manage channels!",
-                });
+                await replyWithQuickEmbed(
+                    interaction,
+                    "You need the Manage Channels permission to use /untrack in this server.",
+                    EmbedType.Error,
+                );
 
                 return;
             }
@@ -857,17 +888,20 @@ const commands: Record<string, Command> = {
                 await discordRemoveGuildTrackingChannel(platformUserId);
 
             if (!trackingDeleteSuccess || !trackingDeleteSuccess.success) {
-                await interaction.reply({
-                    flags: MessageFlags.Ephemeral,
-                    content: "Failed to stop tracking the channel.",
-                });
+                await replyWithQuickEmbed(
+                    interaction,
+                    `Failed to stop tracking ${selectedPlatform} subscription ${trackedSubscriptionId ?? "(unknown id)"}.`,
+                    EmbedType.Error,
+                );
 
                 return;
             }
 
-            await interaction.reply({
-                content: "Successfully stopped tracking the channel.",
-            });
+            await replyWithQuickEmbed(
+                interaction,
+                `Stopped tracking ${selectedPlatform} subscription ${trackedSubscriptionId ?? "(unknown id)"} in this ${isDm ? "DM" : "server"}.`,
+                EmbedType.Success,
+            );
         },
         autoComplete: async (interaction: AutocompleteInteraction) => {
             const trackedChannels = await discordGetAllTrackedInGuild(
@@ -925,10 +959,11 @@ const commands: Record<string, Command> = {
             if (isDm) guildId = interaction.channelId;
 
             if (!guildId) {
-                await interaction.reply({
-                    flags: MessageFlags.Ephemeral,
-                    content: "An error occurred! Please report",
-                });
+                await replyWithQuickEmbed(
+                    interaction,
+                    "Unable to resolve the current server/DM context for /tracked.",
+                    EmbedType.Error,
+                );
 
                 return;
             }
@@ -939,11 +974,11 @@ const commands: Record<string, Command> = {
                 console.error(
                     "An error occurred while trying to get the tracked channels in this guild!",
                 );
-                await interaction.reply({
-                    flags: MessageFlags.Ephemeral,
-                    content:
-                        "An error occurred while trying to get the tracked channels in this guild! Please report this error!",
-                });
+                await replyWithQuickEmbed(
+                    interaction,
+                    `Failed to load tracked subscriptions for ${isDm ? "this DM" : "this server"}.`,
+                    EmbedType.Error,
+                );
 
                 return;
             }
@@ -952,10 +987,11 @@ const commands: Record<string, Command> = {
                 trackedChannels.data.youtubeSubscriptions.length === 0 &&
                 trackedChannels.data.twitchSubscriptions.length === 0
             ) {
-                await interaction.reply({
-                    flags: MessageFlags.Ephemeral,
-                    content: "No channels are being tracked in this guild.",
-                });
+                await replyWithQuickEmbed(
+                    interaction,
+                    `No YouTube or Twitch subscriptions are currently tracked in ${isDm ? "this DM" : "this server"}.`,
+                    EmbedType.Info,
+                );
 
                 return;
             }
@@ -1207,10 +1243,11 @@ const commands: Record<string, Command> = {
             const guildId = isDm ? channelId : interaction.guildId;
 
             if (!isDm && !guildId) {
-                await interaction.reply({
-                    flags: MessageFlags.Ephemeral,
-                    content: "An error occurred! Please report",
-                });
+                await replyWithQuickEmbed(
+                    interaction,
+                    "Unable to resolve the current server context for /updates.",
+                    EmbedType.Error,
+                );
 
                 return;
             }
@@ -1230,11 +1267,11 @@ const commands: Record<string, Command> = {
                     )
                 ) {
                     // Check the permissions of the user
-                    await interaction.reply({
-                        flags: MessageFlags.Ephemeral,
-                        content:
-                            "You do not have the permission to manage channels!",
-                    });
+                    await replyWithQuickEmbed(
+                        interaction,
+                        "You need the Manage Channels permission to configure /updates in this server.",
+                        EmbedType.Error,
+                    );
 
                     return;
                 }
@@ -1251,11 +1288,11 @@ const commands: Record<string, Command> = {
                     .permissionsIn(channelId)
                     .has(PermissionFlagsBits.SendMessages)
             ) {
-                await interaction.reply({
-                    flags: MessageFlags.Ephemeral,
-                    content:
-                        "I do not have permission to send messages in that channel!",
-                });
+                await replyWithQuickEmbed(
+                    interaction,
+                    `I don't have permission to send messages in <#${channelId}>.`,
+                    EmbedType.Error,
+                );
 
                 return;
             }
@@ -1265,11 +1302,11 @@ const commands: Record<string, Command> = {
                 await discordUpdateSubscriptionCheckGuild(guildId);
 
             if (!currentDatabaseState || !currentDatabaseState.success) {
-                await interaction.reply({
-                    flags: MessageFlags.Ephemeral,
-                    content:
-                        "An error occurred while trying to get the current update state from the database! Please report this error!",
-                });
+                await replyWithQuickEmbed(
+                    interaction,
+                    `Failed to load the current updates state for ${isDm ? "this DM" : "this server"}.`,
+                    EmbedType.Error,
+                );
 
                 return;
             }
@@ -1282,12 +1319,12 @@ const commands: Record<string, Command> = {
             );
 
             if (currentState === desiredState) {
-                await interaction.reply({
-                    flags: MessageFlags.Ephemeral,
-                    content: `Updates are already ${
-                        desiredState ? "enabled" : "disabled"
-                    } in this channel!`,
-                });
+                await replyWithQuickEmbed(
+                    interaction,
+                    `Updates are already ${desiredState ? "enabled" : "disabled"
+                    } for <#${channelId}>.`,
+                    EmbedType.Warning,
+                );
 
                 return;
             }
@@ -1300,14 +1337,16 @@ const commands: Record<string, Command> = {
                 );
 
                 if (!updateSuccess || !updateSuccess.success) {
-                    await interaction.reply({
-                        flags: MessageFlags.Ephemeral,
-                        content:
-                            "An error occurred while trying to enable updates in this channel! Please report this error!",
-                    });
+                    await replyWithQuickEmbed(
+                        interaction,
+                        `Failed to enable Feedr updates for <#${channelId}>.`,
+                        EmbedType.Error,
+                    );
 
                     return;
                 }
+
+                let confirmationSent = false;
 
                 await client.channels
                     .fetch(channelId)
@@ -1316,33 +1355,38 @@ const commands: Record<string, Command> = {
                             await (channel as TextChannel).send({
                                 content: `Updates have been successfully enabled in this channel!`,
                             });
+                            confirmationSent = true;
                         }
                     })
                     .catch(console.error);
 
-                await interaction.reply({
-                    flags: MessageFlags.Ephemeral,
-                    content:
-                        "If a test message was sent, updates are enabled! If not, please report this as an error!",
-                });
+                await replyWithQuickEmbed(
+                    interaction,
+                    confirmationSent
+                        ? `Enabled Feedr updates for <#${channelId}> and posted a confirmation message there.`
+                        : `Enabled Feedr updates for <#${channelId}>, but I couldn't post the confirmation message there.`,
+                    EmbedType.Success,
+                );
             } else {
                 // Disable updates
                 const updateSuccess =
                     await discordUpdateSubscriptionRemoveChannel(guildId);
 
                 if (!updateSuccess || !updateSuccess.success) {
-                    await interaction.reply({
-                        flags: MessageFlags.Ephemeral,
-                        content:
-                            "An error occurred while trying to disable updates in this channel! Please report this error!",
-                    });
+                    await replyWithQuickEmbed(
+                        interaction,
+                        `Failed to disable Feedr updates for <#${channelId}>.`,
+                        EmbedType.Error,
+                    );
 
                     return;
                 }
 
-                await interaction.reply({
-                    content: `Successfully disabled updates in <#${channelId}>!`,
-                });
+                await replyWithQuickEmbed(
+                    interaction,
+                    `Successfully disabled updates in <#${channelId}>!`,
+                    EmbedType.Success,
+                );
             }
         },
     },

@@ -57,6 +57,30 @@ export interface YouTubePlaylistResponse {
     };
 }
 
+// YouTube Video API Response Interface (Content Details)
+export type YouTubeVideoContentDetailsResponse = {
+    kind: string;
+    etag: string;
+    items: Array<{
+        kind: string;
+        etag: string;
+        id: string;
+        contentDetails: {
+            duration: string;
+            dimension: string;
+            definition: string;
+            caption: string;
+            licensedContent: boolean;
+            contentRating: {};
+            projection: string;
+        };
+    }>;
+    pageInfo: {
+        totalResults: number;
+        resultsPerPage: number;
+    };
+};
+
 // YouTube Channel API Response Interface
 export interface YouTubeChannelResponse {
     kind: string;

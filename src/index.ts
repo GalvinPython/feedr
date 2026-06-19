@@ -3,14 +3,9 @@ import fs from "fs/promises";
 import path from "path";
 
 import Bun from "bun";
-import {
-    Client,
-    GatewayIntentBits,
-    REST,
-    Routes,
-    type APIApplicationCommand,
-} from "discord.js";
+import { REST, Routes, type APIApplicationCommand } from "discord.js";
 
+import client from "./client";
 import { env } from "./config.ts";
 import commandsMap from "./commands.ts";
 import { getTwitchToken } from "./utils/twitch/auth.ts";
@@ -35,9 +30,14 @@ if (
     throw new Error("You MUST provide a Twitch client secret in .env!");
 }
 
-const client = new Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
-});
+// Import events before logging in so ready handlers are registered in time.
+const getEvents = await fs.readdir(path.resolve(__dirname, "./events"));
+
+await Promise.all(
+    getEvents.map(async (file) => {
+        await import("./events/" + file);
+    }),
+);
 
 // Update the commands
 console.log(`Refreshing ${commandsMap.size} commands`);
@@ -63,18 +63,9 @@ if (!(await getTwitchToken())) {
 }
 
 // Login to Discord
-client.login(env.discordToken);
+await client.login(env.discordToken);
 
 export default client;
-
-// Import events
-const getEvents = await fs.readdir(path.resolve(__dirname, "./events"));
-
-await Promise.all(
-    getEvents.map(async (file) => {
-        await import("./events/" + file);
-    }),
-);
 
 // Update the guilds on startup
 await updateGuildsOnStartup();

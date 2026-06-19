@@ -1,7 +1,7 @@
 import type { TextChannel } from "discord.js";
 
 import { env } from "../../config";
-import client from "../..";
+import client from "../../client";
 import {
     dbTwitchGetAllChannelsToTrack,
     twitchUpdateIsLive,

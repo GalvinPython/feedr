@@ -2,7 +2,7 @@
 import { eq } from "drizzle-orm";
 
 import { dbDiscordTable } from "../../db/schema";
-import client from "../..";
+import client from "../../client";
 import { db } from "../../db/db";
 import { config } from "../../config";
 

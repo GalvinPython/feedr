@@ -1,7 +1,7 @@
 import { Events } from "discord.js";
 // import { CronJob } from "cron";
 
-import client from "../index";
+import client from "../client";
 import { config } from "../config";
 // import { cronUpdateBotInfo } from "../utils/cronJobs";
 import sendLatestUploads from "../utils/youtube/sendLatestUploads";

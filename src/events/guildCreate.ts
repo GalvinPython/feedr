@@ -1,6 +1,6 @@
 import { Events } from "discord.js";
 
-import client from "..";
+import client from "../client";
 import { discordAddNewGuild } from "../db/discord";
 
 client.on(Events.GuildCreate, async (guild) => {

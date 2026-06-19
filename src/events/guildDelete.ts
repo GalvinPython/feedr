@@ -1,6 +1,6 @@
 import { Events } from "discord.js";
 
-import client from "..";
+import client from "../client";
 import { discordRemoveGuildFromTracking } from "../db/discord";
 
 client.on(Events.GuildDelete, async (guild) => {

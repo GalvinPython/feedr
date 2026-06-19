@@ -1,6 +1,6 @@
 import { Events } from "discord.js";
 
-import client from "..";
+import client from "../client";
 import commandsMap from "../commands";
 
 client.on(Events.InteractionCreate, async (interaction) => {
