@@ -39,7 +39,8 @@
         "web:build": "cd web && bun build",
         "start:api": "echo 'Cannot start API without cargo. Reserved for future use' && exit 1",
         "start:bot": "bun run .",
-        "start:web": "cd web && bun start"
+        "start:web": "cd web && bun start",
+        "update:youtube": "bun src/updateYouTube.ts"
     },
     "dependencies": {
         "cron": "^4.3.0",
