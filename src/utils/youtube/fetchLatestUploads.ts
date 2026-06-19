@@ -1,3 +1,5 @@
+import type { YouTubeVideoContentDetailsResponse } from "../../types/youtube";
+
 import { Platform } from "../../types/types.d";
 import {
     dbGuildYouTubeSubscriptionsTable,
@@ -25,11 +27,13 @@ function parseISO8601Duration(duration: string): number {
     const match = duration.match(
         /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/,
     );
+
     if (!match) return 0;
     const days = parseInt(match[1] || "0", 10);
     const hours = parseInt(match[2] || "0", 10);
     const minutes = parseInt(match[3] || "0", 10);
     const seconds = parseInt(match[4] || "0", 10);
+
     return days * 86400 + hours * 3600 + minutes * 60 + seconds;
 }
 
@@ -43,24 +47,32 @@ async function fetchVideoDuration(videoId: string): Promise<number> {
     );
 
     if (!res.ok) {
-        console.error(
-            "Error fetching video duration:",
-            res.statusText,
-        );
+        console.error("Error fetching video duration:", res.statusText);
+
         return 0;
     }
 
-    // TODO: Type the response from YouTube API for better type safety
-    const data = await res.json();
+    const data =
+        (await res.json()) as unknown as YouTubeVideoContentDetailsResponse;
+
     if (!data.items || data.items.length === 0) return 0;
 
     const durationFirstItem = data.items[0];
-    if (!durationFirstItem.contentDetails || !durationFirstItem.contentDetails.duration) {
-        console.error("Duration not found in video details for video ID:", videoId,);
+
+    if (
+        !durationFirstItem.contentDetails ||
+        !durationFirstItem.contentDetails.duration
+    ) {
+        console.error(
+            "Duration not found in video details for video ID:",
+            videoId,
+        );
+
         return 0;
     }
 
     const duration = durationFirstItem?.contentDetails?.duration;
+
     if (typeof duration !== "string") return 0;
 
     return parseISO8601Duration(duration);
@@ -162,10 +174,11 @@ export default async function fetchLatestUploads() {
 
                 if (durationSeconds > SHORTS_DURATION) {
                     // Over the shorts limit: cannot be a short, check only if it's a stream
-                    const streamVideoId = await getSinglePlaylistAndReturnVideoData(
-                        channelId,
-                        PlaylistType.Stream,
-                    );
+                    const streamVideoId =
+                        await getSinglePlaylistAndReturnVideoData(
+                            channelId,
+                            PlaylistType.Stream,
+                        );
 
                     if (videoId === streamVideoId.videoId) {
                         contentType = PlaylistType.Stream;
@@ -196,7 +209,11 @@ export default async function fetchLatestUploads() {
                     }
                 }
 
-                console.log("Determined content type:", contentType, `(duration: ${durationSeconds}s)`);
+                console.log(
+                    "Determined content type:",
+                    contentType,
+                    `(duration: ${durationSeconds}s)`,
+                );
 
                 if (contentType) {
                     console.log(

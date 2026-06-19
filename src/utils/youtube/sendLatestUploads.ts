@@ -1,6 +1,6 @@
 import { ChannelType, TextChannel } from "discord.js";
 
-import client from "../..";
+import client from "../../client";
 
 import { updates } from "./fetchLatestUploads";
 
@@ -39,10 +39,10 @@ export default async function sendLatestUploads() {
                         guild.notificationRoleId && channelInfo
                             ? `<@&${guild.notificationRoleId}> New video uploaded for ${channelInfo?.channelName}! https://www.youtube.com/watch?v=${videoId}`
                             : guild.notificationRoleId
-                              ? `<@&${guild.notificationRoleId}> New video uploaded! https://www.youtube.com/watch?v=${videoId}`
-                              : channelInfo
-                                ? `New video uploaded for ${channelInfo.channelName}! https://www.youtube.com/watch?v=${videoId}`
-                                : `New video uploaded! https://www.youtube.com/watch?v=${videoId}`,
+                                ? `<@&${guild.notificationRoleId}> New video uploaded! https://www.youtube.com/watch?v=${videoId}`
+                                : channelInfo
+                                    ? `New video uploaded for ${channelInfo.channelName}! https://www.youtube.com/watch?v=${videoId}`
+                                    : `New video uploaded! https://www.youtube.com/watch?v=${videoId}`,
                 });
             } catch (error) {
                 console.error(
