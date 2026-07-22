@@ -1,4 +1,7 @@
-import type { YouTubeVideoContentDetailsResponse } from "../../types/youtube";
+import type {
+    YouTubePlaylistResponse,
+    YouTubeVideoContentDetailsResponse,
+} from "../../types/youtube";
 
 import { Platform } from "../../types/types.d";
 import {
@@ -86,6 +89,60 @@ export const updates = new Map<
     }
 >();
 
+async function fetchUnseenUploadVideoIds(
+    channelId: string,
+    latestKnownVideoId: string,
+): Promise<string[]> {
+    const uploadPlaylistId = `UU${channelId.slice(2)}`;
+    const unseenVideoIds: string[] = [];
+    let pageToken: string | null = null;
+    let foundLatestKnownVideoId = false;
+
+    while (!foundLatestKnownVideoId) {
+        const pageTokenParam = pageToken ? `&pageToken=${pageToken}` : "";
+        const res = await fetch(
+            `https://youtube.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${uploadPlaylistId}&key=${env.youtubeApiKey}${pageTokenParam}`,
+        );
+
+        if (!res.ok) {
+            console.error(
+                "Error fetching upload playlist items in fetchLatestUploads:",
+                res.statusText,
+            );
+            break;
+        }
+
+        const data = (await res.json()) as YouTubePlaylistResponse;
+
+        if (!data.items || data.items.length === 0) {
+            break;
+        }
+
+        for (const item of data.items) {
+            const unseenVideoId = item?.snippet?.resourceId?.videoId;
+
+            if (!unseenVideoId) {
+                continue;
+            }
+
+            if (unseenVideoId === latestKnownVideoId) {
+                foundLatestKnownVideoId = true;
+                break;
+            }
+
+            unseenVideoIds.push(unseenVideoId);
+        }
+
+        if (foundLatestKnownVideoId || !data.nextPageToken) {
+            break;
+        }
+
+        pageToken = data.nextPageToken;
+    }
+
+    return unseenVideoIds;
+}
+
 export default async function fetchLatestUploads() {
     console.log("Fetching latest uploads...");
 
@@ -139,7 +196,7 @@ export default async function fetchLatestUploads() {
         // TODO: Upload time (https://github.com/GalvinPython/feedr/issues/136)
         for (const playlist of data.items) {
             const channelId = playlist.snippet.channelId;
-            const videoId =
+            const latestVideoId =
                 playlist.snippet.thumbnails.default.url.split("/")[4];
 
             if (!channelDict[channelId]) {
@@ -150,103 +207,30 @@ export default async function fetchLatestUploads() {
                 continue;
             }
 
-            const requiresUpdate =
-                channelDict[channelId].latestAllId !== videoId;
+            const latestKnownVideoId = channelDict[channelId].latestAllId;
+            const requiresUpdate = latestKnownVideoId !== latestVideoId;
 
             if (requiresUpdate) {
                 console.log(
                     "Channel ID:",
                     channelId,
                     "Video ID:",
-                    videoId,
+                    latestVideoId,
                     "Requires update?",
                     requiresUpdate,
                 );
-                // Use duration-based detection to reduce API quota usage
-                // and avoid UULF which is currently lagging.
-                // YouTube Shorts are currently limited to 3 minutes (180s).
-                // Videos at exactly 180s could still be shorts, so we use
-                // a strict greater-than check.
-                const durationSeconds = await fetchVideoDuration(videoId);
-                const SHORTS_DURATION = 180;
+                let videosToProcess = [latestVideoId];
 
-                let contentType: PlaylistType | null = null;
-
-                if (durationSeconds > SHORTS_DURATION) {
-                    // Over the shorts limit: cannot be a short, check only if it's a stream
-                    const streamVideoId =
-                        await getSinglePlaylistAndReturnVideoData(
-                            channelId,
-                            PlaylistType.Stream,
-                        );
-
-                    if (videoId === streamVideoId.videoId) {
-                        contentType = PlaylistType.Stream;
-                    } else {
-                        // Not a stream and over 3 min; must be a regular video
-                        contentType = PlaylistType.Video;
-                    }
-                } else {
-                    // Under 3 minutes: could be a short or a video, check UUSH and UULV
-                    const [shortVideoId, streamVideoId] = await Promise.all([
-                        getSinglePlaylistAndReturnVideoData(
-                            channelId,
-                            PlaylistType.Short,
-                        ),
-                        getSinglePlaylistAndReturnVideoData(
-                            channelId,
-                            PlaylistType.Stream,
-                        ),
-                    ]);
-
-                    if (videoId === shortVideoId.videoId) {
-                        contentType = PlaylistType.Short;
-                    } else if (videoId === streamVideoId.videoId) {
-                        contentType = PlaylistType.Stream;
-                    } else {
-                        // Not in shorts or streams playlist → regular video
-                        contentType = PlaylistType.Video;
-                    }
-                }
-
-                console.log(
-                    "Determined content type:",
-                    contentType,
-                    `(duration: ${durationSeconds}s)`,
-                );
-
-                if (contentType) {
-                    console.log(
-                        `Updating ${contentType} video ID for channel`,
+                if (latestKnownVideoId) {
+                    const unseenVideoIds = await fetchUnseenUploadVideoIds(
                         channelId,
-                        "to",
-                        videoId,
-                    );
-                } else {
-                    console.error(
-                        "No valid video ID found for channel",
-                        channelId,
-                        "with video ID",
-                        videoId,
-                    );
-                    continue;
-                }
-
-                const updateSuccess = await youtubeUpdateVideoId(
-                    channelId,
-                    videoId,
-                    contentType,
-
-                    // Temporarily using current date for update time
-                    new Date(),
-                );
-
-                if (!updateSuccess.success) {
-                    console.error(
-                        "Error updating video ID in fetchLatestUploads",
+                        latestKnownVideoId,
                     );
 
-                    return;
+                    if (unseenVideoIds.length > 0) {
+                        // Process oldest to newest so notifications preserve upload order.
+                        videosToProcess = unseenVideoIds.reverse();
+                    }
                 }
 
                 const discordGuildsToUpdate =
@@ -265,33 +249,122 @@ export default async function fetchLatestUploads() {
 
                 const channelInfo = await getChannelDetails(channelId);
 
-                console.info(`Filtered guilds for channel ID ${channelId}:`, {
-                    count: discordGuildsToUpdate.data.filter(
-                        (
-                            guild,
-                        ): guild is typeof dbGuildYouTubeSubscriptionsTable.$inferSelect =>
-                            "youtubeChannelId" in guild &&
-                            "trackVideos" in guild &&
-                            "trackShorts" in guild &&
-                            "trackStreams" in guild,
-                    ).length,
-                });
+                for (const videoId of videosToProcess) {
+                    // Use duration-based detection to reduce API quota usage
+                    // and avoid UULF which is currently lagging.
+                    // YouTube Shorts are currently limited to 3 minutes (180s).
+                    // Videos at exactly 180s could still be shorts, so we use
+                    // a strict greater-than check.
+                    const durationSeconds = await fetchVideoDuration(videoId);
+                    const SHORTS_DURATION = 180;
 
-                updates.set(videoId, {
-                    channelInfo,
-                    discordGuildsToUpdate: discordGuildsToUpdate.data.filter(
-                        (
-                            guild,
-                        ): guild is typeof dbGuildYouTubeSubscriptionsTable.$inferSelect =>
-                            "youtubeChannelId" in guild &&
-                            ((contentType === PlaylistType.Video &&
-                                guild.trackVideos) ||
-                                (contentType === PlaylistType.Short &&
-                                    guild.trackShorts) ||
-                                (contentType === PlaylistType.Stream &&
-                                    guild.trackStreams)),
-                    ),
-                });
+                    let contentType: PlaylistType | null = null;
+
+                    if (durationSeconds > SHORTS_DURATION) {
+                        // Over the shorts limit: cannot be a short, check only if it's a stream
+                        const streamVideoId =
+                            await getSinglePlaylistAndReturnVideoData(
+                                channelId,
+                                PlaylistType.Stream,
+                            );
+
+                        if (videoId === streamVideoId.videoId) {
+                            contentType = PlaylistType.Stream;
+                        } else {
+                            // Not a stream and over 3 min; must be a regular video
+                            contentType = PlaylistType.Video;
+                        }
+                    } else {
+                        // Under 3 minutes: could be a short or a video, check UUSH and UULV
+                        const [shortVideoId, streamVideoId] = await Promise.all([
+                            getSinglePlaylistAndReturnVideoData(
+                                channelId,
+                                PlaylistType.Short,
+                            ),
+                            getSinglePlaylistAndReturnVideoData(
+                                channelId,
+                                PlaylistType.Stream,
+                            ),
+                        ]);
+
+                        if (videoId === shortVideoId.videoId) {
+                            contentType = PlaylistType.Short;
+                        } else if (videoId === streamVideoId.videoId) {
+                            contentType = PlaylistType.Stream;
+                        } else {
+                            // Not in shorts or streams playlist → regular video
+                            contentType = PlaylistType.Video;
+                        }
+                    }
+
+                    console.log(
+                        "Determined content type:",
+                        contentType,
+                        `(duration: ${durationSeconds}s)`,
+                    );
+
+                    if (contentType) {
+                        console.log(
+                            `Updating ${contentType} video ID for channel`,
+                            channelId,
+                            "to",
+                            videoId,
+                        );
+                    } else {
+                        console.error(
+                            "No valid video ID found for channel",
+                            channelId,
+                            "with video ID",
+                            videoId,
+                        );
+                        continue;
+                    }
+
+                    const updateSuccess = await youtubeUpdateVideoId(
+                        channelId,
+                        videoId,
+                        contentType,
+
+                        // Temporarily using current date for update time
+                        new Date(),
+                    );
+
+                    if (!updateSuccess.success) {
+                        console.error(
+                            "Error updating video ID in fetchLatestUploads",
+                        );
+
+                        return;
+                    }
+
+                    console.info(`Filtered guilds for channel ID ${channelId}:`, {
+                        count: discordGuildsToUpdate.data.filter(
+                            (
+                                guild,
+                            ): guild is typeof dbGuildYouTubeSubscriptionsTable.$inferSelect =>
+                                "youtubeChannelId" in guild &&
+                                "trackVideos" in guild &&
+                                "trackShorts" in guild &&
+                                "trackStreams" in guild,
+                        ).length,
+                    });
+
+                    updates.set(videoId, {
+                        channelInfo,
+                        discordGuildsToUpdate: discordGuildsToUpdate.data.filter(
+                            (
+                                guild,
+                            ): guild is typeof dbGuildYouTubeSubscriptionsTable.$inferSelect =>
+                                "youtubeChannelId" in guild &&
+                                ((contentType === PlaylistType.Video &&
+                                    guild.trackVideos) ||
+                                    (contentType === PlaylistType.Short &&
+                                        guild.trackShorts) ||
+                                    (contentType === PlaylistType.Stream &&
+                                        guild.trackStreams)),
+                        ),
+                    });
+                }
             }
         }
     }
