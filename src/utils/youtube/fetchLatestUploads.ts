@@ -1,7 +1,4 @@
-import type {
-    YouTubePlaylistResponse,
-    YouTubeVideoContentDetailsResponse,
-} from "../../types/youtube";
+import type { YouTubePlaylistResponse } from "../../types/youtube";
 
 import { Platform } from "../../types/types.d";
 import {
@@ -16,70 +13,7 @@ import {
 import { discordGetAllGuildsTrackingChannel } from "../../db/discord";
 
 import getChannelDetails from "./getChannelDetails";
-import getSinglePlaylistAndReturnVideoData, {
-    PlaylistType,
-} from "./getSinglePlaylistAndReturnVideoData";
-
-/**
- * Parse a full ISO 8601 duration string into total seconds.
- * Supports formats like "PT1H2M3S", "P1DT2H3M4S", "PT30S", etc.
- * Note: YouTube typically returns PT-prefixed durations, but very long
- * streams/videos could include a day component (P1DT...).
- */
-function parseISO8601Duration(duration: string): number {
-    const match = duration.match(
-        /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/,
-    );
-
-    if (!match) return 0;
-    const days = parseInt(match[1] || "0", 10);
-    const hours = parseInt(match[2] || "0", 10);
-    const minutes = parseInt(match[3] || "0", 10);
-    const seconds = parseInt(match[4] || "0", 10);
-
-    return days * 86400 + hours * 3600 + minutes * 60 + seconds;
-}
-
-/**
- * Fetch the duration (in seconds) of a video using the YouTube Videos API.
- * Returns 0 if the duration cannot be determined.
- */
-async function fetchVideoDuration(videoId: string): Promise<number> {
-    const res = await fetch(
-        `https://youtube.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoId}&key=${env.youtubeApiKey}`,
-    );
-
-    if (!res.ok) {
-        console.error("Error fetching video duration:", res.statusText);
-
-        return 0;
-    }
-
-    const data =
-        (await res.json()) as unknown as YouTubeVideoContentDetailsResponse;
-
-    if (!data.items || data.items.length === 0) return 0;
-
-    const durationFirstItem = data.items[0];
-
-    if (
-        !durationFirstItem.contentDetails ||
-        !durationFirstItem.contentDetails.duration
-    ) {
-        console.error(
-            "Duration not found in video details for video ID:",
-            videoId,
-        );
-
-        return 0;
-    }
-
-    const duration = durationFirstItem?.contentDetails?.duration;
-
-    if (typeof duration !== "string") return 0;
-
-    return parseISO8601Duration(duration);
-}
+import { PlaylistType } from "./getSinglePlaylistAndReturnVideoData";
 
 export const updates = new Map<
     string,
@@ -95,52 +29,71 @@ async function fetchUnseenUploadVideoIds(
 ): Promise<string[]> {
     const uploadPlaylistId = `UU${channelId.slice(2)}`;
     const unseenVideoIds: string[] = [];
-    let pageToken: string | null = null;
-    let foundLatestKnownVideoId = false;
+    const res = await fetch(
+        `https://youtube.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${uploadPlaylistId}&key=${env.youtubeApiKey}`,
+    );
 
-    while (!foundLatestKnownVideoId) {
-        const pageTokenParam = pageToken ? `&pageToken=${pageToken}` : "";
-        const res = await fetch(
-            `https://youtube.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${uploadPlaylistId}&key=${env.youtubeApiKey}${pageTokenParam}`,
+    if (!res.ok) {
+        console.error(
+            "Error fetching upload playlist items in fetchLatestUploads:",
+            res.statusText,
         );
+        return unseenVideoIds;
+    }
 
-        if (!res.ok) {
-            console.error(
-                "Error fetching upload playlist items in fetchLatestUploads:",
-                res.statusText,
-            );
+    const data = (await res.json()) as YouTubePlaylistResponse;
+
+    if (!data.items || data.items.length === 0) {
+        return unseenVideoIds;
+    }
+
+    for (const item of data.items) {
+        const unseenVideoId = item?.snippet?.resourceId?.videoId;
+
+        if (!unseenVideoId) {
+            continue;
+        }
+
+        if (unseenVideoId === latestKnownVideoId) {
             break;
         }
 
-        const data = (await res.json()) as YouTubePlaylistResponse;
-
-        if (!data.items || data.items.length === 0) {
-            break;
-        }
-
-        for (const item of data.items) {
-            const unseenVideoId = item?.snippet?.resourceId?.videoId;
-
-            if (!unseenVideoId) {
-                continue;
-            }
-
-            if (unseenVideoId === latestKnownVideoId) {
-                foundLatestKnownVideoId = true;
-                break;
-            }
-
-            unseenVideoIds.push(unseenVideoId);
-        }
-
-        if (foundLatestKnownVideoId || !data.nextPageToken) {
-            break;
-        }
-
-        pageToken = data.nextPageToken;
+        unseenVideoIds.push(unseenVideoId);
     }
 
     return unseenVideoIds;
+}
+
+async function fetchPlaylistVideoIds(
+    channelId: string,
+    playlistType: PlaylistType.Short | PlaylistType.Stream,
+): Promise<Set<string>> {
+    const playlistPrefix =
+        playlistType === PlaylistType.Short ? "UUSH" : "UULV";
+    const playlistId = `${playlistPrefix}${channelId.slice(2)}`;
+    const res = await fetch(
+        `https://youtube.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${env.youtubeApiKey}`,
+    );
+
+    if (!res.ok) {
+        console.error(
+            `Error fetching ${playlistType} playlist items in fetchLatestUploads:`,
+            res.statusText,
+        );
+        return new Set();
+    }
+
+    const data = (await res.json()) as YouTubePlaylistResponse;
+
+    if (!data.items || data.items.length === 0) {
+        return new Set();
+    }
+
+    return new Set(
+        data.items
+            .map((item) => item?.snippet?.resourceId?.videoId)
+            .filter((videoId): videoId is string => typeof videoId === "string"),
+    );
 }
 
 export default async function fetchLatestUploads() {
@@ -248,77 +201,23 @@ export default async function fetchLatestUploads() {
                 }
 
                 const channelInfo = await getChannelDetails(channelId);
+                const [shortVideoIds, streamVideoIds] = await Promise.all([
+                    fetchPlaylistVideoIds(channelId, PlaylistType.Short),
+                    fetchPlaylistVideoIds(channelId, PlaylistType.Stream),
+                ]);
 
                 for (const videoId of videosToProcess) {
-                    // Use duration-based detection to reduce API quota usage
-                    // and avoid UULF which is currently lagging.
-                    // YouTube Shorts are currently limited to 3 minutes (180s).
-                    // Videos at exactly 180s could still be shorts, so we use
-                    // a strict greater-than check.
-                    const durationSeconds = await fetchVideoDuration(videoId);
-                    const SHORTS_DURATION = 180;
+                    let contentType = PlaylistType.Video;
 
-                    let contentType: PlaylistType | null = null;
-
-                    if (durationSeconds > SHORTS_DURATION) {
-                        // Over the shorts limit: cannot be a short, check only if it's a stream
-                        const streamVideoId =
-                            await getSinglePlaylistAndReturnVideoData(
-                                channelId,
-                                PlaylistType.Stream,
-                            );
-
-                        if (videoId === streamVideoId.videoId) {
-                            contentType = PlaylistType.Stream;
-                        } else {
-                            // Not a stream and over 3 min; must be a regular video
-                            contentType = PlaylistType.Video;
-                        }
+                    if (shortVideoIds.has(videoId)) {
+                        contentType = PlaylistType.Short;
+                    } else if (streamVideoIds.has(videoId)) {
+                        contentType = PlaylistType.Stream;
                     } else {
-                        // Under 3 minutes: could be a short or a video, check UUSH and UULV
-                        const [shortVideoId, streamVideoId] = await Promise.all([
-                            getSinglePlaylistAndReturnVideoData(
-                                channelId,
-                                PlaylistType.Short,
-                            ),
-                            getSinglePlaylistAndReturnVideoData(
-                                channelId,
-                                PlaylistType.Stream,
-                            ),
-                        ]);
-
-                        if (videoId === shortVideoId.videoId) {
-                            contentType = PlaylistType.Short;
-                        } else if (videoId === streamVideoId.videoId) {
-                            contentType = PlaylistType.Stream;
-                        } else {
-                            // Not in shorts or streams playlist → regular video
-                            contentType = PlaylistType.Video;
-                        }
+                        contentType = PlaylistType.Video;
                     }
 
-                    console.log(
-                        "Determined content type:",
-                        contentType,
-                        `(duration: ${durationSeconds}s)`,
-                    );
-
-                    if (contentType) {
-                        console.log(
-                            `Updating ${contentType} video ID for channel`,
-                            channelId,
-                            "to",
-                            videoId,
-                        );
-                    } else {
-                        console.error(
-                            "No valid video ID found for channel",
-                            channelId,
-                            "with video ID",
-                            videoId,
-                        );
-                        continue;
-                    }
+                    console.log("Determined content type:", contentType);
 
                     const updateSuccess = await youtubeUpdateVideoId(
                         channelId,
