@@ -124,7 +124,7 @@ export const dbAuditLogsSuccessTypeEnum = pgEnum("audit_log_success", [
 
 export const dbAuditLogsTable = pgTable("audit_logs", {
     id: serial("id").primaryKey(),
-    guildId: text("guild_id").notNull().references(() => dbDiscordTable.guildId),
+    guildId: text("guild_id").notNull(),
     eventType: dbAuditLogsEventTypeEnum().notNull(),
     successType: dbAuditLogsSuccessTypeEnum().notNull(),
     data: jsonb("data"),

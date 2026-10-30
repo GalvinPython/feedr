@@ -7,6 +7,9 @@ type Subscription = typeof dbGuildYouTubeSubscriptionsTable.$inferSelect;
 export interface QueuedNotification {
     id: number;
     video_id: string;
+    youtube_channel_id: string;
+    guild_id: string;
+    is_dm: number;
     channel_name: string | null;
     notification_channel_id: string;
     notification_role_id: string | null;
@@ -64,7 +67,7 @@ export function enqueueNotifications(
 export function getQueuedNotifications(): QueuedNotification[] {
     return database
         .query<QueuedNotification, []>(
-            "SELECT id, video_id, channel_name, notification_channel_id, notification_role_id FROM youtube_notification_queue ORDER BY id",
+            "SELECT id, video_id, youtube_channel_id, guild_id, is_dm, channel_name, notification_channel_id, notification_role_id FROM youtube_notification_queue ORDER BY id",
         )
         .all();
 }

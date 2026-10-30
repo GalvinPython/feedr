@@ -1,7 +1,6 @@
-import type { TextChannel } from "discord.js";
-
 import { env } from "../../config";
 import client from "../../client";
+import { dbAuditLogCreate } from "../../db/audit";
 import {
     dbTwitchGetAllChannelsToTrack,
     twitchUpdateIsLive,
@@ -127,14 +126,42 @@ export async function checkIfStreamersAreLive(): Promise<void> {
                         );
 
                     for (const guild of guildsTrackingStreamer.data) {
-                        // Send a message to the channel
-                        const channel = await client.channels.fetch(
-                            guild.notificationChannelId,
-                        );
+                        const auditData = {
+                            platform: "twitch",
+                            twitchChannelId: streamerId.twitchChannelId,
+                            streamerName,
+                            notificationChannelId: guild.notificationChannelId,
+                            isDm: guild.isDm,
+                        };
 
-                        await (channel as TextChannel).send(
-                            `${guild.notificationRoleId ? `<@&${guild.notificationRoleId}>` : ""} ${streamerName} is now live <https://twitch.tv/${streamerName}>!`,
-                        );
+                        try {
+                            const channel = await client.channels.fetch(
+                                guild.notificationChannelId,
+                            );
+
+                            if (!channel?.isSendable())
+                                throw new Error("Channel is not sendable");
+                            await channel.send(
+                                `${guild.notificationRoleId ? `<@&${guild.notificationRoleId}>` : ""} ${streamerName} is now live <https://twitch.tv/${streamerName}>!`,
+                            );
+                            await dbAuditLogCreate(
+                                guild.guildId,
+                                "notification_sent",
+                                "success",
+                                auditData,
+                            );
+                        } catch (error) {
+                            console.error(
+                                "Error sending Twitch notification:",
+                                error,
+                            );
+                            await dbAuditLogCreate(
+                                guild.guildId,
+                                "notification_sent",
+                                "failure",
+                                { ...auditData, error: String(error) },
+                            );
+                        }
                     }
                 } else {
                     console.log(

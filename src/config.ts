@@ -11,6 +11,7 @@ if (runningInDevMode && runningInStagingMode) {
 }
 
 export interface Config {
+    discordLogsWebhookUrl: string | null;
     youtubeInnertubeProxyUrl: string | null;
     updateIntervalYouTube: number;
     updateIntervalTwitch: number;
@@ -20,7 +21,30 @@ export interface Config {
     discordComponentsPageSize: number;
 }
 
+const discordLogsWebhookUrl =
+    [
+        process.env.DISCORD_LOGS_WEBHOOK_URL,
+        process.env.CONFIG_DISCORD_LOGS_WEBHOOK_URL,
+        process.env.CONFIG_DISCORD_LOGS_CHANNEL,
+    ].find((value) => {
+        if (!value || value.startsWith("YOUR_")) return false;
+        try {
+            const url = new URL(value);
+
+            return (
+                url.protocol === "https:" &&
+                /^(discord(?:app)?\.com|(?:canary|ptb)\.discord\.com)$/.test(
+                    url.hostname,
+                ) &&
+                /^\/api(?:\/v\d+)?\/webhooks\/[^/]+\/[^/]+/.test(url.pathname)
+            );
+        } catch {
+            return false;
+        }
+    }) ?? null;
+
 export const config: Config = {
+    discordLogsWebhookUrl,
     youtubeInnertubeProxyUrl: process.env?.YOUTUBE_INNERTUBE_PROXY_URL ?? null,
     updateIntervalYouTube: process.env?.CONFIG_UPDATE_INTERVAL_YOUTUBE
         ? parseInt(process.env?.CONFIG_UPDATE_INTERVAL_YOUTUBE) * 1000

@@ -1,6 +1,7 @@
 import { DiscordAPIError, RESTJSONErrorCodes } from "discord.js";
 
 import client from "../../client";
+import { dbAuditLogCreate } from "../../db/audit";
 import {
     deleteQueuedNotification,
     getQueuedNotifications,
@@ -13,6 +14,14 @@ export default async function sendLatestUploads(): Promise<void> {
     sending = true;
     try {
         for (const notification of getQueuedNotifications()) {
+            const auditData = {
+                platform: "youtube",
+                videoId: notification.video_id,
+                youtubeChannelId: notification.youtube_channel_id,
+                notificationChannelId: notification.notification_channel_id,
+                isDm: Boolean(notification.is_dm),
+            };
+
             try {
                 const channel = await client.channels.fetch(
                     notification.notification_channel_id,
@@ -22,6 +31,12 @@ export default async function sendLatestUploads(): Promise<void> {
                     console.error(
                         "Notification channel is invalid or cannot receive messages:",
                         notification.notification_channel_id,
+                    );
+                    await dbAuditLogCreate(
+                        notification.guild_id,
+                        "notification_sent",
+                        "failure",
+                        { ...auditData, error: "Channel is not sendable" },
                     );
                     deleteQueuedNotification(notification.id);
                     continue;
@@ -38,7 +53,19 @@ export default async function sendLatestUploads(): Promise<void> {
                     content: `${mention}New video uploaded${name}! https://www.youtube.com/watch?v=${notification.video_id}`,
                 });
                 deleteQueuedNotification(notification.id);
+                await dbAuditLogCreate(
+                    notification.guild_id,
+                    "notification_sent",
+                    "success",
+                    auditData,
+                );
             } catch (error) {
+                await dbAuditLogCreate(
+                    notification.guild_id,
+                    "notification_sent",
+                    "failure",
+                    { ...auditData, error: String(error) },
+                );
                 if (
                     error instanceof DiscordAPIError &&
                     error.code === RESTJSONErrorCodes.UnknownChannel

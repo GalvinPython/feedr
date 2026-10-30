@@ -22,6 +22,7 @@ import {
 import { PermissionFlagsBits } from "discord-api-types/v8";
 import hfksdjfskfhsjdfhkasfdhksf from "hfksdjfskfhsjdfhkasfdhksf";
 
+import { dbAuditLogCreate } from "./db/audit";
 import checkIfChannelIdIsValid from "./utils/youtube/checkIfChannelIdIsValid";
 import getChannelDetails from "./utils/youtube/getChannelDetails";
 import { checkIfStreamerIsLive } from "./utils/twitch/checkIfStreamerIsLive";
@@ -894,6 +895,12 @@ const commands: Record<string, Command> = {
             const trackingDeleteSuccess =
                 await discordRemoveGuildTrackingChannel(platformUserId);
 
+            await dbAuditLogCreate(
+                interaction.guildId ?? interaction.channelId,
+                "subscription_deleted",
+                trackingDeleteSuccess.success ? "success" : "failure",
+                { platform, subscriptionId: trackedSubscriptionId, isDm },
+            );
             if (!trackingDeleteSuccess || !trackingDeleteSuccess.success) {
                 await replyWithQuickEmbed(
                     interaction,

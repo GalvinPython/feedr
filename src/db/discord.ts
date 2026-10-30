@@ -3,6 +3,7 @@ import { eq, and, getTableColumns } from "drizzle-orm";
 import { Platform } from "../types/types.d";
 
 import { db } from "./db";
+import { dbAuditLogCreate } from "./audit";
 import {
     syncTwitchChannelActiveState,
     syncYouTubeChannelActiveState,
@@ -13,7 +14,6 @@ import {
     dbDiscordTable,
     dbYouTubeTable,
     dbTwitchTable,
-    dbAuditLogsTable,
 } from "./schema";
 
 // Check if the guild is tracking the user already
@@ -136,8 +136,24 @@ export async function discordAddGuildTrackingUser(
             }
         });
 
+        await dbAuditLogCreate(guildId, "subscription_created", "success", {
+            platform,
+            platformUserId,
+            notificationChannelId: guildChannelId,
+            roleId,
+            isDm,
+        });
+
         return { success: true, data: [] };
     } catch (error) {
+        await dbAuditLogCreate(guildId, "subscription_created", "failure", {
+            platform,
+            platformUserId,
+            notificationChannelId: guildChannelId,
+            roleId,
+            isDm,
+            error: String(error),
+        });
         console.error("Error adding guild tracking user:", error);
 
         return { success: false, data: [] };
@@ -424,9 +440,6 @@ export async function discordRemoveGuildFromTracking(
                 .where(eq(dbGuildTwitchSubscriptionsTable.guildId, guildId))
                 .returning();
 
-            await tx
-                .delete(dbAuditLogsTable)
-                .where(eq(dbAuditLogsTable.guildId, guildId));
             await tx
                 .delete(dbDiscordTable)
                 .where(eq(dbDiscordTable.guildId, guildId));

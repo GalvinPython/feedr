@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 
 import { dbDiscordTable } from "../../db/schema";
 import client from "../../client";
+import { dbAuditLogCreate } from "../../db/audit";
 import { db } from "../../db/db";
 import {
     discordAddNewGuild,
@@ -41,6 +42,12 @@ export default async function updateGuildsOnStartup() {
                     guild.guildId,
                 );
 
+                await dbAuditLogCreate(
+                    guild.guildId,
+                    "guild_left",
+                    result.success ? "success" : "failure",
+                    { source: "startup" },
+                );
                 if (!result.success)
                     throw new Error(`Failed to remove guild ${guild.guildId}`);
             } else if (!guild.isInServer) {
@@ -52,15 +59,26 @@ export default async function updateGuildsOnStartup() {
         }
         for (const guildId of guildIds) {
             if (!stored.some((row) => row.guildId === guildId)) {
-                const fullGuild = await client.guilds.fetch(guildId);
-                const result = await discordAddNewGuild(
-                    guildId,
-                    false,
-                    fullGuild.memberCount,
-                );
+                try {
+                    const fullGuild = await client.guilds.fetch(guildId);
+                    const result = await discordAddNewGuild(
+                        guildId,
+                        false,
+                        fullGuild.memberCount,
+                    );
 
-                if (!result.success)
-                    throw new Error(`Failed to add guild ${guildId}`);
+                    if (!result.success)
+                        throw new Error(`Failed to add guild ${guildId}`);
+                    await dbAuditLogCreate(guildId, "guild_joined", "success", {
+                        source: "startup",
+                    });
+                } catch (error) {
+                    await dbAuditLogCreate(guildId, "guild_joined", "failure", {
+                        source: "startup",
+                        error: String(error),
+                    });
+                    throw error;
+                }
             }
         }
         await syncYouTubeChannelActiveState();
