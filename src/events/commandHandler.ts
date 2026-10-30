@@ -1,4 +1,4 @@
-import { Events } from "discord.js";
+import { Events, MessageFlags } from "discord.js";
 
 import client from "../client";
 import commandsMap from "../commands";
@@ -16,12 +16,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
         } catch (error) {
             console.error("Command execute failed:", error);
             if (interaction.deferred || interaction.replied)
-                await interaction.editReply({ content: "The command failed." });
+                await interaction
+                    .editReply({ content: "The command failed." })
+                    .catch(console.error);
             else
-                await interaction.reply({
-                    content: "The command failed.",
-                    ephemeral: true,
-                });
+                await interaction
+                    .reply({
+                        content: "The command failed.",
+                        flags: MessageFlags.Ephemeral,
+                    })
+                    .catch(console.error);
         }
     }
 });

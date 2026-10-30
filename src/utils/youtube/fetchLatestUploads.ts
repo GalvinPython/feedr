@@ -8,6 +8,7 @@ import {
 import { env } from "../../config";
 import {
     dbYouTubeGetAllChannelsToTrack,
+    seedChannelVideoHistory,
     youtubeUpdateVideoId,
 } from "../../db/youtube";
 import { discordGetAllGuildsTrackingChannel } from "../../db/discord";
@@ -128,6 +129,29 @@ async function fetchUploads(enqueue: boolean): Promise<boolean> {
         channelDict[channel.youtubeChannelId] = channel;
     });
 
+    for (const channel of Object.values(channelDict)) {
+        if (!channel.videoHistoryInitialized) {
+            try {
+                const updated = await seedChannelVideoHistory(
+                    channel.youtubeChannelId,
+                );
+
+                if (!updated)
+                    throw new Error(
+                        "Channel disappeared during history initialization",
+                    );
+                channelDict[channel.youtubeChannelId] = updated;
+            } catch (error) {
+                console.error(
+                    "Failed to initialize YouTube video history:",
+                    error,
+                );
+                delete channelDict[channel.youtubeChannelId];
+                succeeded = false;
+            }
+        }
+    }
+
     const chunkSize = 50;
     const channelIds = Object.keys(channelDict).map((channelId) =>
         channelId.replace(/^UC/, "UU"),
@@ -164,7 +188,9 @@ async function fetchUploads(enqueue: boolean): Promise<boolean> {
                 try {
                     const channelId = playlist.snippet.channelId;
                     const videoId =
-                        playlist.snippet.thumbnails.default.url.split("/")[4];
+                        playlist.snippet?.thumbnails?.default?.url?.split(
+                            "/",
+                        )[4];
 
                     if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId ?? "")) continue;
 
@@ -180,6 +206,28 @@ async function fetchUploads(enqueue: boolean): Promise<boolean> {
                         channelDict[channelId].latestAllId !== videoId;
 
                     if (requiresUpdate) {
+                        const channel = channelDict[channelId];
+                        const seen =
+                            channel.previousVideoIds?.includes(videoId) ||
+                            [
+                                channel.latestVideoId,
+                                channel.latestShortId,
+                                channel.latestStreamId,
+                            ].includes(videoId);
+
+                        if (seen) {
+                            const updated = await youtubeUpdateVideoId(
+                                channelId,
+                                videoId,
+                                PlaylistType.All,
+                                new Date(),
+                            );
+
+                            if (!updated.success || !updated.data)
+                                succeeded = false;
+                            else channelDict[channelId] = updated.data;
+                            continue;
+                        }
                         console.log(
                             "Channel ID:",
                             channelId,
@@ -332,6 +380,8 @@ async function fetchUploads(enqueue: boolean): Promise<boolean> {
                             );
 
                             succeeded = false;
+                        } else if (updateSuccess.data) {
+                            channelDict[channelId] = updateSuccess.data;
                         }
                     }
                 } catch (error) {

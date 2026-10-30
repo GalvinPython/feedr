@@ -17,7 +17,7 @@ export default async function search(
     }
 
     const res = await twitchFetch(
-        `https://api.twitch.tv/helix/search/channels?query=${searchQuery}`,
+        `https://api.twitch.tv/helix/search/channels?query=${encodeURIComponent(searchQuery)}`,
     );
 
     console.log(

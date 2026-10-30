@@ -988,7 +988,8 @@ const commands: Record<string, Command> = {
                 );
             } catch (error) {
                 console.error("Untrack autocomplete failed:", error);
-                if (!interaction.responded) await interaction.respond([]);
+                if (!interaction.responded)
+                    await interaction.respond([]).catch(console.error);
             }
         },
     },
@@ -1190,63 +1191,68 @@ const commands: Record<string, Command> = {
             });
 
             collector.on("collect", async (i) => {
-                let needsUpdate = false;
+                try {
+                    let needsUpdate = false;
 
-                switch (i.customId) {
-                    case "filter_all":
-                    case "filter_youtube":
-                    case "filter_twitch": {
-                        const newFilter = i.customId.replace(
-                            "filter_",
-                            "",
-                        ) as FilterType;
+                    switch (i.customId) {
+                        case "filter_all":
+                        case "filter_youtube":
+                        case "filter_twitch": {
+                            const newFilter = i.customId.replace(
+                                "filter_",
+                                "",
+                            ) as FilterType;
 
-                        if (currentFilter !== newFilter) {
-                            currentFilter = newFilter;
-                            currentPage = 0;
-                            needsUpdate = true;
+                            if (currentFilter !== newFilter) {
+                                currentFilter = newFilter;
+                                currentPage = 0;
+                                needsUpdate = true;
+                            }
+                            break;
                         }
-                        break;
+                        case "prev_page":
+                            if (currentPage > 0) {
+                                currentPage--;
+                                needsUpdate = true;
+                            }
+                            break;
+                        case "next_page": {
+                            const filteredEntries =
+                                filterEntries(currentFilter);
+                            const totalPages = Math.ceil(
+                                filteredEntries.length / pageSize,
+                            );
+
+                            if (currentPage < totalPages - 1) {
+                                currentPage++;
+                                needsUpdate = true;
+                            }
+                            break;
+                        }
                     }
-                    case "prev_page":
-                        if (currentPage > 0) {
-                            currentPage--;
-                            needsUpdate = true;
-                        }
-                        break;
-                    case "next_page": {
+
+                    if (needsUpdate) {
                         const filteredEntries = filterEntries(currentFilter);
-                        const totalPages = Math.ceil(
-                            filteredEntries.length / pageSize,
-                        );
 
-                        if (currentPage < totalPages - 1) {
-                            currentPage++;
-                            needsUpdate = true;
-                        }
-                        break;
-                    }
-                }
-
-                if (needsUpdate) {
-                    const filteredEntries = filterEntries(currentFilter);
-
-                    await i.update({
-                        embeds: [
-                            getEmbed(
-                                filteredEntries,
-                                currentPage,
+                        await i.update({
+                            embeds: [
+                                getEmbed(
+                                    filteredEntries,
+                                    currentPage,
+                                    currentFilter,
+                                ),
+                            ],
+                            components: getButtons(
                                 currentFilter,
+                                currentPage,
+                                filteredEntries.length,
                             ),
-                        ],
-                        components: getButtons(
-                            currentFilter,
-                            currentPage,
-                            filteredEntries.length,
-                        ),
-                    });
-                } else {
-                    await i.deferUpdate();
+                        });
+                    } else {
+                        await i.deferUpdate();
+                    }
+                } catch (error) {
+                    console.error("Tracked button handler failed:", error);
                 }
             });
 
@@ -1302,29 +1308,19 @@ const commands: Record<string, Command> = {
                 return;
             }
 
-            // Check type of the channel
-            const targetChannel = await client.channels.fetch(channelId);
-
             if (
-                targetChannel &&
-                (targetChannel.type === ChannelType.GuildText ||
-                    targetChannel.type === ChannelType.GuildAnnouncement)
+                !isDm &&
+                !interaction.memberPermissions?.has(
+                    PermissionFlagsBits.ManageChannels,
+                )
             ) {
-                if (
-                    !isDm &&
-                    !interaction.memberPermissions?.has(
-                        PermissionFlagsBits.ManageChannels,
-                    )
-                ) {
-                    // Check the permissions of the user
-                    await replyWithQuickEmbed(
-                        interaction,
-                        "You need the Manage Channels permission to configure /updates in this server.",
-                        EmbedType.Error,
-                    );
+                await replyWithQuickEmbed(
+                    interaction,
+                    "You need the Manage Channels permission to configure /updates in this server.",
+                    EmbedType.Error,
+                );
 
-                    return;
-                }
+                return;
             }
 
             // Check the permissions of the bot in the channel
@@ -1372,7 +1368,12 @@ const commands: Record<string, Command> = {
                     throw new Error("Failed to create guild row");
             }
             const currentChannel =
-                currentDatabaseState.data[0]?.feedrUpdatesChannelId ?? null;
+                currentDatabaseState.data.length === 0
+                    ? isDm
+                        ? guildId
+                        : null
+                    : (currentDatabaseState.data[0]?.feedrUpdatesChannelId ??
+                      null);
             const currentState = Boolean(currentChannel);
             const desiredState = Boolean(
                 interaction.options.get("state")?.value === "enable",

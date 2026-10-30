@@ -16,7 +16,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
             await getCommand.autoComplete(interaction);
         } catch (error) {
             console.error("Command autoComplete failed:", error);
-            if (!interaction.responded) await interaction.respond([]);
+            if (!interaction.responded)
+                await interaction.respond([]).catch(console.error);
         }
     }
 });

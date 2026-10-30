@@ -19,6 +19,43 @@ const playlistIdPrefixes: Record<PlaylistType, string> = {
     [PlaylistType.Stream]: "UULV",
 };
 
+export async function getAllUploadIds(channelId: string): Promise<string[]> {
+    if (!channelId.startsWith("UC"))
+        throw new Error("Invalid YouTube channel ID");
+    const ids: string[] = [];
+    let pageToken: string | undefined;
+
+    do {
+        const params = new URLSearchParams({
+            part: "snippet",
+            playlistId: "UU" + channelId.slice(2),
+            maxResults: "50",
+            key: env.youtubeApiKey ?? "",
+        });
+
+        if (pageToken) params.set("pageToken", pageToken);
+        const res = await fetch(
+            `https://youtube.googleapis.com/youtube/v3/playlistItems?${params}`,
+        );
+
+        if (!res.ok)
+            throw new Error(`YouTube uploads request failed: ${res.status}`);
+        const data = (await res.json()) as {
+            nextPageToken?: string;
+            items?: { snippet?: { resourceId?: { videoId?: string } } }[];
+        };
+
+        for (const item of data.items ?? []) {
+            const id = item.snippet?.resourceId?.videoId;
+
+            if (id) ids.push(id);
+        }
+        pageToken = data.nextPageToken;
+    } while (pageToken);
+
+    return ids;
+}
+
 export default async function (
     channelId: string,
     playlistType?: PlaylistType,

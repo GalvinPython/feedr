@@ -36,7 +36,7 @@ const database = new Database(
 database.run("PRAGMA journal_mode = WAL;");
 database.run("PRAGMA busy_timeout = 5000;");
 database.run(`CREATE TABLE IF NOT EXISTS youtube_notification_queue (
-    id INTEGER PRIMARY KEY, video_id TEXT NOT NULL, youtube_channel_id TEXT NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT, video_id TEXT NOT NULL, youtube_channel_id TEXT NOT NULL,
     channel_name TEXT, guild_id TEXT NOT NULL, notification_channel_id TEXT NOT NULL,
     notification_role_id TEXT, is_dm INTEGER NOT NULL, content_type TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -57,6 +57,34 @@ for (const [name, definition] of [
         database.run(
             `ALTER TABLE youtube_notification_queue ADD COLUMN ${name} ${definition}`,
         );
+}
+const queueDefinition = database
+    .query<{ sql: string }, []>(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'youtube_notification_queue'",
+    )
+    .get();
+
+if (queueDefinition && !/\bAUTOINCREMENT\b/i.test(queueDefinition.sql)) {
+    database.transaction(() => {
+        database.run(
+            "ALTER TABLE youtube_notification_queue RENAME TO youtube_notification_queue_old",
+        );
+        database.run(`CREATE TABLE youtube_notification_queue (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, video_id TEXT NOT NULL, youtube_channel_id TEXT NOT NULL,
+            channel_name TEXT, guild_id TEXT NOT NULL, notification_channel_id TEXT NOT NULL,
+            notification_role_id TEXT, is_dm INTEGER NOT NULL, content_type TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, sent_at TEXT,
+            attempts INTEGER NOT NULL DEFAULT 0, next_attempt_at TEXT,
+            UNIQUE(video_id, guild_id, notification_channel_id)
+        )`);
+        database.run(`INSERT INTO youtube_notification_queue
+            (id, video_id, youtube_channel_id, channel_name, guild_id, notification_channel_id,
+             notification_role_id, is_dm, content_type, created_at, sent_at, attempts, next_attempt_at)
+            SELECT id, video_id, youtube_channel_id, channel_name, guild_id, notification_channel_id,
+             notification_role_id, is_dm, content_type, created_at, sent_at, attempts, next_attempt_at
+            FROM youtube_notification_queue_old`);
+        database.run("DROP TABLE youtube_notification_queue_old");
+    })();
 }
 const insert = database.query(`INSERT INTO youtube_notification_queue
     (video_id, youtube_channel_id, channel_name, guild_id, notification_channel_id, notification_role_id, is_dm, content_type)

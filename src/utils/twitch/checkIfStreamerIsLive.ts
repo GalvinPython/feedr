@@ -76,7 +76,7 @@ export async function checkIfStreamersAreLive(): Promise<void> {
                     res.statusText,
                 );
 
-                return;
+                continue;
             }
 
             const data = await res.json();
@@ -101,6 +101,18 @@ export async function checkIfStreamersAreLive(): Promise<void> {
                 );
 
                 if (needsUpdate) {
+                    const guildsTrackingStreamer = isLive
+                        ? await discordGetAllGuildsTrackingChannel(
+                              Platform.Twitch,
+                              streamerId.twitchChannelId,
+                          )
+                        : null;
+
+                    if (
+                        guildsTrackingStreamer &&
+                        !guildsTrackingStreamer.success
+                    )
+                        continue;
                     // Update the database
                     console.log(
                         `Updating ${streamerId.twitchChannelId} to be ${isLive ? "live" : "offline"}`,
@@ -119,14 +131,8 @@ export async function checkIfStreamersAreLive(): Promise<void> {
                                 streamerId.twitchChannelId,
                             )) ?? streamerId.twitchChannelName;
 
-                        // Get all guilds that are tracking this streamer
-                        const guildsTrackingStreamer =
-                            await discordGetAllGuildsTrackingChannel(
-                                Platform.Twitch,
-                                streamerId.twitchChannelId,
-                            );
-
-                        for (const guild of guildsTrackingStreamer.data) {
+                        for (const guild of guildsTrackingStreamer?.data ??
+                            []) {
                             const auditData = {
                                 platform: "twitch",
                                 twitchChannelId: streamerId.twitchChannelId,

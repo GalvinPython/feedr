@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 
 import getSinglePlaylistAndReturnVideoId, {
     PlaylistType,
+    getAllUploadIds,
 } from "../utils/youtube/getSinglePlaylistAndReturnVideoData";
 import getChannelDetails from "../utils/youtube/getChannelDetails";
 
@@ -83,6 +84,19 @@ export async function addNewChannelToTrack(
             PlaylistType.Stream,
         );
 
+        const uploadIds = await getAllUploadIds(channelId);
+        const previousVideoIds = [
+            ...new Set(
+                [
+                    ...uploadIds,
+                    latestId?.videoId,
+                    longId?.videoId,
+                    shortId?.videoId,
+                    liveId?.videoId,
+                ].filter((id): id is string => Boolean(id)),
+            ),
+        ];
+
         const channelData = {
             youtubeChannelId: channelId,
             isActive: false,
@@ -97,6 +111,8 @@ export async function addNewChannelToTrack(
             // TODO: Add better streaming capabilities in the future
             youtubeChannelIsLive: false,
             youtubeLiveIds: [],
+            previousVideoIds,
+            videoHistoryInitialized: true,
         };
 
         await db
@@ -106,6 +122,10 @@ export async function addNewChannelToTrack(
                 target: dbYouTubeTable.youtubeChannelId,
                 set: {
                     ...channelData,
+                    previousVideoIds: sql`ARRAY(SELECT DISTINCT id FROM unnest(${dbYouTubeTable.previousVideoIds} || ARRAY[${sql.join(
+                        previousVideoIds.map((id) => sql`${id}`),
+                        sql`, `,
+                    )}]::text[] || ARRAY[${dbYouTubeTable.latestAllId}, ${dbYouTubeTable.latestVideoId}, ${dbYouTubeTable.latestShortId}, ${dbYouTubeTable.latestStreamId}]) AS id WHERE id IS NOT NULL)`,
                     latestAllId: sql`coalesce(${channelData.latestAllId}, ${dbYouTubeTable.latestAllId})`,
                     latestVideoId: sql`coalesce(${channelData.latestVideoId}, ${dbYouTubeTable.latestVideoId})`,
                     latestShortId: sql`coalesce(${channelData.latestShortId}, ${dbYouTubeTable.latestShortId})`,
@@ -125,6 +145,25 @@ export async function addNewChannelToTrack(
 
         return { success: false, data: [] };
     }
+}
+
+export async function seedChannelVideoHistory(
+    channelId: string,
+): Promise<typeof dbYouTubeTable.$inferSelect | undefined> {
+    const ids = await getAllUploadIds(channelId);
+    const [updated] = await db
+        .update(dbYouTubeTable)
+        .set({
+            previousVideoIds: sql`ARRAY(SELECT DISTINCT id FROM unnest(${dbYouTubeTable.previousVideoIds} || ARRAY[${sql.join(
+                ids.map((id) => sql`${id}`),
+                sql`, `,
+            )}]::text[] || ARRAY[${dbYouTubeTable.latestAllId}, ${dbYouTubeTable.latestVideoId}, ${dbYouTubeTable.latestShortId}, ${dbYouTubeTable.latestStreamId}]) AS id WHERE id IS NOT NULL)`,
+            videoHistoryInitialized: true,
+        })
+        .where(eq(dbYouTubeTable.youtubeChannelId, channelId))
+        .returning();
+
+    return updated;
 }
 
 // Update the latest video ID for a channel
@@ -153,11 +192,7 @@ export async function youtubeUpdateVideoId(
                 updateData.latestStreamIdUpdated = updateTime;
                 break;
             case PlaylistType.All:
-                console.error(
-                    "All content type should not be used for updating video IDs",
-                );
-
-                return { success: false };
+                break;
             default:
                 break;
         }
@@ -167,7 +202,10 @@ export async function youtubeUpdateVideoId(
 
         const [updated] = await db
             .update(dbYouTubeTable)
-            .set(updateData)
+            .set({
+                ...updateData,
+                previousVideoIds: sql`ARRAY(SELECT DISTINCT id FROM unnest(${dbYouTubeTable.previousVideoIds} || ARRAY[${videoId}, ${dbYouTubeTable.latestAllId}, ${dbYouTubeTable.latestVideoId}, ${dbYouTubeTable.latestShortId}, ${dbYouTubeTable.latestStreamId}]::text[]) AS id WHERE id IS NOT NULL)`,
+            })
             .where(eq(dbYouTubeTable.youtubeChannelId, channelId))
             .returning();
 
