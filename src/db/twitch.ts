@@ -8,7 +8,10 @@ export async function dbTwitchGetAllChannelsToTrack(): Promise<{
     data: (typeof dbTwitchTable.$inferSelect)[];
 }> {
     try {
-        const result = await db.select().from(dbTwitchTable);
+        const result = await db
+            .select()
+            .from(dbTwitchTable)
+            .where(eq(dbTwitchTable.isActive, true));
 
         return {
             success: true,
@@ -51,8 +54,14 @@ export async function addNewStreamerToTrack(
             .insert(dbTwitchTable)
             .values({
                 twitchChannelId: streamerId,
+                isActive: false,
                 twitchChannelIsLive: isLive,
                 twitchChannelName: twitchChannelName || "",
+            })
+            .onConflictDoUpdate({
+                target: dbTwitchTable.twitchChannelId,
+                set: { twitchChannelIsLive: isLive, twitchChannelName },
+                setWhere: eq(dbTwitchTable.isActive, false),
             })
             .returning();
 

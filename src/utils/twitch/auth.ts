@@ -25,3 +25,19 @@ export async function getTwitchToken(): Promise<boolean> {
 
     return true;
 }
+
+export async function twitchFetch(url: string): Promise<Response> {
+    const request = () =>
+        fetch(url, {
+            headers: {
+                "Client-ID": env.twitchClientId ?? "",
+                Authorization: `Bearer ${twitchToken}`,
+            },
+        });
+    let response = await request();
+
+    if (response.status === 401 && (await getTwitchToken()))
+        response = await request();
+
+    return response;
+}

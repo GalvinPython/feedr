@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import getSinglePlaylistAndReturnVideoId, {
     PlaylistType,
@@ -14,7 +14,10 @@ export async function dbYouTubeGetAllChannelsToTrack(): Promise<{
     data: (typeof dbYouTubeTable.$inferSelect)[];
 }> {
     try {
-        const result = await db.select().from(dbYouTubeTable);
+        const result = await db
+            .select()
+            .from(dbYouTubeTable)
+            .where(eq(dbYouTubeTable.isActive, true));
 
         return {
             success: true,
@@ -80,8 +83,9 @@ export async function addNewChannelToTrack(
             PlaylistType.Stream,
         );
 
-        await db.insert(dbYouTubeTable).values({
+        const channelData = {
             youtubeChannelId: channelId,
+            isActive: false,
             youtubeChannelName: channelDetails?.channelName ?? "",
             latestAllId: latestId?.videoId ?? null,
             latestVideoId: longId?.videoId ?? null,
@@ -93,7 +97,25 @@ export async function addNewChannelToTrack(
             // TODO: Add better streaming capabilities in the future
             youtubeChannelIsLive: false,
             youtubeLiveIds: [],
-        });
+        };
+
+        await db
+            .insert(dbYouTubeTable)
+            .values(channelData)
+            .onConflictDoUpdate({
+                target: dbYouTubeTable.youtubeChannelId,
+                set: {
+                    ...channelData,
+                    latestAllId: sql`coalesce(${channelData.latestAllId}, ${dbYouTubeTable.latestAllId})`,
+                    latestVideoId: sql`coalesce(${channelData.latestVideoId}, ${dbYouTubeTable.latestVideoId})`,
+                    latestShortId: sql`coalesce(${channelData.latestShortId}, ${dbYouTubeTable.latestShortId})`,
+                    latestStreamId: sql`coalesce(${channelData.latestStreamId}, ${dbYouTubeTable.latestStreamId})`,
+                    latestVideoIdUpdated: sql`coalesce(${channelData.latestVideoIdUpdated}, ${dbYouTubeTable.latestVideoIdUpdated})`,
+                    latestShortIdUpdated: sql`coalesce(${channelData.latestShortIdUpdated}, ${dbYouTubeTable.latestShortIdUpdated})`,
+                    latestStreamIdUpdated: sql`coalesce(${channelData.latestStreamIdUpdated}, ${dbYouTubeTable.latestStreamIdUpdated})`,
+                },
+                setWhere: eq(dbYouTubeTable.isActive, false),
+            });
 
         console.log("Channel added to track successfully:", channelId);
 
@@ -113,11 +135,8 @@ export async function youtubeUpdateVideoId(
     updateTime: Date,
 ): Promise<{ success: boolean; data?: typeof dbYouTubeTable.$inferSelect }> {
     try {
-        const updateData: Record<string, unknown> = {
-            latestAllId: null,
-            latestVideoId: null,
-            latestShortId: null,
-            latestStreamId: null,
+        const updateData: Partial<typeof dbYouTubeTable.$inferInsert> = {
+            latestAllId: videoId,
         };
 
         switch (contentType) {
@@ -134,18 +153,10 @@ export async function youtubeUpdateVideoId(
                 updateData.latestStreamIdUpdated = updateTime;
                 break;
             case PlaylistType.All:
-                console.error(
-                    "All content type should not be used for updating video IDs",
-                );
-
-                return { success: false };
+                break;
             default:
                 break;
         }
-
-        // Always update the "all" column regardless of the content type
-        updateData.latestAllId = videoId;
-        updateData.latestAllIdUpdated = updateTime;
 
         const [updated] = await db
             .update(dbYouTubeTable)

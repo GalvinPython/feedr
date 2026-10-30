@@ -7,15 +7,3 @@ updates:
     schedule:
       interval: "weekly"
     target-branch: "dev"
-
-  - package-ecosystem: "bun"
-    directory: "/web"
-    schedule:
-      interval: "weekly"
-    target-branch: "dev"
-
-  - package-ecosystem: "cargo"
-    directory: "/api"
-    schedule:
-      interval: "weekly"
-    target-branch: "dev"

@@ -1,6 +1,6 @@
 import { env } from "../../config";
 
-import { twitchToken } from "./auth";
+import { twitchToken, twitchFetch } from "./auth";
 
 export async function getStreamerName(
     streamerId: string,
@@ -11,14 +11,8 @@ export async function getStreamerName(
         return null;
     }
 
-    const res = await fetch(
+    const res = await twitchFetch(
         `https://api.twitch.tv/helix/users?id=${streamerId}`,
-        {
-            headers: {
-                "Client-ID": env.twitchClientId,
-                Authorization: `Bearer ${twitchToken}`,
-            },
-        },
     );
 
     if (!res.ok) {

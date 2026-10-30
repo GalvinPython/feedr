@@ -1,7 +1,6 @@
 import { ActivityType, Guild, PresenceUpdateStatus } from "discord.js";
 
 import client from "../client";
-import { updateBotInfo } from "../db/botinfo";
 
 export async function cronUpdateBotInfo() {
     if (!client?.user) return;
@@ -12,7 +11,6 @@ export async function cronUpdateBotInfo() {
         0,
     );
 
-    await updateBotInfo(servers, members);
     client.user.setPresence({
         activities: [
             {

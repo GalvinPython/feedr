@@ -39,15 +39,17 @@ export default async function (
     const res = await fetch(
         `https://youtube.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&key=${env.youtubeApiKey}`,
     );
-    const json = (await res.json()) as YouTubePlaylistResponse;
 
     if (!res.ok) {
         console.error(
             `Failed to fetch playlist items for channel ${channelId} (${playlistId}): ${res.status}`,
         );
 
-        return { videoId: null, datePublished: null };
+        if (res.status === 404) return { videoId: null, datePublished: null };
+        throw new Error(`YouTube playlist request failed: ${res.status}`);
     }
+
+    const json = (await res.json()) as YouTubePlaylistResponse;
 
     if (!json.items || json.items.length === 0) {
         return { videoId: null, datePublished: null };

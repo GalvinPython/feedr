@@ -18,11 +18,11 @@ import {
     TextChannel,
     type ApplicationCommandOptionData,
     type CacheType,
-    type CommandInteraction,
 } from "discord.js";
 import { PermissionFlagsBits } from "discord-api-types/v8";
 import hfksdjfskfhsjdfhkasfdhksf from "hfksdjfskfhsjdfhkasfdhksf";
 
+import { dbAuditLogCreate } from "./db/audit";
 import checkIfChannelIdIsValid from "./utils/youtube/checkIfChannelIdIsValid";
 import getChannelDetails from "./utils/youtube/getChannelDetails";
 import { checkIfStreamerIsLive } from "./utils/twitch/checkIfStreamerIsLive";
@@ -35,6 +35,7 @@ import {
     checkIfGuildIsTrackingUserAlready,
     discordAddGuildTrackingUser,
     discordAddNewGuild,
+    getGuildSubscriptionCount,
     discordCheckIfDmChannelExists,
     discordGetAllTrackedInGuild,
     discordRemoveGuildTrackingChannel,
@@ -53,7 +54,7 @@ import {
     addNewStreamerToTrack,
     checkIfStreamerIsAlreadyTracked,
 } from "./db/twitch";
-import { config } from "./config";
+import { config, MAX_SUBSCRIPTIONS_PER_PLATFORM } from "./config";
 import { EmbedType, replyWithQuickEmbed } from "./utils/quickEmbed";
 import client from "./client";
 
@@ -83,7 +84,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             await replyWithQuickEmbed(
                 interaction,
                 `Ping: ${interaction.client.ws.ping}ms`,
@@ -98,7 +99,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             await client.application?.commands?.fetch().catch(console.error);
             const chat_commands = client.application?.commands.cache.map(
                 (a) => {
@@ -122,7 +123,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             await replyWithQuickEmbed(
                 interaction,
                 `[GitHub repository](https://github.com/GalvinPython/feedr)`,
@@ -139,7 +140,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             const uptimeDays = (performance.now() / (86400 * 1000)).toFixed(2);
 
             await replyWithQuickEmbed(
@@ -158,7 +159,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             await replyWithQuickEmbed(interaction, hfksdjfskfhsjdfhkasfdhksf());
         },
     },
@@ -171,7 +172,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             const heap = heapStats();
 
             Bun.gc(false);
@@ -272,7 +273,8 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
             const isDm = !interaction.inGuild();
 
             // Get the YouTube Channel ID
@@ -413,6 +415,46 @@ const commands: Record<string, Command> = {
                 }
             }
 
+            if (!isDm && guildId) await discordAddNewGuild(guildId, false);
+
+            const platform =
+                targetPlatform === "youtube"
+                    ? Platform.YouTube
+                    : Platform.Twitch;
+            const platformName =
+                targetPlatform === "youtube" ? "YouTube" : "Twitch";
+            const limitMessage = `You have reached the maximum limit of ${MAX_SUBSCRIPTIONS_PER_PLATFORM} ${platformName} subscriptions in this ${isDm ? "DM" : "server"}.`;
+
+            try {
+                if (
+                    (await getGuildSubscriptionCount(guildId, platform)) >=
+                    MAX_SUBSCRIPTIONS_PER_PLATFORM
+                ) {
+                    await dbAuditLogCreate(
+                        guildId,
+                        "subscription_created",
+                        "failure",
+                        { platform, platformUserId, reason: "limit_reached" },
+                    );
+                    await replyWithQuickEmbed(
+                        interaction,
+                        limitMessage,
+                        EmbedType.Error,
+                    );
+
+                    return;
+                }
+            } catch (error) {
+                console.error("Failed to count subscriptions:", error);
+                await replyWithQuickEmbed(
+                    interaction,
+                    "Failed to check the subscription limit. Please try again.",
+                    EmbedType.Error,
+                );
+
+                return;
+            }
+
             switch (targetPlatform) {
                 case "youtube": {
                     const contentType = interaction.options.get("content_type")
@@ -488,7 +530,6 @@ const commands: Record<string, Command> = {
                             guildId,
                         );
 
-                    console.log(trackedChannels);
                     if (!trackedChannels || !trackedChannels.success) {
                         // TODO: Embed
                         await replyWithQuickEmbed(
@@ -511,8 +552,7 @@ const commands: Record<string, Command> = {
                                 )
                                 .join(", ");
 
-                            await interaction.reply({
-                                flags: MessageFlags.Ephemeral,
+                            await interaction.editReply({
                                 embeds: [
                                     new EmbedBuilder()
                                         .setColor(0xfee75c)
@@ -548,9 +588,11 @@ const commands: Record<string, Command> = {
                             `Failed to check global tracking status for YouTube channel ${platformUserId}. This is an internal error, please report it to the developer.`,
                             EmbedType.Error,
                         );
+
+                        return;
                     } else if (
-                        isChannelTracked.success &&
-                        isChannelTracked.data.length == 0
+                        isChannelTracked.data.length === 0 ||
+                        !isChannelTracked.data[0].isActive
                     ) {
                         console.log(
                             `Channel ${platformUserId} is not tracked globally, adding it now...`,
@@ -570,7 +612,7 @@ const commands: Record<string, Command> = {
                     }
 
                     // Add the guild to the database
-                    if (
+                    const subscriptionResult =
                         await discordAddGuildTrackingUser(
                             guildId,
                             Platform.YouTube,
@@ -582,13 +624,13 @@ const commands: Record<string, Command> = {
                             shouldTrackVideos,
                             shouldTrackShorts,
                             shouldTrackStreams,
-                        )
-                    ) {
+                        );
+
+                    if (subscriptionResult.success) {
                         const youtubeChannelInfo =
                             await getChannelDetails(platformUserId);
 
-                        await interaction.reply({
-                            flags: MessageFlags.Ephemeral,
+                        await interaction.editReply({
                             embeds: [
                                 new EmbedBuilder()
                                     .setColor(0x57f287)
@@ -598,6 +640,12 @@ const commands: Record<string, Command> = {
                                     ),
                             ],
                         });
+                    } else if (subscriptionResult.reason === "limit_reached") {
+                        await replyWithQuickEmbed(
+                            interaction,
+                            limitMessage,
+                            EmbedType.Error,
+                        );
                     } else {
                         await replyWithQuickEmbed(
                             interaction,
@@ -631,7 +679,6 @@ const commands: Record<string, Command> = {
                             guildId,
                         );
 
-                    console.log(trackedChannels);
                     if (!trackedChannels || !trackedChannels.success) {
                         // TODO: Embed
                         await replyWithQuickEmbed(
@@ -654,8 +701,7 @@ const commands: Record<string, Command> = {
                                 )
                                 .join(", ");
 
-                            await interaction.reply({
-                                flags: MessageFlags.Ephemeral,
+                            await interaction.editReply({
                                 embeds: [
                                     new EmbedBuilder()
                                         .setColor(0xfee75c)
@@ -691,9 +737,11 @@ const commands: Record<string, Command> = {
                             `Failed to check global tracking status for Twitch streamer ${streamerName}.`,
                             EmbedType.Error,
                         );
+
+                        return;
                     } else if (
-                        isChannelTracked.success &&
-                        isChannelTracked.data.length == 0
+                        isChannelTracked.data.length === 0 ||
+                        !isChannelTracked.data[0].isActive
                     ) {
                         console.log(
                             `Channel ${platformUserId} is not tracked globally, adding it now...`,
@@ -718,7 +766,7 @@ const commands: Record<string, Command> = {
                     }
 
                     // Add the guild to the database
-                    if (
+                    const subscriptionResult =
                         await discordAddGuildTrackingUser(
                             guildId,
                             Platform.Twitch,
@@ -727,13 +775,20 @@ const commands: Record<string, Command> = {
                             (interaction.options.get("role")
                                 ?.value as string) ?? null,
                             isDm,
-                        )
-                    ) {
+                        );
+
+                    if (subscriptionResult.success) {
                         await replyWithQuickEmbed(
                             interaction,
                             `Started tracking the streamer ${streamerName} in <#${targetChannel?.id}>!`,
                             EmbedType.Success,
                             { title: "Tracking Started" },
+                        );
+                    } else if (subscriptionResult.reason === "limit_reached") {
+                        await replyWithQuickEmbed(
+                            interaction,
+                            limitMessage,
+                            EmbedType.Error,
                         );
                     } else {
                         await replyWithQuickEmbed(
@@ -758,9 +813,9 @@ const commands: Record<string, Command> = {
                 const query =
                     platform === "youtube"
                         ? (interaction.options.get("channel_id")
-                            ?.value as string)
+                              ?.value as string)
                         : (interaction.options.get("streamer_id")
-                            ?.value as string);
+                              ?.value as string);
 
                 // If the query is empty or not a string, return an empty array
                 if (!query || typeof query !== "string") {
@@ -794,13 +849,15 @@ const commands: Record<string, Command> = {
                         }
 
                         await interaction.respond(
-                            channels.map((channel) => ({
-                                name: `${channel.title} (${channel.handle}) | ${channel.subscribers} subscriber(s)`.slice(
-                                    0,
-                                    100,
-                                ),
-                                value: channel.channel_id,
-                            })),
+                            channels
+                                .map((channel) => ({
+                                    name: `${channel.title} (${channel.handle}) | ${channel.subscribers} subscriber(s)`.slice(
+                                        0,
+                                        100,
+                                    ),
+                                    value: channel.channel_id,
+                                }))
+                                .slice(0, 25),
                         );
 
                         break;
@@ -815,13 +872,15 @@ const commands: Record<string, Command> = {
                         }
 
                         await interaction.respond(
-                            channels.map((channel) => ({
-                                name: `${channel.displayName} (${channel.loginName}) | ${channel.isLive ? "🔴" : "Offline"}`.slice(
-                                    0,
-                                    100,
-                                ),
-                                value: channel.id,
-                            })),
+                            channels
+                                .map((channel) => ({
+                                    name: `${channel.displayName} (${channel.loginName}) | ${channel.isLive ? "🔴" : "Offline"}`.slice(
+                                        0,
+                                        100,
+                                    ),
+                                    value: channel.id,
+                                }))
+                                .slice(0, 25),
                         );
 
                         break;
@@ -853,7 +912,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             const isDm = !interaction.inGuild();
 
             // Get the YouTube Channel ID
@@ -864,8 +923,8 @@ const commands: Record<string, Command> = {
                 platform === Platform.YouTube
                     ? "YouTube"
                     : platform === Platform.Twitch
-                        ? "Twitch"
-                        : "Unknown";
+                      ? "Twitch"
+                      : "Unknown";
 
             // Check the permissions of the user
             if (
@@ -885,8 +944,22 @@ const commands: Record<string, Command> = {
 
             // Remove the guild from the database
             const trackingDeleteSuccess =
-                await discordRemoveGuildTrackingChannel(platformUserId);
+                await discordRemoveGuildTrackingChannel(
+                    platformUserId,
+                    interaction.guildId ?? interaction.channelId,
+                );
 
+            await dbAuditLogCreate(
+                interaction.guildId ?? interaction.channelId,
+                "subscription_deleted",
+                trackingDeleteSuccess.success ? "success" : "failure",
+                {
+                    platform,
+                    subscriptionId: trackedSubscriptionId,
+                    ...trackingDeleteSuccess.data[0],
+                    isDm,
+                },
+            );
             if (!trackingDeleteSuccess || !trackingDeleteSuccess.success) {
                 await replyWithQuickEmbed(
                     interaction,
@@ -904,42 +977,57 @@ const commands: Record<string, Command> = {
             );
         },
         autoComplete: async (interaction: AutocompleteInteraction) => {
-            const trackedChannels = await discordGetAllTrackedInGuild(
-                interaction.guildId ?? (interaction.channelId as string),
-            );
-
-            console.dir(
-                { message: "Tracked channels:", data: trackedChannels },
-                { depth: null },
-            );
-
-            if (!trackedChannels || !trackedChannels.success) {
-                console.error(
-                    "An error occurred while trying to get the tracked channels in this guild!",
+            try {
+                const trackedChannels = await discordGetAllTrackedInGuild(
+                    interaction.guildId ?? (interaction.channelId as string),
                 );
-                await interaction.respond([]);
 
-                return;
-            }
+                if (!trackedChannels || !trackedChannels.success) {
+                    console.error(
+                        "An error occurred while trying to get the tracked channels in this guild!",
+                    );
+                    await interaction.respond([]);
 
-            const trackedYouTubeChannels =
-                trackedChannels.data.youtubeSubscriptions;
-            const trackedTwitchChannels =
-                trackedChannels.data.twitchSubscriptions;
+                    return;
+                }
 
-            return await interaction.respond(
-                trackedYouTubeChannels
-                    .map((channel) => ({
-                        name: `YouTube: ${channel.youtubeChannel.youtubeChannelName} (${channel.youtubeChannel.youtubeChannelId}) | <#${channel.subscription.notificationChannelId}>`,
-                        value: `youtube.${String(channel.subscription.id)}`,
-                    }))
-                    .concat(
-                        trackedTwitchChannels.map((channel) => ({
-                            name: `Twitch: ${channel.twitchChannel.twitchChannelName} (${channel.twitchChannel.twitchChannelId}) | <#${channel.subscription.notificationChannelId}>`,
-                            value: `twitch.${String(channel.subscription.id)}`,
+                const trackedYouTubeChannels =
+                    trackedChannels.data.youtubeSubscriptions;
+                const trackedTwitchChannels =
+                    trackedChannels.data.twitchSubscriptions;
+
+                return await interaction.respond(
+                    trackedYouTubeChannels
+                        .map((channel) => ({
+                            name: `YouTube: ${channel.youtubeChannel.youtubeChannelName} (${channel.youtubeChannel.youtubeChannelId}) | <#${channel.subscription.notificationChannelId}>`,
+                            value: `youtube.${String(channel.subscription.id)}`,
+                        }))
+                        .concat(
+                            trackedTwitchChannels.map((channel) => ({
+                                name: `Twitch: ${channel.twitchChannel.twitchChannelName} (${channel.twitchChannel.twitchChannelId}) | <#${channel.subscription.notificationChannelId}>`,
+                                value: `twitch.${String(channel.subscription.id)}`,
+                            })),
+                        )
+                        .filter((choice) =>
+                            choice.name
+                                .toLowerCase()
+                                .includes(
+                                    String(
+                                        interaction.options.getFocused(),
+                                    ).toLowerCase(),
+                                ),
+                        )
+                        .slice(0, 25)
+                        .map((choice) => ({
+                            ...choice,
+                            name: choice.name.slice(0, 100),
                         })),
-                    ),
-            );
+                );
+            } catch (error) {
+                console.error("Untrack autocomplete failed:", error);
+                if (!interaction.responded)
+                    await interaction.respond([]).catch(console.error);
+            }
         },
     },
     tracked: {
@@ -951,7 +1039,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             let guildId = interaction.guildId;
 
             const isDm = !interaction.inGuild();
@@ -1140,63 +1228,68 @@ const commands: Record<string, Command> = {
             });
 
             collector.on("collect", async (i) => {
-                let needsUpdate = false;
+                try {
+                    let needsUpdate = false;
 
-                switch (i.customId) {
-                    case "filter_all":
-                    case "filter_youtube":
-                    case "filter_twitch": {
-                        const newFilter = i.customId.replace(
-                            "filter_",
-                            "",
-                        ) as FilterType;
+                    switch (i.customId) {
+                        case "filter_all":
+                        case "filter_youtube":
+                        case "filter_twitch": {
+                            const newFilter = i.customId.replace(
+                                "filter_",
+                                "",
+                            ) as FilterType;
 
-                        if (currentFilter !== newFilter) {
-                            currentFilter = newFilter;
-                            currentPage = 0;
-                            needsUpdate = true;
+                            if (currentFilter !== newFilter) {
+                                currentFilter = newFilter;
+                                currentPage = 0;
+                                needsUpdate = true;
+                            }
+                            break;
                         }
-                        break;
+                        case "prev_page":
+                            if (currentPage > 0) {
+                                currentPage--;
+                                needsUpdate = true;
+                            }
+                            break;
+                        case "next_page": {
+                            const filteredEntries =
+                                filterEntries(currentFilter);
+                            const totalPages = Math.ceil(
+                                filteredEntries.length / pageSize,
+                            );
+
+                            if (currentPage < totalPages - 1) {
+                                currentPage++;
+                                needsUpdate = true;
+                            }
+                            break;
+                        }
                     }
-                    case "prev_page":
-                        if (currentPage > 0) {
-                            currentPage--;
-                            needsUpdate = true;
-                        }
-                        break;
-                    case "next_page": {
+
+                    if (needsUpdate) {
                         const filteredEntries = filterEntries(currentFilter);
-                        const totalPages = Math.ceil(
-                            filteredEntries.length / pageSize,
-                        );
 
-                        if (currentPage < totalPages - 1) {
-                            currentPage++;
-                            needsUpdate = true;
-                        }
-                        break;
-                    }
-                }
-
-                if (needsUpdate) {
-                    const filteredEntries = filterEntries(currentFilter);
-
-                    await i.update({
-                        embeds: [
-                            getEmbed(
-                                filteredEntries,
-                                currentPage,
+                        await i.update({
+                            embeds: [
+                                getEmbed(
+                                    filteredEntries,
+                                    currentPage,
+                                    currentFilter,
+                                ),
+                            ],
+                            components: getButtons(
                                 currentFilter,
+                                currentPage,
+                                filteredEntries.length,
                             ),
-                        ],
-                        components: getButtons(
-                            currentFilter,
-                            currentPage,
-                            filteredEntries.length,
-                        ),
-                    });
-                } else {
-                    await i.deferUpdate();
+                        });
+                    } else {
+                        await i.deferUpdate();
+                    }
+                } catch (error) {
+                    console.error("Tracked button handler failed:", error);
                 }
             });
 
@@ -1236,7 +1329,7 @@ const commands: Record<string, Command> = {
                 },
             ],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             const isDm = !interaction.inGuild();
 
             const channelId = interaction.channelId;
@@ -1252,29 +1345,19 @@ const commands: Record<string, Command> = {
                 return;
             }
 
-            // Check type of the channel
-            const targetChannel = await client.channels.fetch(channelId);
-
             if (
-                targetChannel &&
-                (targetChannel.type === ChannelType.GuildText ||
-                    targetChannel.type === ChannelType.GuildAnnouncement)
+                !isDm &&
+                !interaction.memberPermissions?.has(
+                    PermissionFlagsBits.ManageChannels,
+                )
             ) {
-                if (
-                    !isDm &&
-                    !interaction.memberPermissions?.has(
-                        PermissionFlagsBits.ManageChannels,
-                    )
-                ) {
-                    // Check the permissions of the user
-                    await replyWithQuickEmbed(
-                        interaction,
-                        "You need the Manage Channels permission to configure /updates in this server.",
-                        EmbedType.Error,
-                    );
+                await replyWithQuickEmbed(
+                    interaction,
+                    "You need the Manage Channels permission to configure /updates in this server.",
+                    EmbedType.Error,
+                );
 
-                    return;
-                }
+                return;
             }
 
             // Check the permissions of the bot in the channel
@@ -1311,17 +1394,32 @@ const commands: Record<string, Command> = {
                 return;
             }
 
-            const currentState = Boolean(
-                currentDatabaseState.data[0].feedrUpdatesChannelId,
-            );
+            if (currentDatabaseState.data.length === 0) {
+                const created = await discordAddNewGuild(guildId, isDm);
+
+                if (!created.success)
+                    throw new Error("Failed to create guild row");
+            }
+            const currentChannel =
+                currentDatabaseState.data.length === 0
+                    ? isDm
+                        ? guildId
+                        : null
+                    : (currentDatabaseState.data[0]?.feedrUpdatesChannelId ??
+                      null);
+            const currentState = Boolean(currentChannel);
             const desiredState = Boolean(
                 interaction.options.get("state")?.value === "enable",
             );
 
-            if (currentState === desiredState) {
+            if (
+                (!desiredState && !currentState) ||
+                (desiredState && currentChannel === channelId)
+            ) {
                 await replyWithQuickEmbed(
                     interaction,
-                    `Updates are already ${desiredState ? "enabled" : "disabled"
+                    `Updates are already ${
+                        desiredState ? "enabled" : "disabled"
                     } for <#${channelId}>.`,
                     EmbedType.Warning,
                 );

@@ -1,13 +1,9 @@
 node_modules/
 .env
-.astro/
-dist/
-target/
 
 # Database stuff
 *.db
-*.sqlite
-*.sqlite3*
+*.sqlite*
 *.sql
 dbtests.ts
 perftesting.ts

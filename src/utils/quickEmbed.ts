@@ -34,6 +34,9 @@ type QuickEmbedReplyOptions = Omit<
 
 type Replyable = {
     reply: (options: InteractionReplyOptions) => Promise<unknown>;
+    deferred?: boolean;
+    replied?: boolean;
+    editReply?: (options: any) => Promise<unknown>;
 };
 
 export function buildQuickEmbed(
@@ -54,6 +57,15 @@ export async function replyWithQuickEmbed(
     options: QuickEmbedReplyOptions = {},
 ) {
     const { title, flags, ...restOptions } = options;
+
+    if (
+        (interaction.deferred || interaction.replied) &&
+        interaction.editReply
+    ) {
+        return interaction.editReply({
+            embeds: [buildQuickEmbed(query, type, title)],
+        });
+    }
 
     return interaction.reply({
         flags: flags ?? MessageFlags.Ephemeral,

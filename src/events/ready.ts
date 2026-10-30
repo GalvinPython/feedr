@@ -1,7 +1,8 @@
 import { Events } from "discord.js";
-// import { CronJob } from "cron";
+import { CronJob } from "cron";
 
 import client from "../client";
+import updateGuildsOnStartup from "../utils/discord/updateGuildsOnStartup";
 import { config } from "../config";
 // import { cronUpdateBotInfo } from "../utils/cronJobs";
 import sendLatestUploads from "../utils/youtube/sendLatestUploads";
@@ -11,6 +12,9 @@ import { checkIfStreamersAreLive } from "../utils/twitch/checkIfStreamerIsLive";
 // Log into the bot
 client.once(Events.ClientReady, async (bot) => {
     console.log(`Ready! Logged in as ${bot.user?.tag}`);
+
+    await updateGuildsOnStartup();
+    new CronJob("0 0 * * *", () => updateGuildsOnStartup("cron")).start();
 
     // TODO: Reimplement this when the bot is ready
     // await cronUpdateBotInfo();
@@ -23,7 +27,10 @@ client.once(Events.ClientReady, async (bot) => {
     );
 
     fetchLatestUploads();
-    setInterval(fetchLatestUploads, config.updateIntervalYouTube as number);
+    setInterval(
+        () => fetchLatestUploads(),
+        config.updateIntervalYouTube as number,
+    );
 
     sendLatestUploads();
     setInterval(sendLatestUploads, config.updateIntervalYouTube as number);
