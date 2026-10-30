@@ -501,7 +501,6 @@ export async function discordRemoveGuildTrackingChannel(
 export async function discordAddNewGuild(
     guildId: string,
     isDm?: boolean,
-    memberCount = 0,
 ): Promise<{ success: boolean; data: []; changed?: boolean }> {
     console.log(`Adding new guild to track: ${guildId}`);
 
@@ -511,9 +510,7 @@ export async function discordAddNewGuild(
                 .insert(dbDiscordTable)
                 .values({
                     guildId,
-                    allowedPublicSharing: false,
                     isInServer: true,
-                    memberCount,
                     isDm: isDm ?? false,
                     feedrUpdatesChannelId: isDm ? guildId : null,
                 })
@@ -523,11 +520,7 @@ export async function discordAddNewGuild(
             if (inserted.length) return true;
             const reactivated = await tx
                 .update(dbDiscordTable)
-                .set(
-                    isDm
-                        ? { isInServer: true }
-                        : { isInServer: true, memberCount },
-                )
+                .set({ isInServer: true })
                 .where(
                     and(
                         eq(dbDiscordTable.guildId, guildId),
@@ -559,12 +552,6 @@ export async function discordAddNewGuild(
                 ].sort())
                     await syncTwitchChannelActiveState(channelId, tx);
             }
-
-            if (!isDm && !reactivated.length)
-                await tx
-                    .update(dbDiscordTable)
-                    .set({ memberCount })
-                    .where(eq(dbDiscordTable.guildId, guildId));
 
             return reactivated.length > 0;
         });

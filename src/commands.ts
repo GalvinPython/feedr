@@ -415,12 +415,7 @@ const commands: Record<string, Command> = {
                 }
             }
 
-            if (!isDm && guildId)
-                await discordAddNewGuild(
-                    guildId,
-                    false,
-                    interaction.guild?.memberCount ?? 0,
-                );
+            if (!isDm && guildId) await discordAddNewGuild(guildId, false);
 
             const platform =
                 targetPlatform === "youtube"
@@ -1400,11 +1395,7 @@ const commands: Record<string, Command> = {
             }
 
             if (currentDatabaseState.data.length === 0) {
-                const created = await discordAddNewGuild(
-                    guildId,
-                    isDm,
-                    interaction.guild?.memberCount ?? 0,
-                );
+                const created = await discordAddNewGuild(guildId, isDm);
 
                 if (!created.success)
                     throw new Error("Failed to create guild row");

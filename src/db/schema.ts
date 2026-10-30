@@ -2,22 +2,18 @@
 /* eslint-disable no-inline-comments */
 /* eslint-disable prettier/prettier */
 import { sql } from "drizzle-orm";
-import { pgTable, serial, text, boolean, timestamp, decimal, unique, index, pgEnum, jsonb, integer, check } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, boolean, timestamp, unique, index, pgEnum, jsonb, check } from "drizzle-orm/pg-core";
 
 export const dbDiscordTable = pgTable("discord", {
     guildId: text("guild_id").primaryKey(),
-    allowedPublicSharing: boolean("allowed_public_sharing").notNull().default(false),
     feedrUpdatesChannelId: text("feedr_updates_channel_id"),
     isInServer: boolean("is_in_server").notNull().default(true),
-    memberCount: integer("member_count").notNull().default(0),
     isDm: boolean("is_dm").notNull().default(false),
 }, (table) => [
     check("discord_is_dm_constraint",
         sql`NOT ${table.isDm} OR (
-            ${table.allowedPublicSharing} = false AND
             ${table.feedrUpdatesChannelId} = ${table.guildId} AND
-            ${table.isInServer} = true AND
-            ${table.memberCount} = 0
+            ${table.isInServer} = true
         )`
     )
 ]);
@@ -74,39 +70,6 @@ export const dbGuildTwitchSubscriptionsTable = pgTable("guild_twitch_subscriptio
     unique("guild_twitch_subscription").on(table.guildId, table.twitchChannelId),
 ]);
 
-export const dbBotInfoTable = pgTable("bot_info", {
-    timestamp: timestamp("timestamp").notNull().defaultNow(),
-    guildsTotal: integer("guilds_total").notNull().default(0),
-    channelsTracked: integer("channels_tracked").notNull().default(0),
-    totalMembers: integer("total_members").notNull().default(0),
-    notificationsSent: integer("notifications_sent").notNull().default(0),
-});
-
-export const dbBotInfoNotificationsTable = pgTable("bot_info_notifications", {
-    timestamp: timestamp("timestamp").notNull(),
-    service: text("service").notNull(),
-    delay: decimal("delay", { precision: 10, scale: 2 }).notNull().default("0.0"),
-});
-
-// Deprecated, but kept for reference
-// export const dbBotInfoNotificationsTimingsTable = pgTable("bot_info_notifications_timings", {
-//     time: timestamp("time").notNull(),
-//     channelId: text("channel_id").notNull().references(() => dbYouTubeTable.youtubeChannelId),
-//     timeMs: integer("time_ms").notNull().default(0),
-// });
-
-// Once again, can be aggregated in the API
-// export const dbBotInfoTopChannelsTable = pgTable("bot_info_top_channels", {
-//     youtubeChannelId: text("youtube_channel_id").primaryKey().references(() => dbYouTubeTable.youtubeChannelId),
-//     guildsTracking: integer("guilds_tracking").notNull().default(0),
-// });
-
-// Once again, can be aggregated in the API
-// export const dbBotInfoTopGuildsTable = pgTable("bot_info_top_guilds", {
-//     guildId: text("guild_id").primaryKey().references(() => dbDiscordTable.guildId),
-//     members: integer("members").notNull().default(0),
-// });
-
 export const dbAuditLogsEventTypeEnum = pgEnum("event_type", [
     "subscription_created",
     "subscription_deleted",
@@ -137,8 +100,6 @@ export default {
     dbTwitchTable,
     dbGuildYouTubeSubscriptionsTable,
     dbGuildTwitchSubscriptionsTable,
-    dbBotInfoTable,
-    dbBotInfoNotificationsTable,
     dbAuditLogsEventTypeEnum,
     dbAuditLogsSuccessTypeEnum,
     dbAuditLogsTable,

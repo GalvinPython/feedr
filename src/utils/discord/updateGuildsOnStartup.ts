@@ -77,12 +77,7 @@ export default async function updateGuildsOnStartup(
         for (const guildId of guildIds) {
             if (!storedIds.has(guildId)) {
                 try {
-                    const fullGuild = await client.guilds.fetch(guildId);
-                    const result = await discordAddNewGuild(
-                        guildId,
-                        false,
-                        fullGuild.memberCount,
-                    );
+                    const result = await discordAddNewGuild(guildId, false);
 
                     if (!result.success)
                         throw new Error(`Failed to add guild ${guildId}`);

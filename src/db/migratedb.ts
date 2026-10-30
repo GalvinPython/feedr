@@ -35,21 +35,7 @@ const pgDb = drizzlePostgres(client, { schema: pgSchema });
 console.log("📋 Starting migration...", config.databaseUrl);
 
 async function migrate() {
-    // 1. Bot info
-    const botInfo = await sqliteDb.select().from(sqliteSchema.sqliteBotInfo);
-
-    for (const row of botInfo) {
-        console.log(
-            new Date(),
-            `📋 Migrating bot info: guildsTotal=${row.totalServers ?? 0}, totalMembers=${row.totalMembers ?? 0}`,
-        );
-        await pgDb.insert(pgSchema.dbBotInfoTable).values({
-            guildsTotal: row.totalServers ?? 0,
-            totalMembers: row.totalMembers ?? 0,
-        });
-    }
-
-    // 2. Discord guilds
+    // 1. Discord guilds
     const discordRows = await sqliteDb
         .select()
         .from(sqliteSchema.sqliteDiscord);
@@ -62,7 +48,7 @@ async function migrate() {
             .onConflictDoNothing();
     }
 
-    // 3. Twitch
+    // 2. Twitch
     const twitchRows = await sqliteDb.select().from(sqliteSchema.sqliteTwitch);
 
     for (const row of twitchRows) {
@@ -82,7 +68,7 @@ async function migrate() {
         );
     }
 
-    // 4. YouTube
+    // 3. YouTube
     const youtubeRows = await sqliteDb
         .select()
         .from(sqliteSchema.sqliteYouTube);
@@ -98,7 +84,7 @@ async function migrate() {
         await addNewChannelToTrack(row.youtubeChannelId);
     }
 
-    // 5. Guild Subscriptions (after Twitch/YouTube exist!)
+    // 4. Guild Subscriptions (after Twitch/YouTube exist!)
     for (const row of discordRows) {
         if (row.guildPlatform === "twitch") {
             console.log(

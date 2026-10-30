@@ -1,10 +1,5 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
-export const sqliteBotInfo = sqliteTable("bot_info", {
-    totalServers: integer("total_servers").notNull(),
-    totalMembers: integer("total_members").notNull(),
-});
-
 export const sqliteDiscord = sqliteTable("discord", {
     guildId: text("guild_id").notNull(),
     guildChannelId: text("guild_channel_id").notNull(),
