@@ -18,7 +18,6 @@ import {
     TextChannel,
     type ApplicationCommandOptionData,
     type CacheType,
-    type CommandInteraction,
 } from "discord.js";
 import { PermissionFlagsBits } from "discord-api-types/v8";
 import hfksdjfskfhsjdfhkasfdhksf from "hfksdjfskfhsjdfhkasfdhksf";
@@ -83,7 +82,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             await replyWithQuickEmbed(
                 interaction,
                 `Ping: ${interaction.client.ws.ping}ms`,
@@ -98,7 +97,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             await client.application?.commands?.fetch().catch(console.error);
             const chat_commands = client.application?.commands.cache.map(
                 (a) => {
@@ -122,7 +121,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             await replyWithQuickEmbed(
                 interaction,
                 `[GitHub repository](https://github.com/GalvinPython/feedr)`,
@@ -139,7 +138,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             const uptimeDays = (performance.now() / (86400 * 1000)).toFixed(2);
 
             await replyWithQuickEmbed(
@@ -158,7 +157,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             await replyWithQuickEmbed(interaction, hfksdjfskfhsjdfhkasfdhksf());
         },
     },
@@ -171,7 +170,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1, 2],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             const heap = heapStats();
 
             Bun.gc(false);
@@ -272,7 +271,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             const isDm = !interaction.inGuild();
 
             // Get the YouTube Channel ID
@@ -853,7 +852,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             const isDm = !interaction.inGuild();
 
             // Get the YouTube Channel ID
@@ -951,7 +950,7 @@ const commands: Record<string, Command> = {
             integration_types: [0, 1],
             contexts: [0, 1],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             let guildId = interaction.guildId;
 
             const isDm = !interaction.inGuild();
@@ -1236,7 +1235,7 @@ const commands: Record<string, Command> = {
                 },
             ],
         },
-        execute: async (interaction: CommandInteraction) => {
+        execute: async (interaction: ChatInputCommandInteraction) => {
             const isDm = !interaction.inGuild();
 
             const channelId = interaction.channelId;

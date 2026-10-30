@@ -4,19 +4,18 @@
     "type": "module",
     "version": "2.0.0-hotfix.1",
     "devDependencies": {
-        "@types/bun": "1.2.21",
-        "@types/pg": "^8.11.14",
-        "@typescript-eslint/eslint-plugin": "8.11.0",
-        "@typescript-eslint/parser": "8.11.0",
-        "concurrently": "^9.1.2",
-        "cross-env": "^7.0.3",
-        "drizzle-kit": "^0.31.4",
-        "eslint": "^8.57.0",
-        "eslint-config-prettier": "9.1.0",
-        "eslint-plugin-import": "^2.26.0",
+        "@types/bun": "1.4.4",
+        "@types/pg": "^8.23.1",
+        "@typescript-eslint/eslint-plugin": "8.72.1",
+        "@typescript-eslint/parser": "8.72.1",
+        "cross-env": "^10.1.0",
+        "drizzle-kit": "^0.31.11",
+        "eslint": "^8.57.1",
+        "eslint-config-prettier": "10.1.8",
+        "eslint-plugin-import": "^2.32.0",
         "eslint-plugin-node": "^11.1.0",
-        "eslint-plugin-prettier": "5.2.1",
-        "eslint-plugin-unused-imports": "4.1.4"
+        "eslint-plugin-prettier": "5.5.7",
+        "eslint-plugin-unused-imports": "4.4.1"
     },
     "peerDependencies": {
         "typescript": "^6.0.3"
@@ -29,24 +28,18 @@
         "db:migrate:staging": "bun src/db/migratedb.ts --staging",
         "db:migrate:prod": "bun src/db/migratedb.ts",
         "db:staging:reset": "bun src/db/resetStagingDatabase.ts --staging",
-        "dev": "concurrently --names \"WEB,API,BOT\" --prefix-colors \"blue,green,magenta\" \"cd web && bun dev\" \"cd api && cargo watch -x \\\"run -- --dev\\\"\" \"bun --watch . --dev\"",
+        "dev": "bun --watch . --dev",
         "dev:bot": "bun --watch . --dev",
-        "test:jetstream": "bun --watch src/utils/bluesky/jetstream.ts",
         "lint": "eslint src/ --ext .ts -c .eslintrc.json --debug",
         "lint:fix": "eslint . --ext .ts -c .eslintrc.json --fix",
-        "cargo:api:dev": "cd api && cargo watch -x \"run -- --dev\"",
-        "web:dev": "concurrently --names \"WEB,API\" --prefix-colors \"blue,green\" \"cd web && bun dev\" \"cd api && cargo watch -x \\\"run -- --dev\\\"\"",
-        "web:build": "cd web && bun build",
-        "start:api": "echo 'Cannot start API without cargo. Reserved for future use' && exit 1",
         "start:bot": "bun run .",
-        "start:web": "cd web && bun start",
         "update:youtube": "bun src/updateYouTube.ts"
     },
     "dependencies": {
-        "cron": "^4.3.0",
-        "discord.js": "^14.26.4",
-        "drizzle-orm": "^0.44.2",
+        "cron": "^4.4.0",
+        "discord.js": "^14.27.0",
+        "drizzle-orm": "^0.45.4",
         "hfksdjfskfhsjdfhkasfdhksf": "^1.0.5",
-        "pg": "^8.15.6"
+        "pg": "^8.23.1"
     }
 }

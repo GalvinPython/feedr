@@ -25,7 +25,6 @@ Feedr strives for constant improvement, so here's what will be implemented
 - YouTube Channel selector when using **/track**
 - Make it easier to stop tracking channels by showing channels already in the guild when doing **/untrack**
 - Other social media platforms
-  - Bluesky
 - Make it easier to switch discord channels for uploads so that **/untrack** then **/track** is not required
 - **/tracked** command to show what channels are being tracked in the guild
 

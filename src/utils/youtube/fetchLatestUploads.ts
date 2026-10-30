@@ -92,10 +92,16 @@ export default async function fetchLatestUploads() {
     const channels = await dbYouTubeGetAllChannelsToTrack();
     const channelDict: Record<string, typeof dbYouTubeTable.$inferSelect> = {};
 
-    if (!channels || !channels.success || channels.data.length === 0) {
+    if (!channels || !channels.success) {
+        console.error("Failed to load channels to track.");
+
+        return false;
+    }
+
+    if (channels.data.length === 0) {
         console.log("No channels to track.");
 
-        return;
+        return true;
     }
 
     channels.data.forEach((channel) => {
@@ -131,7 +137,7 @@ export default async function fetchLatestUploads() {
                 res.statusText,
             );
 
-            return;
+            return false;
         }
 
         const data = await res.json();
@@ -246,7 +252,7 @@ export default async function fetchLatestUploads() {
                         "Error updating video ID in fetchLatestUploads",
                     );
 
-                    return;
+                    return false;
                 }
 
                 const discordGuildsToUpdate =
@@ -260,7 +266,7 @@ export default async function fetchLatestUploads() {
                         "Error getting discord guilds to update in fetchLatestUploads",
                     );
 
-                    return;
+                    return false;
                 }
 
                 const channelInfo = await getChannelDetails(channelId);
@@ -295,4 +301,6 @@ export default async function fetchLatestUploads() {
             }
         }
     }
+
+    return true;
 }

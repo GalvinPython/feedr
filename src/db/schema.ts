@@ -22,14 +22,6 @@ export const dbDiscordTable = pgTable("discord", {
     )
 ]);
 
-export const dbBlueskyTable = pgTable("bluesky", {
-    blueskyUserId: text("bluesky_user_id").primaryKey(),
-    latestPostId: text("latest_post_id"),
-    latestReplyId: text("latest_reply_id"),
-}, (table) => [
-    index("idx_bluesky_user_id").on(table.blueskyUserId),
-]);
-
 export const dbYouTubeTable = pgTable("youtube", {
     youtubeChannelId: text("youtube_channel_id").primaryKey(),
     youtubeChannelName: text("youtube_channel_name").notNull().default(""),
@@ -52,18 +44,6 @@ export const dbTwitchTable = pgTable("twitch", {
     twitchChannelName: text("twitch_channel_name").notNull().default(""),
 }, (table) => [
     index("idx_twitch_channel_id").on(table.twitchChannelId),
-]);
-
-export const dbGuildBlueskySubscriptionsTable = pgTable("guild_bluesky_subscriptions", {
-    id: serial("id").primaryKey(),
-    guildId: text("guild_id").notNull().references(() => dbDiscordTable.guildId),
-    blueskyUserId: text("bluesky_user_id").notNull().references(() => dbBlueskyTable.blueskyUserId),
-    notificationChannelId: text("notification_channel_id").notNull(),
-    notificationRoleId: text("notification_role_id"),
-    isDm: boolean("is_dm").notNull().default(false),
-    checkForReplies: boolean("check_for_replies").notNull().default(false),
-}, (table) => [
-    unique("guild_bluesky_subscription").on(table.guildId, table.blueskyUserId),
 ]);
 
 export const dbGuildYouTubeSubscriptionsTable = pgTable("guild_youtube_subscriptions", {
@@ -151,10 +131,8 @@ export const dbAuditLogsTable = pgTable("audit_logs", {
 
 export default {
     dbDiscordTable,
-    dbBlueskyTable,
     dbYouTubeTable,
     dbTwitchTable,
-    dbGuildBlueskySubscriptionsTable,
     dbGuildYouTubeSubscriptionsTable,
     dbGuildTwitchSubscriptionsTable,
     dbBotInfoTable,

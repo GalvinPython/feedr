@@ -12,5 +12,3 @@ bun install
 
 # Restart the services
 sudo systemctl restart feedr-bot
-sudo systemctl restart feedr-web
-sudo systemctl restart feedr-api
