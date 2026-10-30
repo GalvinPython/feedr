@@ -35,6 +35,7 @@ import {
     checkIfGuildIsTrackingUserAlready,
     discordAddGuildTrackingUser,
     discordAddNewGuild,
+    getGuildSubscriptionCount,
     discordCheckIfDmChannelExists,
     discordGetAllTrackedInGuild,
     discordRemoveGuildTrackingChannel,
@@ -53,7 +54,7 @@ import {
     addNewStreamerToTrack,
     checkIfStreamerIsAlreadyTracked,
 } from "./db/twitch";
-import { config } from "./config";
+import { config, MAX_SUBSCRIPTIONS_PER_PLATFORM } from "./config";
 import { EmbedType, replyWithQuickEmbed } from "./utils/quickEmbed";
 import client from "./client";
 
@@ -421,6 +422,44 @@ const commands: Record<string, Command> = {
                     interaction.guild?.memberCount ?? 0,
                 );
 
+            const platform =
+                targetPlatform === "youtube"
+                    ? Platform.YouTube
+                    : Platform.Twitch;
+            const platformName =
+                targetPlatform === "youtube" ? "YouTube" : "Twitch";
+            const limitMessage = `You have reached the maximum limit of ${MAX_SUBSCRIPTIONS_PER_PLATFORM} ${platformName} subscriptions in this ${isDm ? "DM" : "server"}.`;
+
+            try {
+                if (
+                    (await getGuildSubscriptionCount(guildId, platform)) >=
+                    MAX_SUBSCRIPTIONS_PER_PLATFORM
+                ) {
+                    await dbAuditLogCreate(
+                        guildId,
+                        "subscription_created",
+                        "failure",
+                        { platform, platformUserId, reason: "limit_reached" },
+                    );
+                    await replyWithQuickEmbed(
+                        interaction,
+                        limitMessage,
+                        EmbedType.Error,
+                    );
+
+                    return;
+                }
+            } catch (error) {
+                console.error("Failed to count subscriptions:", error);
+                await replyWithQuickEmbed(
+                    interaction,
+                    "Failed to check the subscription limit. Please try again.",
+                    EmbedType.Error,
+                );
+
+                return;
+            }
+
             switch (targetPlatform) {
                 case "youtube": {
                     const contentType = interaction.options.get("content_type")
@@ -496,7 +535,6 @@ const commands: Record<string, Command> = {
                             guildId,
                         );
 
-                    console.log(trackedChannels);
                     if (!trackedChannels || !trackedChannels.success) {
                         // TODO: Embed
                         await replyWithQuickEmbed(
@@ -579,22 +617,21 @@ const commands: Record<string, Command> = {
                     }
 
                     // Add the guild to the database
-                    if (
-                        (
-                            await discordAddGuildTrackingUser(
-                                guildId,
-                                Platform.YouTube,
-                                platformUserId,
-                                discordChannelId,
-                                (interaction.options.get("role")
-                                    ?.value as string) ?? null,
-                                isDm,
-                                shouldTrackVideos,
-                                shouldTrackShorts,
-                                shouldTrackStreams,
-                            )
-                        ).success
-                    ) {
+                    const subscriptionResult =
+                        await discordAddGuildTrackingUser(
+                            guildId,
+                            Platform.YouTube,
+                            platformUserId,
+                            discordChannelId,
+                            (interaction.options.get("role")
+                                ?.value as string) ?? null,
+                            isDm,
+                            shouldTrackVideos,
+                            shouldTrackShorts,
+                            shouldTrackStreams,
+                        );
+
+                    if (subscriptionResult.success) {
                         const youtubeChannelInfo =
                             await getChannelDetails(platformUserId);
 
@@ -608,6 +645,12 @@ const commands: Record<string, Command> = {
                                     ),
                             ],
                         });
+                    } else if (subscriptionResult.reason === "limit_reached") {
+                        await replyWithQuickEmbed(
+                            interaction,
+                            limitMessage,
+                            EmbedType.Error,
+                        );
                     } else {
                         await replyWithQuickEmbed(
                             interaction,
@@ -641,7 +684,6 @@ const commands: Record<string, Command> = {
                             guildId,
                         );
 
-                    console.log(trackedChannels);
                     if (!trackedChannels || !trackedChannels.success) {
                         // TODO: Embed
                         await replyWithQuickEmbed(
@@ -729,24 +771,29 @@ const commands: Record<string, Command> = {
                     }
 
                     // Add the guild to the database
-                    if (
-                        (
-                            await discordAddGuildTrackingUser(
-                                guildId,
-                                Platform.Twitch,
-                                platformUserId,
-                                discordChannelId,
-                                (interaction.options.get("role")
-                                    ?.value as string) ?? null,
-                                isDm,
-                            )
-                        ).success
-                    ) {
+                    const subscriptionResult =
+                        await discordAddGuildTrackingUser(
+                            guildId,
+                            Platform.Twitch,
+                            platformUserId,
+                            discordChannelId,
+                            (interaction.options.get("role")
+                                ?.value as string) ?? null,
+                            isDm,
+                        );
+
+                    if (subscriptionResult.success) {
                         await replyWithQuickEmbed(
                             interaction,
                             `Started tracking the streamer ${streamerName} in <#${targetChannel?.id}>!`,
                             EmbedType.Success,
                             { title: "Tracking Started" },
+                        );
+                    } else if (subscriptionResult.reason === "limit_reached") {
+                        await replyWithQuickEmbed(
+                            interaction,
+                            limitMessage,
+                            EmbedType.Error,
                         );
                     } else {
                         await replyWithQuickEmbed(
@@ -938,11 +985,6 @@ const commands: Record<string, Command> = {
             try {
                 const trackedChannels = await discordGetAllTrackedInGuild(
                     interaction.guildId ?? (interaction.channelId as string),
-                );
-
-                console.dir(
-                    { message: "Tracked channels:", data: trackedChannels },
-                    { depth: null },
                 );
 
                 if (!trackedChannels || !trackedChannels.success) {

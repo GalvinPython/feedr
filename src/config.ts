@@ -1,3 +1,5 @@
+export const MAX_SUBSCRIPTIONS_PER_PLATFORM = 50;
+
 // FILL IN THIS INFORMATION IN .ENV
 export const runningInDevMode: boolean = process.argv.includes("--dev");
 

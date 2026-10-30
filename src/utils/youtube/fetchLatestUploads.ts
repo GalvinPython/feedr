@@ -134,6 +134,7 @@ async function fetchUploads(enqueue: boolean): Promise<boolean> {
             try {
                 const updated = await seedChannelVideoHistory(
                     channel.youtubeChannelId,
+                    channel.latestAllId,
                 );
 
                 if (!updated)

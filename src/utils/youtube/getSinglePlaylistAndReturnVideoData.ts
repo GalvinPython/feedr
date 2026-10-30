@@ -38,6 +38,7 @@ export async function getAllUploadIds(channelId: string): Promise<string[]> {
             `https://youtube.googleapis.com/youtube/v3/playlistItems?${params}`,
         );
 
+        if (res.status === 404) return ids;
         if (!res.ok)
             throw new Error(`YouTube uploads request failed: ${res.status}`);
         const data = (await res.json()) as {

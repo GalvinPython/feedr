@@ -122,10 +122,7 @@ export async function addNewChannelToTrack(
                 target: dbYouTubeTable.youtubeChannelId,
                 set: {
                     ...channelData,
-                    previousVideoIds: sql`ARRAY(SELECT DISTINCT id FROM unnest(${dbYouTubeTable.previousVideoIds} || ARRAY[${sql.join(
-                        previousVideoIds.map((id) => sql`${id}`),
-                        sql`, `,
-                    )}]::text[] || ARRAY[${dbYouTubeTable.latestAllId}, ${dbYouTubeTable.latestVideoId}, ${dbYouTubeTable.latestShortId}, ${dbYouTubeTable.latestStreamId}]) AS id WHERE id IS NOT NULL)`,
+                    previousVideoIds: sql`ARRAY(SELECT DISTINCT id FROM unnest(${dbYouTubeTable.previousVideoIds} || ${sql.param(previousVideoIds)}::text[] || ARRAY[${dbYouTubeTable.latestAllId}, ${dbYouTubeTable.latestVideoId}, ${dbYouTubeTable.latestShortId}, ${dbYouTubeTable.latestStreamId}]) AS id WHERE id IS NOT NULL)`,
                     latestAllId: sql`coalesce(${channelData.latestAllId}, ${dbYouTubeTable.latestAllId})`,
                     latestVideoId: sql`coalesce(${channelData.latestVideoId}, ${dbYouTubeTable.latestVideoId})`,
                     latestShortId: sql`coalesce(${channelData.latestShortId}, ${dbYouTubeTable.latestShortId})`,
@@ -149,15 +146,15 @@ export async function addNewChannelToTrack(
 
 export async function seedChannelVideoHistory(
     channelId: string,
+    latestAllId: string | null,
 ): Promise<typeof dbYouTubeTable.$inferSelect | undefined> {
-    const ids = await getAllUploadIds(channelId);
+    const uploads = await getAllUploadIds(channelId);
+    const latestIndex = latestAllId ? uploads.indexOf(latestAllId) : -1;
+    const ids = latestIndex >= 0 ? uploads.slice(latestIndex) : uploads;
     const [updated] = await db
         .update(dbYouTubeTable)
         .set({
-            previousVideoIds: sql`ARRAY(SELECT DISTINCT id FROM unnest(${dbYouTubeTable.previousVideoIds} || ARRAY[${sql.join(
-                ids.map((id) => sql`${id}`),
-                sql`, `,
-            )}]::text[] || ARRAY[${dbYouTubeTable.latestAllId}, ${dbYouTubeTable.latestVideoId}, ${dbYouTubeTable.latestShortId}, ${dbYouTubeTable.latestStreamId}]) AS id WHERE id IS NOT NULL)`,
+            previousVideoIds: sql`ARRAY(SELECT DISTINCT id FROM unnest(${dbYouTubeTable.previousVideoIds} || ${sql.param(ids)}::text[] || ARRAY[${dbYouTubeTable.latestAllId}, ${dbYouTubeTable.latestVideoId}, ${dbYouTubeTable.latestShortId}, ${dbYouTubeTable.latestStreamId}]) AS id WHERE id IS NOT NULL)`,
             videoHistoryInitialized: true,
         })
         .where(eq(dbYouTubeTable.youtubeChannelId, channelId))

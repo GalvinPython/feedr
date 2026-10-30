@@ -22,11 +22,12 @@ export default async function (
 
     if (!data.items || data.items.length === 0) return null;
 
-    if (!data.items || data.items.length === 0) return null;
-
     return {
         channelName: data.items[0].snippet.title,
-        channelPfp: data.items[0].snippet.thumbnails.medium.url,
+        channelPfp:
+            data.items[0].snippet.thumbnails?.medium?.url ??
+            data.items[0].snippet.thumbnails?.default?.url ??
+            "",
         channelHandle: data.items[0].snippet.customUrl,
     };
 }

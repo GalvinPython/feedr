@@ -1,6 +1,7 @@
-import { eq, and, getTableColumns } from "drizzle-orm";
+import { eq, and, count, getTableColumns } from "drizzle-orm";
 
 import { Platform } from "../types/types.d";
+import { MAX_SUBSCRIPTIONS_PER_PLATFORM } from "../config";
 
 import { db } from "./db";
 import {
@@ -85,6 +86,24 @@ export async function checkIfGuildIsTrackingUserAlready(
     }
 }
 
+export async function getGuildSubscriptionCount(
+    guildId: string,
+    platform: Platform,
+): Promise<number> {
+    const table =
+        platform === Platform.YouTube
+            ? dbGuildYouTubeSubscriptionsTable
+            : dbGuildTwitchSubscriptionsTable;
+    const [result] = await db
+        .select({ count: count() })
+        .from(table)
+        .where(eq(table.guildId, guildId));
+
+    return result.count;
+}
+
+class SubscriptionLimitError extends Error {}
+
 export async function discordAddGuildTrackingUser(
     guildId: string,
     platform: Platform,
@@ -97,13 +116,31 @@ export async function discordAddGuildTrackingUser(
     youtubeTrackVideos?: boolean | null,
     youtubeTrackShorts?: boolean | null,
     youtubeTrackLive?: boolean | null,
-): Promise<{ success: boolean; data: [] }> {
+): Promise<{ success: boolean; data: []; reason?: "limit_reached" }> {
     console.log(
         `Adding guild ${guildId} tracking for user ${platformUserId} on platform ${platform}`,
     );
 
     try {
         await db.transaction(async (tx) => {
+            const [guild] = await tx
+                .select()
+                .from(dbDiscordTable)
+                .where(eq(dbDiscordTable.guildId, guildId))
+                .for("update");
+
+            if (!guild) throw new Error("Guild does not exist.");
+            const table =
+                platform === Platform.YouTube
+                    ? dbGuildYouTubeSubscriptionsTable
+                    : dbGuildTwitchSubscriptionsTable;
+            const [current] = await tx
+                .select({ count: count() })
+                .from(table)
+                .where(eq(table.guildId, guildId));
+
+            if (current.count >= MAX_SUBSCRIPTIONS_PER_PLATFORM)
+                throw new SubscriptionLimitError();
             if (platform === Platform.YouTube) {
                 if (
                     youtubeTrackVideos == null ||
@@ -166,8 +203,12 @@ export async function discordAddGuildTrackingUser(
             notificationChannelId: guildChannelId,
             roleId,
             isDm,
-            error: String(error),
+            ...(error instanceof SubscriptionLimitError
+                ? { reason: "limit_reached" }
+                : { error: String(error) }),
         });
+        if (error instanceof SubscriptionLimitError)
+            return { success: false, data: [], reason: "limit_reached" };
         console.error("Error adding guild tracking user:", error);
 
         return { success: false, data: [] };
@@ -494,6 +535,30 @@ export async function discordAddNewGuild(
                     ),
                 )
                 .returning();
+
+            if (reactivated.length) {
+                const youtube = await tx
+                    .select()
+                    .from(dbGuildYouTubeSubscriptionsTable)
+                    .where(
+                        eq(dbGuildYouTubeSubscriptionsTable.guildId, guildId),
+                    );
+                const twitch = await tx
+                    .select()
+                    .from(dbGuildTwitchSubscriptionsTable)
+                    .where(
+                        eq(dbGuildTwitchSubscriptionsTable.guildId, guildId),
+                    );
+
+                for (const channelId of [
+                    ...new Set(youtube.map((row) => row.youtubeChannelId)),
+                ].sort())
+                    await syncYouTubeChannelActiveState(channelId, tx);
+                for (const channelId of [
+                    ...new Set(twitch.map((row) => row.twitchChannelId)),
+                ].sort())
+                    await syncTwitchChannelActiveState(channelId, tx);
+            }
 
             if (!isDm && !reactivated.length)
                 await tx
