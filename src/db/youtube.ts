@@ -14,7 +14,10 @@ export async function dbYouTubeGetAllChannelsToTrack(): Promise<{
     data: (typeof dbYouTubeTable.$inferSelect)[];
 }> {
     try {
-        const result = await db.select().from(dbYouTubeTable);
+        const result = await db
+            .select()
+            .from(dbYouTubeTable)
+            .where(eq(dbYouTubeTable.isActive, true));
 
         return {
             success: true,
@@ -80,8 +83,9 @@ export async function addNewChannelToTrack(
             PlaylistType.Stream,
         );
 
-        await db.insert(dbYouTubeTable).values({
+        const channelData = {
             youtubeChannelId: channelId,
+            isActive: false,
             youtubeChannelName: channelDetails?.channelName ?? "",
             latestAllId: latestId?.videoId ?? null,
             latestVideoId: longId?.videoId ?? null,
@@ -93,7 +97,16 @@ export async function addNewChannelToTrack(
             // TODO: Add better streaming capabilities in the future
             youtubeChannelIsLive: false,
             youtubeLiveIds: [],
-        });
+        };
+
+        await db
+            .insert(dbYouTubeTable)
+            .values(channelData)
+            .onConflictDoUpdate({
+                target: dbYouTubeTable.youtubeChannelId,
+                set: channelData,
+                setWhere: eq(dbYouTubeTable.isActive, false),
+            });
 
         console.log("Channel added to track successfully:", channelId);
 

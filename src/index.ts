@@ -9,7 +9,6 @@ import client from "./client";
 import { env } from "./config.ts";
 import commandsMap from "./commands.ts";
 import { getTwitchToken } from "./utils/twitch/auth.ts";
-import updateGuildsOnStartup from "./utils/discord/updateGuildsOnStartup.ts";
 
 if (!env.discordToken || env.discordToken === "YOUR_DISCORD_TOKEN") {
     throw new Error("You MUST provide a discord token in .env!");
@@ -66,9 +65,6 @@ if (!(await getTwitchToken())) {
 await client.login(env.discordToken);
 
 export default client;
-
-// Update the guilds on startup
-await updateGuildsOnStartup();
 
 // Attempt the garbage collection every hour
 setInterval(

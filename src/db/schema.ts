@@ -25,6 +25,7 @@ export const dbDiscordTable = pgTable("discord", {
 export const dbYouTubeTable = pgTable("youtube", {
     youtubeChannelId: text("youtube_channel_id").primaryKey(),
     youtubeChannelName: text("youtube_channel_name").notNull().default(""),
+    isActive: boolean("is_active").notNull().default(true),
     latestAllId: text("latest_all_id"), // For verification and optimisation purposes
     latestVideoId: text("latest_video_id"),
     latestVideoIdUpdated: timestamp("latest_video_id_updated"),
@@ -40,6 +41,7 @@ export const dbYouTubeTable = pgTable("youtube", {
 
 export const dbTwitchTable = pgTable("twitch", {
     twitchChannelId: text("twitch_channel_id").primaryKey(),
+    isActive: boolean("is_active").notNull().default(true),
     twitchChannelIsLive: boolean("twitch_channel_is_live").notNull().default(false),
     twitchChannelName: text("twitch_channel_name").notNull().default(""),
 }, (table) => [

@@ -1,97 +1,71 @@
-// Checks for any guilds that may have been added/removed while the bot was offline
 import { eq } from "drizzle-orm";
 
 import { dbDiscordTable } from "../../db/schema";
 import client from "../../client";
 import { db } from "../../db/db";
-import { config } from "../../config";
+import {
+    discordAddNewGuild,
+    discordRemoveGuildFromTracking,
+} from "../../db/discord";
+import {
+    syncTwitchChannelActiveState,
+    syncYouTubeChannelActiveState,
+} from "../../db/channelActiveState";
 
-export default async function () {
-    console.log("Checking for guilds to update on startup...");
+export default async function updateGuildsOnStartup() {
+    try {
+        // A failed fetch must never trigger deletion.
+        const guildIds = new Set<string>();
+        let after: string | undefined;
+        let hasMore = true;
 
-    let currentGuilds: string[] = [];
+        while (hasMore) {
+            const page = await client.guilds.fetch({ limit: 200, after });
 
-    // Keep checking every 10 seconds until currentGuilds is not empty
-    while (currentGuilds.length === 0) {
-        console.log("Waiting for guilds to load...");
-        currentGuilds = client.guilds.cache.map((guild) => guild.id);
-        if (currentGuilds.length === 0) {
-            await new Promise((resolve) =>
-                setTimeout(resolve, config.discordWaitForGuildCacheTime),
-            );
+            for (const guild of page.values()) guildIds.add(guild.id);
+            hasMore = page.size === 200;
+            if (hasMore) {
+                after = page.last()?.id;
+                if (!after)
+                    throw new Error("Could not paginate Discord guilds");
+            }
         }
-    }
+        const stored = await db
+            .select()
+            .from(dbDiscordTable)
+            .where(eq(dbDiscordTable.isDm, false));
 
-    // Get all the guilds from the database
-    const data = await db.select().from(dbDiscordTable);
+        for (const guild of stored) {
+            if (!guildIds.has(guild.guildId)) {
+                const result = await discordRemoveGuildFromTracking(
+                    guild.guildId,
+                );
 
-    console.log(
-        `Currently in ${currentGuilds.length} guilds, checking against ${data.length} in the database.`,
-    );
-
-    // Find any guilds that are in the database but not in the current guilds
-    const missingGuilds = data.filter(
-        (guild) => !currentGuilds.includes(guild.guildId) && !guild.isDm,
-    );
-
-    // Find any guilds that are in the current guilds but not in the database
-    const newGuilds = currentGuilds.filter(
-        (id) => !data.some((guild) => guild.guildId === id),
-    );
-
-    // Update the database for missing guilds
-    try {
-        await Promise.all(
-            missingGuilds.map(async (guild) => {
-                console.log(`Removing guild from tracking: ${guild.guildId}`);
-                const result = await db
+                if (!result.success)
+                    throw new Error(`Failed to remove guild ${guild.guildId}`);
+            } else if (!guild.isInServer) {
+                await db
                     .update(dbDiscordTable)
-                    .set({ isInServer: false })
-                    .where(eq(dbDiscordTable.guildId, guild.guildId))
-                    .returning();
+                    .set({ isInServer: true })
+                    .where(eq(dbDiscordTable.guildId, guild.guildId));
+            }
+        }
+        for (const guildId of guildIds) {
+            if (!stored.some((row) => row.guildId === guildId)) {
+                const fullGuild = await client.guilds.fetch(guildId);
+                const result = await discordAddNewGuild(
+                    guildId,
+                    false,
+                    fullGuild.memberCount,
+                );
 
-                if (result.length > 0) {
-                    console.log(
-                        `Successfully removed guild ${guild.guildId} from tracking.`,
-                    );
-                } else {
-                    console.error(
-                        `Failed to remove guild ${guild.guildId} from tracking.`,
-                    );
-                }
-            }),
-        );
+                if (!result.success)
+                    throw new Error(`Failed to add guild ${guildId}`);
+            }
+        }
+        await syncYouTubeChannelActiveState();
+        await syncTwitchChannelActiveState();
     } catch (error) {
-        console.error("Error while removing missing guilds:", error);
-    }
-
-    try {
-        await Promise.all(
-            newGuilds.map(async (guildId) => {
-                console.log(`Adding new guild to tracking: ${guildId}`);
-                const result = await db
-                    .insert(dbDiscordTable)
-                    .values({
-                        guildId,
-                        allowedPublicSharing: false,
-                        feedrUpdatesChannelId: null,
-                        isInServer: true,
-                        memberCount: 0,
-                    })
-                    .returning();
-
-                if (result.length > 0) {
-                    console.log(
-                        `Successfully added guild ${guildId} to tracking.`,
-                    );
-                } else {
-                    console.error(
-                        `Failed to add guild ${guildId} to tracking.`,
-                    );
-                }
-            }),
-        );
-    } catch (error) {
-        console.error("Error while adding new guilds:", error);
+        console.error("Error reconciling Discord guilds:", error);
     }
 }

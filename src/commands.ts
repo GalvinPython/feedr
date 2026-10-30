@@ -547,9 +547,11 @@ const commands: Record<string, Command> = {
                             `Failed to check global tracking status for YouTube channel ${platformUserId}. This is an internal error, please report it to the developer.`,
                             EmbedType.Error,
                         );
+
+                        return;
                     } else if (
-                        isChannelTracked.success &&
-                        isChannelTracked.data.length == 0
+                        isChannelTracked.data.length === 0 ||
+                        !isChannelTracked.data[0].isActive
                     ) {
                         console.log(
                             `Channel ${platformUserId} is not tracked globally, adding it now...`,
@@ -570,18 +572,20 @@ const commands: Record<string, Command> = {
 
                     // Add the guild to the database
                     if (
-                        await discordAddGuildTrackingUser(
-                            guildId,
-                            Platform.YouTube,
-                            platformUserId,
-                            discordChannelId,
-                            (interaction.options.get("role")
-                                ?.value as string) ?? null,
-                            isDm,
-                            shouldTrackVideos,
-                            shouldTrackShorts,
-                            shouldTrackStreams,
-                        )
+                        (
+                            await discordAddGuildTrackingUser(
+                                guildId,
+                                Platform.YouTube,
+                                platformUserId,
+                                discordChannelId,
+                                (interaction.options.get("role")
+                                    ?.value as string) ?? null,
+                                isDm,
+                                shouldTrackVideos,
+                                shouldTrackShorts,
+                                shouldTrackStreams,
+                            )
+                        ).success
                     ) {
                         const youtubeChannelInfo =
                             await getChannelDetails(platformUserId);
@@ -690,9 +694,11 @@ const commands: Record<string, Command> = {
                             `Failed to check global tracking status for Twitch streamer ${streamerName}.`,
                             EmbedType.Error,
                         );
+
+                        return;
                     } else if (
-                        isChannelTracked.success &&
-                        isChannelTracked.data.length == 0
+                        isChannelTracked.data.length === 0 ||
+                        !isChannelTracked.data[0].isActive
                     ) {
                         console.log(
                             `Channel ${platformUserId} is not tracked globally, adding it now...`,
@@ -718,15 +724,17 @@ const commands: Record<string, Command> = {
 
                     // Add the guild to the database
                     if (
-                        await discordAddGuildTrackingUser(
-                            guildId,
-                            Platform.Twitch,
-                            platformUserId,
-                            discordChannelId,
-                            (interaction.options.get("role")
-                                ?.value as string) ?? null,
-                            isDm,
-                        )
+                        (
+                            await discordAddGuildTrackingUser(
+                                guildId,
+                                Platform.Twitch,
+                                platformUserId,
+                                discordChannelId,
+                                (interaction.options.get("role")
+                                    ?.value as string) ?? null,
+                                isDm,
+                            )
+                        ).success
                     ) {
                         await replyWithQuickEmbed(
                             interaction,
@@ -757,9 +765,9 @@ const commands: Record<string, Command> = {
                 const query =
                     platform === "youtube"
                         ? (interaction.options.get("channel_id")
-                            ?.value as string)
+                              ?.value as string)
                         : (interaction.options.get("streamer_id")
-                            ?.value as string);
+                              ?.value as string);
 
                 // If the query is empty or not a string, return an empty array
                 if (!query || typeof query !== "string") {
@@ -863,8 +871,8 @@ const commands: Record<string, Command> = {
                 platform === Platform.YouTube
                     ? "YouTube"
                     : platform === Platform.Twitch
-                        ? "Twitch"
-                        : "Unknown";
+                      ? "Twitch"
+                      : "Unknown";
 
             // Check the permissions of the user
             if (
@@ -1320,7 +1328,8 @@ const commands: Record<string, Command> = {
             if (currentState === desiredState) {
                 await replyWithQuickEmbed(
                     interaction,
-                    `Updates are already ${desiredState ? "enabled" : "disabled"
+                    `Updates are already ${
+                        desiredState ? "enabled" : "disabled"
                     } for <#${channelId}>.`,
                     EmbedType.Warning,
                 );

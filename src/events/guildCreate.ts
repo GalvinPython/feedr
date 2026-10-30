@@ -7,7 +7,7 @@ client.on(Events.GuildCreate, async (guild) => {
     console.log(`Joined new guild: ${guild.name} (ID: ${guild.id})`);
 
     // Add the new guild to tracking
-    const result = await discordAddNewGuild(guild.id);
+    const result = await discordAddNewGuild(guild.id, false, guild.memberCount);
 
     if (result.success) {
         console.log(`Successfully added guild ${guild.id} to tracking.`);
