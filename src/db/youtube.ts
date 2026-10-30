@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import getSinglePlaylistAndReturnVideoId, {
     PlaylistType,
@@ -104,7 +104,16 @@ export async function addNewChannelToTrack(
             .values(channelData)
             .onConflictDoUpdate({
                 target: dbYouTubeTable.youtubeChannelId,
-                set: channelData,
+                set: {
+                    ...channelData,
+                    latestAllId: sql`coalesce(${channelData.latestAllId}, ${dbYouTubeTable.latestAllId})`,
+                    latestVideoId: sql`coalesce(${channelData.latestVideoId}, ${dbYouTubeTable.latestVideoId})`,
+                    latestShortId: sql`coalesce(${channelData.latestShortId}, ${dbYouTubeTable.latestShortId})`,
+                    latestStreamId: sql`coalesce(${channelData.latestStreamId}, ${dbYouTubeTable.latestStreamId})`,
+                    latestVideoIdUpdated: sql`coalesce(${channelData.latestVideoIdUpdated}, ${dbYouTubeTable.latestVideoIdUpdated})`,
+                    latestShortIdUpdated: sql`coalesce(${channelData.latestShortIdUpdated}, ${dbYouTubeTable.latestShortIdUpdated})`,
+                    latestStreamIdUpdated: sql`coalesce(${channelData.latestStreamIdUpdated}, ${dbYouTubeTable.latestStreamIdUpdated})`,
+                },
                 setWhere: eq(dbYouTubeTable.isActive, false),
             });
 
@@ -126,11 +135,8 @@ export async function youtubeUpdateVideoId(
     updateTime: Date,
 ): Promise<{ success: boolean; data?: typeof dbYouTubeTable.$inferSelect }> {
     try {
-        const updateData: Record<string, unknown> = {
-            latestAllId: null,
-            latestVideoId: null,
-            latestShortId: null,
-            latestStreamId: null,
+        const updateData: Partial<typeof dbYouTubeTable.$inferInsert> = {
+            latestAllId: videoId,
         };
 
         switch (contentType) {
@@ -158,7 +164,6 @@ export async function youtubeUpdateVideoId(
 
         // Always update the "all" column regardless of the content type
         updateData.latestAllId = videoId;
-        updateData.latestAllIdUpdated = updateTime;
 
         const [updated] = await db
             .update(dbYouTubeTable)

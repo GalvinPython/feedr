@@ -88,7 +88,7 @@ async function migrate() {
         .from(sqliteSchema.sqliteYouTube);
 
     for (const row of youtubeRows) {
-        if (!checkIfChannelIdIsValid(row.youtubeChannelId)) {
+        if (!(await checkIfChannelIdIsValid(row.youtubeChannelId))) {
             console.log(
                 new Date(),
                 `⚠️  Skipping YouTube channel ID ${row.youtubeChannelId} as it is not a valid channel ID.`,

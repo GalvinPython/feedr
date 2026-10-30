@@ -11,6 +11,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
             return console.log(`Command ${interaction.commandName} not found`);
         }
 
-        return getCommand.execute(interaction);
+        try {
+            await getCommand.execute(interaction);
+        } catch (error) {
+            console.error("Command execute failed:", error);
+            if (interaction.deferred || interaction.replied)
+                await interaction.editReply({ content: "The command failed." });
+            else
+                await interaction.reply({
+                    content: "The command failed.",
+                    ephemeral: true,
+                });
+        }
     }
 });

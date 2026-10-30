@@ -5,7 +5,7 @@ import type {
 
 import { env } from "../../config";
 
-import { twitchToken } from "./auth";
+import { twitchToken, twitchFetch } from "./auth";
 
 export default async function search(
     searchQuery: string,
@@ -16,14 +16,8 @@ export default async function search(
         return null;
     }
 
-    const res = await fetch(
+    const res = await twitchFetch(
         `https://api.twitch.tv/helix/search/channels?query=${searchQuery}`,
-        {
-            headers: {
-                Authorization: `Bearer ${twitchToken}`,
-                "Client-Id": env.twitchClientId,
-            },
-        },
     );
 
     console.log(

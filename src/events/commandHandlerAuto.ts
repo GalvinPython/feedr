@@ -12,6 +12,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 `${interaction.user.displayName} tried to do autocomplete for /${interaction.commandName} (${interaction.commandId}) but it wasn't found.`,
             );
 
-        return getCommand.autoComplete(interaction);
+        try {
+            await getCommand.autoComplete(interaction);
+        } catch (error) {
+            console.error("Command autoComplete failed:", error);
+            if (!interaction.responded) await interaction.respond([]);
+        }
     }
 });

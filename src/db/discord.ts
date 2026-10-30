@@ -3,6 +3,10 @@ import { eq, and, getTableColumns } from "drizzle-orm";
 import { Platform } from "../types/types.d";
 
 import { db } from "./db";
+import {
+    deleteQueuedNotificationsForGuild,
+    deleteQueuedNotificationsForSubscription,
+} from "./messageQueue";
 import { dbAuditLogCreate } from "./audit";
 import {
     syncTwitchChannelActiveState,
@@ -111,6 +115,11 @@ export async function discordAddGuildTrackingUser(
                     );
                 }
 
+                await tx
+                    .select()
+                    .from(dbYouTubeTable)
+                    .where(eq(dbYouTubeTable.youtubeChannelId, platformUserId))
+                    .for("update");
                 await tx.insert(dbGuildYouTubeSubscriptionsTable).values({
                     youtubeChannelId: platformUserId,
                     guildId,
@@ -123,6 +132,11 @@ export async function discordAddGuildTrackingUser(
                 });
                 await syncYouTubeChannelActiveState(platformUserId, tx);
             } else if (platform === Platform.Twitch) {
+                await tx
+                    .select()
+                    .from(dbTwitchTable)
+                    .where(eq(dbTwitchTable.twitchChannelId, platformUserId))
+                    .for("update");
                 await tx.insert(dbGuildTwitchSubscriptionsTable).values({
                     twitchChannelId: platformUserId,
                     guildId,
@@ -324,58 +338,117 @@ export async function discordGetAllTrackedInGuild(guildId: string): Promise<
 // Remove tracking for a specific channel in a guild
 export async function discordRemoveGuildTrackingChannel(
     trackingId: string,
-): Promise<{ success: boolean; data: [] }> {
-    console.log(`Removing tracking for ID: ${trackingId}`);
-
+    guildId: string,
+): Promise<{
+    success: boolean;
+    data: (
+        | typeof dbGuildYouTubeSubscriptionsTable.$inferSelect
+        | typeof dbGuildTwitchSubscriptionsTable.$inferSelect
+    )[];
+}> {
     const parts = trackingId.split(".");
 
-    if (parts.length !== 2) {
-        console.error(
-            "Invalid trackingId format. Expected format: 'platform.id'",
-        );
+    if (parts.length !== 2) return { success: false, data: [] };
+    const [platform, rawId] = parts;
+    const id = Number(rawId);
 
-        return { success: false, data: [] };
-    }
-
-    const [platform, platformTrackingId] = parts;
-
+    if (!Number.isInteger(id) || id <= 0) return { success: false, data: [] };
     try {
-        await db.transaction(async (tx) => {
+        const deleted = await db.transaction(async (tx) => {
             if (platform === Platform.YouTube) {
-                const deleted = await tx
+                const [row] = await tx
+                    .select()
+                    .from(dbGuildYouTubeSubscriptionsTable)
+                    .where(
+                        and(
+                            eq(dbGuildYouTubeSubscriptionsTable.id, id),
+                            eq(
+                                dbGuildYouTubeSubscriptionsTable.guildId,
+                                guildId,
+                            ),
+                        ),
+                    );
+
+                if (!row) return [];
+                await tx
+                    .select()
+                    .from(dbYouTubeTable)
+                    .where(
+                        eq(
+                            dbYouTubeTable.youtubeChannelId,
+                            row.youtubeChannelId,
+                        ),
+                    )
+                    .for("update");
+                const result = await tx
                     .delete(dbGuildYouTubeSubscriptionsTable)
                     .where(
-                        eq(
-                            dbGuildYouTubeSubscriptionsTable.id,
-                            Number(platformTrackingId),
+                        and(
+                            eq(dbGuildYouTubeSubscriptionsTable.id, id),
+                            eq(
+                                dbGuildYouTubeSubscriptionsTable.guildId,
+                                guildId,
+                            ),
                         ),
                     )
                     .returning();
 
-                for (const row of deleted)
-                    await syncYouTubeChannelActiveState(
-                        row.youtubeChannelId,
-                        tx,
+                await syncYouTubeChannelActiveState(row.youtubeChannelId, tx);
+
+                return result;
+            }
+            if (platform === Platform.Twitch) {
+                const [row] = await tx
+                    .select()
+                    .from(dbGuildTwitchSubscriptionsTable)
+                    .where(
+                        and(
+                            eq(dbGuildTwitchSubscriptionsTable.id, id),
+                            eq(
+                                dbGuildTwitchSubscriptionsTable.guildId,
+                                guildId,
+                            ),
+                        ),
                     );
-            } else if (platform === Platform.Twitch) {
-                const deleted = await tx
+
+                if (!row) return [];
+                await tx
+                    .select()
+                    .from(dbTwitchTable)
+                    .where(
+                        eq(dbTwitchTable.twitchChannelId, row.twitchChannelId),
+                    )
+                    .for("update");
+                const result = await tx
                     .delete(dbGuildTwitchSubscriptionsTable)
                     .where(
-                        eq(
-                            dbGuildTwitchSubscriptionsTable.id,
-                            Number(platformTrackingId),
+                        and(
+                            eq(dbGuildTwitchSubscriptionsTable.id, id),
+                            eq(
+                                dbGuildTwitchSubscriptionsTable.guildId,
+                                guildId,
+                            ),
                         ),
                     )
                     .returning();
 
-                for (const row of deleted)
-                    await syncTwitchChannelActiveState(row.twitchChannelId, tx);
-            } else {
-                throw new Error("Invalid platform provided for removal.");
+                await syncTwitchChannelActiveState(row.twitchChannelId, tx);
+
+                return result;
             }
+
+            return [];
         });
 
-        return { success: true, data: [] };
+        for (const row of deleted)
+            if ("youtubeChannelId" in row)
+                deleteQueuedNotificationsForSubscription(
+                    guildId,
+                    row.youtubeChannelId,
+                    row.notificationChannelId,
+                );
+
+        return { success: deleted.length > 0, data: deleted };
     } catch (error) {
         console.error("Error removing guild tracking channel:", error);
 
@@ -388,23 +461,50 @@ export async function discordAddNewGuild(
     guildId: string,
     isDm?: boolean,
     memberCount = 0,
-): Promise<{ success: boolean; data: [] }> {
+): Promise<{ success: boolean; data: []; changed?: boolean }> {
     console.log(`Adding new guild to track: ${guildId}`);
 
     try {
-        await db
-            .insert(dbDiscordTable)
-            .values({
-                guildId,
-                allowedPublicSharing: false,
-                isInServer: true,
-                memberCount,
-                isDm: isDm ?? false,
-                feedrUpdatesChannelId: isDm ? guildId : null,
-            })
-            .onConflictDoNothing();
+        const changed = await db.transaction(async (tx) => {
+            const inserted = await tx
+                .insert(dbDiscordTable)
+                .values({
+                    guildId,
+                    allowedPublicSharing: false,
+                    isInServer: true,
+                    memberCount,
+                    isDm: isDm ?? false,
+                    feedrUpdatesChannelId: isDm ? guildId : null,
+                })
+                .onConflictDoNothing()
+                .returning();
 
-        return { success: true, data: [] };
+            if (inserted.length) return true;
+            const reactivated = await tx
+                .update(dbDiscordTable)
+                .set(
+                    isDm
+                        ? { isInServer: true }
+                        : { isInServer: true, memberCount },
+                )
+                .where(
+                    and(
+                        eq(dbDiscordTable.guildId, guildId),
+                        eq(dbDiscordTable.isInServer, false),
+                    ),
+                )
+                .returning();
+
+            if (!isDm && !reactivated.length)
+                await tx
+                    .update(dbDiscordTable)
+                    .set({ memberCount })
+                    .where(eq(dbDiscordTable.guildId, guildId));
+
+            return reactivated.length > 0;
+        });
+
+        return { success: true, data: [], changed };
     } catch (error) {
         console.error("Error adding new guild to track:", error);
 
@@ -415,10 +515,12 @@ export async function discordAddNewGuild(
 // Remove a departed guild and its dependent records.
 export async function discordRemoveGuildFromTracking(
     guildId: string,
-): Promise<{ success: boolean; data: [] }> {
+): Promise<{ success: boolean; data: []; changed?: boolean }> {
     console.log(`Removing guild from tracking: ${guildId}`);
 
     try {
+        let removed = false;
+
         await db.transaction(async (tx) => {
             const guild = await tx
                 .select()
@@ -431,6 +533,34 @@ export async function discordRemoveGuildFromTracking(
                 );
 
             if (guild.length === 0) return;
+            removed = true;
+            const youtubeRows = await tx
+                .select()
+                .from(dbGuildYouTubeSubscriptionsTable)
+                .where(eq(dbGuildYouTubeSubscriptionsTable.guildId, guildId));
+            const twitchRows = await tx
+                .select()
+                .from(dbGuildTwitchSubscriptionsTable)
+                .where(eq(dbGuildTwitchSubscriptionsTable.guildId, guildId));
+
+            for (const channelId of [
+                ...new Set(youtubeRows.map((row) => row.youtubeChannelId)),
+            ].sort()) {
+                await tx
+                    .select()
+                    .from(dbYouTubeTable)
+                    .where(eq(dbYouTubeTable.youtubeChannelId, channelId))
+                    .for("update");
+            }
+            for (const channelId of [
+                ...new Set(twitchRows.map((row) => row.twitchChannelId)),
+            ].sort()) {
+                await tx
+                    .select()
+                    .from(dbTwitchTable)
+                    .where(eq(dbTwitchTable.twitchChannelId, channelId))
+                    .for("update");
+            }
             const youtube = await tx
                 .delete(dbGuildYouTubeSubscriptionsTable)
                 .where(eq(dbGuildYouTubeSubscriptionsTable.guildId, guildId))
@@ -449,7 +579,9 @@ export async function discordRemoveGuildFromTracking(
                 await syncTwitchChannelActiveState(row.twitchChannelId, tx);
         });
 
-        return { success: true, data: [] };
+        if (removed) deleteQueuedNotificationsForGuild(guildId);
+
+        return { success: true, data: [], changed: removed };
     } catch (error) {
         console.error("Error removing guild from tracking:", error);
 

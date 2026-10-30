@@ -10,12 +10,13 @@ client.on(Events.GuildDelete, async (guild) => {
     // Remove the guild from tracking
     const result = await discordRemoveGuildFromTracking(guild.id);
 
-    await dbAuditLogCreate(
-        guild.id,
-        "guild_left",
-        result.success ? "success" : "failure",
-        { guildName: guild.name },
-    );
+    if (!result.success || result.changed)
+        await dbAuditLogCreate(
+            guild.id,
+            "guild_left",
+            result.success ? "success" : "failure",
+            { guildName: guild.name },
+        );
     if (result.success) {
         console.log(`Successfully removed guild ${guild.id} from tracking.`);
     } else {

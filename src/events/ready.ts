@@ -14,7 +14,7 @@ client.once(Events.ClientReady, async (bot) => {
     console.log(`Ready! Logged in as ${bot.user?.tag}`);
 
     await updateGuildsOnStartup();
-    new CronJob("0 0 * * *", updateGuildsOnStartup).start();
+    new CronJob("0 0 * * *", () => updateGuildsOnStartup("cron")).start();
 
     // TODO: Reimplement this when the bot is ready
     // await cronUpdateBotInfo();
@@ -27,7 +27,10 @@ client.once(Events.ClientReady, async (bot) => {
     );
 
     fetchLatestUploads();
-    setInterval(fetchLatestUploads, config.updateIntervalYouTube as number);
+    setInterval(
+        () => fetchLatestUploads(),
+        config.updateIntervalYouTube as number,
+    );
 
     sendLatestUploads();
     setInterval(sendLatestUploads, config.updateIntervalYouTube as number);

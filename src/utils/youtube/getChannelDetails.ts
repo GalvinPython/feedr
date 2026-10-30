@@ -20,6 +20,10 @@ export default async function (
     // If channel exists lol
     const data = await res.json();
 
+    if (!data.items || data.items.length === 0) return null;
+
+    if (!data.items || data.items.length === 0) return null;
+
     return {
         channelName: data.items[0].snippet.title,
         channelPfp: data.items[0].snippet.thumbnails.medium.url,
