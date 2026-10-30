@@ -595,7 +595,8 @@ export async function discordRemoveGuildFromTracking(
                         eq(dbDiscordTable.guildId, guildId),
                         eq(dbDiscordTable.isDm, false),
                     ),
-                );
+                )
+                .for("update");
 
             if (guild.length === 0) return;
             removed = true;

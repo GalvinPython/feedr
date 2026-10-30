@@ -35,8 +35,6 @@ export const dbYouTubeTable = pgTable("youtube", {
     latestStreamIdUpdated: timestamp("latest_stream_id_updated"),
     youtubeChannelIsLive: boolean("youtube_channel_is_live").notNull().default(false),
     youtubeLiveIds: text("youtube_live_ids").array().notNull().default([]),
-    previousVideoIds: text("previous_video_ids").array().notNull().default([]),
-    videoHistoryInitialized: boolean("video_history_initialized").notNull().default(false),
 }, (table) => [
     index("idx_youtube_channel_id").on(table.youtubeChannelId),
 ]);

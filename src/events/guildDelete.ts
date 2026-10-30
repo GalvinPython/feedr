@@ -5,7 +5,6 @@ import { dbAuditLogCreate } from "../db/audit";
 import { discordRemoveGuildFromTracking } from "../db/discord";
 
 client.on(Events.GuildDelete, async (guild) => {
-    if (!guild.available) return;
     console.log(`Left guild: ${guild.name} (ID: ${guild.id})`);
 
     // Remove the guild from tracking

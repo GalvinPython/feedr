@@ -8,7 +8,6 @@ import {
 import { env } from "../../config";
 import {
     dbYouTubeGetAllChannelsToTrack,
-    seedChannelVideoHistory,
     youtubeUpdateVideoId,
 } from "../../db/youtube";
 import { discordGetAllGuildsTrackingChannel } from "../../db/discord";
@@ -129,30 +128,6 @@ async function fetchUploads(enqueue: boolean): Promise<boolean> {
         channelDict[channel.youtubeChannelId] = channel;
     });
 
-    for (const channel of Object.values(channelDict)) {
-        if (!channel.videoHistoryInitialized) {
-            try {
-                const updated = await seedChannelVideoHistory(
-                    channel.youtubeChannelId,
-                    channel.latestAllId,
-                );
-
-                if (!updated)
-                    throw new Error(
-                        "Channel disappeared during history initialization",
-                    );
-                channelDict[channel.youtubeChannelId] = updated;
-            } catch (error) {
-                console.error(
-                    "Failed to initialize YouTube video history:",
-                    error,
-                );
-                delete channelDict[channel.youtubeChannelId];
-                succeeded = false;
-            }
-        }
-    }
-
     const chunkSize = 50;
     const channelIds = Object.keys(channelDict).map((channelId) =>
         channelId.replace(/^UC/, "UU"),
@@ -208,13 +183,11 @@ async function fetchUploads(enqueue: boolean): Promise<boolean> {
 
                     if (requiresUpdate) {
                         const channel = channelDict[channelId];
-                        const seen =
-                            channel.previousVideoIds?.includes(videoId) ||
-                            [
-                                channel.latestVideoId,
-                                channel.latestShortId,
-                                channel.latestStreamId,
-                            ].includes(videoId);
+                        const seen = [
+                            channel.latestVideoId,
+                            channel.latestShortId,
+                            channel.latestStreamId,
+                        ].includes(videoId);
 
                         if (seen) {
                             const updated = await youtubeUpdateVideoId(
