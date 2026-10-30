@@ -4,7 +4,6 @@ export const MAX_SUBSCRIPTIONS_PER_PLATFORM = 50;
 export const runningInDevMode: boolean = process.argv.includes("--dev");
 
 // Staging mode is for only testing the production database before breaking the actual production bot
-// Run `bun db:migrate:staging` to migrate the staging database and check for any mistakes before running `bun db:migrate:prod`
 // Do NOT use this mode for regular testing, use --dev for that
 export const runningInStagingMode: boolean = process.argv.includes("--staging");
 
