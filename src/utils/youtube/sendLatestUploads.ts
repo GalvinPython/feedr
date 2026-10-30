@@ -1,57 +1,56 @@
-import { ChannelType, TextChannel } from "discord.js";
+import { DiscordAPIError, RESTJSONErrorCodes } from "discord.js";
 
 import client from "../../client";
+import {
+    deleteQueuedNotification,
+    getQueuedNotifications,
+} from "../../db/messageQueue";
 
-import { updates } from "./fetchLatestUploads";
+let sending = false;
 
-export default async function sendLatestUploads() {
-    for (const [videoId, update] of updates.entries()) {
-        const channelInfo = update.channelInfo;
-        const discordGuildsToUpdate = update.discordGuildsToUpdate;
-
-        console.log("Discord guilds to update:", discordGuildsToUpdate);
-        for (const guild of discordGuildsToUpdate) {
+export default async function sendLatestUploads(): Promise<void> {
+    if (sending) return;
+    sending = true;
+    try {
+        for (const notification of getQueuedNotifications()) {
             try {
-                const channelObj = await client.channels.fetch(
-                    guild.notificationChannelId,
+                const channel = await client.channels.fetch(
+                    notification.notification_channel_id,
                 );
 
-                if (
-                    !channelObj ||
-                    (channelObj.type !== ChannelType.GuildText &&
-                        channelObj.type !== ChannelType.GuildAnnouncement)
-                ) {
+                if (!channel || !channel.isSendable()) {
                     console.error(
-                        "Invalid channel or not a text channel in fetchLatestUploads",
+                        "Notification channel is invalid or cannot receive messages:",
+                        notification.notification_channel_id,
                     );
+                    deleteQueuedNotification(notification.id);
                     continue;
                 }
 
-                console.log(
-                    "Sending message to channel:",
-                    channelObj.id,
-                    "for video ID:",
-                    videoId,
-                );
+                const mention = notification.notification_role_id
+                    ? `<@&${notification.notification_role_id}> `
+                    : "";
+                const name = notification.channel_name
+                    ? ` for ${notification.channel_name}`
+                    : "";
 
-                await (channelObj as TextChannel).send({
-                    content:
-                        guild.notificationRoleId && channelInfo
-                            ? `<@&${guild.notificationRoleId}> New video uploaded for ${channelInfo?.channelName}! https://www.youtube.com/watch?v=${videoId}`
-                            : guild.notificationRoleId
-                                ? `<@&${guild.notificationRoleId}> New video uploaded! https://www.youtube.com/watch?v=${videoId}`
-                                : channelInfo
-                                    ? `New video uploaded for ${channelInfo.channelName}! https://www.youtube.com/watch?v=${videoId}`
-                                    : `New video uploaded! https://www.youtube.com/watch?v=${videoId}`,
+                await channel.send({
+                    content: `${mention}New video uploaded${name}! https://www.youtube.com/watch?v=${notification.video_id}`,
                 });
+                deleteQueuedNotification(notification.id);
             } catch (error) {
-                console.error(
-                    "Error fetching or sending message to channel in fetchLatestUploads:",
-                    error,
-                );
+                if (
+                    error instanceof DiscordAPIError &&
+                    error.code === RESTJSONErrorCodes.UnknownChannel
+                ) {
+                    deleteQueuedNotification(notification.id);
+                }
+                console.error("Error fetching or sending notification:", error);
             }
         }
-        // Remove the processed entry from the updates map
-        updates.delete(videoId);
+    } catch (error) {
+        console.error("Error processing notification queue:", error);
+    } finally {
+        sending = false;
     }
 }
